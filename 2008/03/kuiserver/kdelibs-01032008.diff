@@ -1,0 +1,787 @@
+Index: kio/kio/global.cpp
+===================================================================
+--- kio/kio/global.cpp	(revisión: 780695)
++++ kio/kio/global.cpp	(copia de trabajo)
+@@ -30,7 +30,7 @@
+ #include <kprotocolmanager.h>
+ #include <kde_file.h>
+ #include <kmimetype.h>
+-#include <kwidgetjobtracker.h>
++#include <kuiserverjobtracker.h>
+ 
+ #include <QtCore/QByteArray>
+ #include <QtCore/QDate>
+@@ -47,7 +47,7 @@
+ #include <unistd.h>
+ #include <stdio.h>
+ 
+-K_GLOBAL_STATIC(KWidgetJobTracker, globalJobTracker)
++K_GLOBAL_STATIC(KUiServerJobTracker, globalJobTracker)
+ 
+ // If someone wants the SI-standard prefixes kB/MB/GB/TB, I would recommend
+ // a hidden kconfig option and getting the code from #57240 into the same
+Index: kdeui/jobs/org.kde.JobViewServer.xml
+===================================================================
+--- kdeui/jobs/org.kde.JobViewServer.xml	(revisión: 0)
++++ kdeui/jobs/org.kde.JobViewServer.xml	(revisión: 0)
+@@ -0,0 +1,17 @@
++<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
++"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
++<node>
++  <interface name="org.kde.JobViewServer">
++    <method name="requestView">
++      <arg name="appName" type="s" direction="in"/>
++      <arg name="appIconName" type="s" direction="in"/>
++
++      <!-- 'capabilities' is used as a bit field:
++           0x0001 means that the user should be able to cancel the job
++           0x0002 means that the user should be able to suspend/resume the job
++       -->
++      <arg name="capabilities" type="i" direction="in"/>
++      <arg name="trackerPath" type="o" direction="out"/>
++    </method>
++  </interface>
++</node>
+Index: kdeui/jobs/org.kde.UiServerCallbacks.xml
+===================================================================
+--- kdeui/jobs/org.kde.UiServerCallbacks.xml	(revisión: 780695)
++++ kdeui/jobs/org.kde.UiServerCallbacks.xml	(copia de trabajo)
+@@ -1,11 +0,0 @@
+-<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+-"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+-<node>
+-  <interface name="org.kde.UiServerCallbacks">
+-    <method name="slotActionPerformed">
+-      <arg name="actionId" type="i" direction="in"/>
+-      <arg name="jobId" type="i" direction="in"/>
+-      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
+-    </method>
+-  </interface>
+-</node>
+\ No hay ningún carácter de nueva línea al final del fichero
+Index: kdeui/jobs/org.kde.UiServer.xml
+===================================================================
+--- kdeui/jobs/org.kde.UiServer.xml	(revisión: 780695)
++++ kdeui/jobs/org.kde.UiServer.xml	(copia de trabajo)
+@@ -1,100 +0,0 @@
+-<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+-"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+-<node>
+-  <interface name="org.kde.UiServer">
+-    <method name="newJob">
+-      <arg name="appServiceName" type="s" direction="in"/>
+-      <arg name="capabilities" type="i" direction="in"/>
+-      <arg name="showProgress" type="b" direction="in"/>
+-      <arg name="internalAppName" type="s" direction="in"/>
+-      <arg name="jobIcon" type="s" direction="in"/>
+-      <arg name="appName" type="s" direction="in"/>
+-      <arg name="jobId" type="i" direction="out"/>
+-    </method>
+-    <method name="jobFinished">
+-      <arg name="id" type="i" direction="in"/>
+-      <arg name="errorCode" type="i" direction="in"/>
+-      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
+-    </method>
+-    <method name="jobSuspended">
+-      <arg name="id" type="i" direction="in"/>
+-      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
+-    </method>
+-    <method name="jobResumed">
+-      <arg name="id" type="i" direction="in"/>
+-      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
+-    </method>
+-    <method name="totalSize">
+-      <arg name="id" type="i" direction="in"/>
+-      <arg name="size" type="t" direction="in"/>
+-      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
+-    </method>
+-    <method name="totalFiles">
+-      <arg name="id" type="i" direction="in"/>
+-      <arg name="files" type="u" direction="in"/>
+-      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
+-    </method>
+-    <method name="totalDirs">
+-      <arg name="id" type="i" direction="in"/>
+-      <arg name="dirs" type="u" direction="in"/>
+-      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
+-    </method>
+-    <method name="processedSize">
+-      <arg name="id" type="i" direction="in"/>
+-      <arg name="size" type="t" direction="in"/>
+-      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
+-    </method>
+-    <method name="processedFiles">
+-      <arg name="id" type="i" direction="in"/>
+-      <arg name="files" type="u" direction="in"/>
+-      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
+-    </method>
+-    <method name="processedDirs">
+-      <arg name="id" type="i" direction="in"/>
+-      <arg name="dirs" type="u" direction="in"/>
+-      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
+-    </method>
+-    <method name="percent">
+-      <arg name="id" type="i" direction="in"/>
+-      <arg name="ipercent" type="u" direction="in"/>
+-      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
+-    </method>
+-    <method name="speed">
+-      <arg name="id" type="i" direction="in"/>
+-      <arg name="bytesPerSecond" type="s" direction="in"/>
+-      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
+-    </method>
+-    <method name="infoMessage">
+-      <arg name="id" type="i" direction="in"/>
+-      <arg name="msg" type="s" direction="in"/>
+-      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
+-    </method>
+-    <method name="progressInfoMessage">
+-      <arg name="id" type="i" direction="in"/>
+-      <arg name="msg" type="s" direction="in"/>
+-      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
+-    </method>
+-    <method name="setDescription">
+-      <arg name="id" type="i" direction="in"/>
+-      <arg name="description" type="s" direction="in"/>
+-      <arg name="res" type="b" direction="out"/>
+-    </method>
+-    <method name="setDescriptionFirstField">
+-      <arg name="id" type="i" direction="in"/>
+-      <arg name="name" type="s" direction="in"/>
+-      <arg name="value" type="s" direction="in"/>
+-      <arg name="res" type="b" direction="out"/>
+-    </method>
+-    <method name="setDescriptionSecondField">
+-      <arg name="id" type="i" direction="in"/>
+-      <arg name="name" type="s" direction="in"/>
+-      <arg name="value" type="s" direction="in"/>
+-      <arg name="res" type="b" direction="out"/>
+-    </method>
+-    <method name="setJobVisible" >
+-      <arg name="jobId" type="i" direction="in"/>
+-      <arg name="visible" type="b" direction="in"/>
+-      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
+-    </method>
+-  </interface>
+-</node>
+Index: kdeui/jobs/kuiserverjobtracker_p.h
+===================================================================
+--- kdeui/jobs/kuiserverjobtracker_p.h	(revisión: 780695)
++++ kdeui/jobs/kuiserverjobtracker_p.h	(copia de trabajo)
+@@ -1,5 +1,5 @@
+ /* This file is part of the KDE libraries
+-    Copyright (C) 2007-2006 Rafael Fernández López <ereslibre@kde.org>
++    Copyright (C) 2006-2008 Rafael Fernández López <ereslibre@kde.org>
+                             Kevin Ottens <ervin@kde.org>
+     Copyright (C) 2000 Matej Koss <koss@miesto.sk>
+                        David Faure <faure@kde.org>
+@@ -24,80 +24,25 @@
+ #ifndef KUISERVERJOBTRACKER_P_H
+ #define KUISERVERJOBTRACKER_P_H
+ 
+-#include <QMap>
++#include <QtCore/QMap>
+ 
+ #include <kglobal.h>
+ 
+-#include "uiserverinterface.h"
+-
+-class KJob;
++#include "jobviewserverinterface.h"
++#include "jobviewiface.h"
+ 
+ class KSharedUiServerProxy : public QObject
+ {
+     Q_OBJECT
+-    Q_CLASSINFO("D-Bus Interface", "org.kde.UiServerCallbacks")
+-    Q_ENUMS(JobVisibility StandardActions)
+ 
+ public:
+-    enum JobVisibility
+-    {
+-        JobHidden = 0,
+-        JobShown = 1
+-    };
+-
+-    enum StandardActions
+-    {
+-        ActionPause,
+-        ActionResume,
+-        ActionCancel
+-    };
+-
+     KSharedUiServerProxy();
+     ~KSharedUiServerProxy();
+ 
+-    org::kde::UiServer &uiserver();
+-
+-    /**
+-     * Called by the job constructor, to signal its presence to the
+-     * UI Server
+-     *
+-     * @param job              the new job
+-     * @param visibility       whether the job is shown or not
+-     * @param icon             the icon to be shown, if not specified, the default icon
+-     *                         of the app that launched the job will be loaded
+-     * @return                 the progress ID assigned by the UI Server to the Job
+-     *
+-     * @warning                Will return 0 if @p job is null
+-     *
+-     * @note                   If successful will be called automatically job->setProgressId(newJobId);
+-     *                         where newJobId is the return value of this method
+-     */
+-    int newJob(KJob *job, JobVisibility visibility = JobShown, const QString &icon = QString());
+-
+-    /**
+-     * Called by the job destructor, to tell the UI Server that
+-     * the job ended
+-     *
+-     * @param progressId the progress ID of the job, as returned by newJob()
+-     * @param errorCode  the error code of the job
+-     */
+-    void jobFinished(int progressId, int errorCode);
+-
+-public Q_SLOTS:
+-    /**
+-     * Called by the kuiserver when an action was performed
+-     *
+-     * @param actionId the action identification number
+-     * @param jobId the job to which the action belongs to
+-     */
+-    void slotActionPerformed(int actionId, int jobId);
+-
+-Q_SIGNALS:
+-    void actionPerformed(KJob *job, int actionId);
++    org::kde::JobViewServer &uiserver();
+ 
+ private:
+-    org::kde::UiServer m_uiserver;
+-    QMap<int, KJob*> m_jobs;
++    org::kde::JobViewServer m_uiserver;
+ };
+ 
+ #endif
+Index: kdeui/jobs/org.kde.JobView.xml
+===================================================================
+--- kdeui/jobs/org.kde.JobView.xml	(revisión: 0)
++++ kdeui/jobs/org.kde.JobView.xml	(revisión: 0)
+@@ -0,0 +1,50 @@
++<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
++"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
++<node>
++  <interface name="org.kde.JobView">
++    <method name="terminate">
++      <arg name="errorMessage" type="s" direction="in"/>
++      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
++    </method>
++    <method name="setSuspended">
++      <arg name="suspended" type="b" direction="in"/>
++      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
++    </method>
++    <method name="setTotalAmount">
++      <arg name="amount" type="t" direction="in"/>
++      <arg name="unit" type="s" direction="in"/>
++      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
++    </method>
++    <method name="setProcessedAmount">
++      <arg name="amount" type="t" direction="in"/>
++      <arg name="unit" type="s" direction="in"/>
++      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
++    </method>
++    <method name="setPercent">
++      <arg name="percent" type="u" direction="in"/>
++      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
++    </method>
++    <method name="setSpeed">
++      <arg name="bytesPerSecond" type="t" direction="in"/>
++      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
++    </method>
++    <method name="setInfoMessage">
++      <arg name="message" type="s" direction="in"/>
++      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
++    </method>
++    <method name="setDescriptionField">
++      <arg name="number" type="u" direction="in"/>
++      <arg name="name" type="s" direction="in"/>
++      <arg name="value" type="s" direction="in"/>
++      <arg name="res" type="b" direction="out"/>
++    </method>
++    <method name="clearDescriptionField">
++      <arg name="number" type="u" direction="in"/>
++      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
++    </method>
++
++    <signal name="suspendRequested"/>
++    <signal name="resumeRequested"/>
++    <signal name="cancelRequested"/>
++  </interface>
++</node>
+Index: kdeui/jobs/kuiserverjobtracker.cpp
+===================================================================
+--- kdeui/jobs/kuiserverjobtracker.cpp	(revisión: 780695)
++++ kdeui/jobs/kuiserverjobtracker.cpp	(copia de trabajo)
+@@ -1,4 +1,5 @@
+ /*  This file is part of the KDE project
++    Copyright (C) 2008 Rafael Fernández López <ereslibre@kde.org>
+     Copyright (C) 2007 Kevin Ottens <ervin@kde.org>
+ 
+     This library is free software; you can redistribute it and/or
+@@ -20,6 +21,8 @@
+ #include "kuiserverjobtracker.h"
+ #include "kuiserverjobtracker_p.h"
+ 
++#include "jobviewiface.h"
++
+ #include <klocale.h>
+ #include <kdebug.h>
+ #include <ktoolinvocation.h>
+@@ -27,8 +30,6 @@
+ #include <kaboutdata.h>
+ #include <kjob.h>
+ 
+-#include "uiservercallbacks.h"
+-
+ K_GLOBAL_STATIC(KSharedUiServerProxy, serverProxy)
+ 
+ class KUiServerJobTracker::Private
+@@ -36,7 +37,12 @@ class KUiServerJobTracker::Private
+ public:
+     Private() { }
+ 
+-    QMap<KJob*, int> progressIds;
++    struct JobView {
++        org::kde::JobView *jobView;
++        uint descriptionFields;
++    };
++
++    QHash<KJob*, JobView> progressJobView;
+ };
+ 
+ KUiServerJobTracker::KUiServerJobTracker(QObject *parent)
+@@ -47,9 +53,9 @@ KUiServerJobTracker::KUiServerJobTracker
+ 
+ KUiServerJobTracker::~KUiServerJobTracker()
+ {
+-    if (!d->progressIds.isEmpty()) {
++    if (!d->progressJobView.isEmpty()) {
+         qWarning() << "A KUiServerJobTracker instance contains"
+-                   << d->progressIds.size() << "stalled jobs";
++                   << d->progressJobView.size() << "stalled jobs";
+     }
+ 
+     delete d;
+@@ -57,182 +63,222 @@ KUiServerJobTracker::~KUiServerJobTracke
+ 
+ void KUiServerJobTracker::registerJob(KJob *job)
+ {
+-    // Already registered?
+-    if (d->progressIds.contains(job)) return;
++    // Already registered job?
++    if (d->progressJobView.contains(job)) {
++        return;
++    }
++
++    KComponentData componentData = KGlobal::mainComponent();
++
++    QDBusReply<QDBusObjectPath> reply = serverProxy->uiserver().requestView(componentData.aboutData()->programName(),
++                                                                            componentData.aboutData()->appName(),
++                                                                            job->capabilities());
++
++    // If we got a valid reply, register the interface for later usage.
++    if (reply.isValid()) {
++        Private::JobView jobView;
++        jobView.jobView = new org::kde::JobView("org.kde.JobViewServer",
++                                                reply.value().path(),
++                                                QDBusConnection::sessionBus());
++        jobView.descriptionFields = 0;
++
++        QObject::connect(jobView.jobView, SIGNAL(cancelRequested()), job,
++                         SLOT(kill()));
++        QObject::connect(jobView.jobView, SIGNAL(suspendRequested()), job,
++                         SLOT(suspend()));
++        QObject::connect(jobView.jobView, SIGNAL(resumeRequested()), job,
++                         SLOT(resume()));
+ 
+-    int id = serverProxy->newJob(job, KSharedUiServerProxy::JobShown);
+-    d->progressIds.insert(job, id);
++        d->progressJobView.insert(job, jobView);
++    }
+ 
+     KJobTrackerInterface::registerJob(job);
+ }
+ 
+ void KUiServerJobTracker::unregisterJob(KJob *job)
+ {
+-    int id = d->progressIds.take(job);
+-    serverProxy->jobFinished(id, job->error());
+     KJobTrackerInterface::unregisterJob(job);
++
++    if (!d->progressJobView.contains(job)) {
++        return;
++    }
++
++    org::kde::JobView *jobView = d->progressJobView.take(job).jobView;
++
++    if (job->error()) {
++        jobView->terminate(job->errorText());
++    }
++    else {
++        jobView->terminate(QString());
++    }
++
++    delete jobView;
+ }
+ 
+ void KUiServerJobTracker::finished(KJob *job)
+ {
+-    int id = d->progressIds.take(job);
+-    serverProxy->jobFinished(id, job->error());
++    if (!d->progressJobView.contains(job)) {
++        return;
++    }
++
++    org::kde::JobView *jobView = d->progressJobView.take(job).jobView;
++    jobView->terminate(job->errorText());
+ }
+ 
+ void KUiServerJobTracker::suspended(KJob *job)
+ {
+-    if (!d->progressIds.contains(job)) return;
+-    int id = d->progressIds[job];
+-    serverProxy->uiserver().jobSuspended(id);
++    if (!d->progressJobView.contains(job)) {
++        return;
++    }
++
++    org::kde::JobView *jobView = d->progressJobView[job].jobView;
++
++    jobView->setSuspended(true);
+ }
+ 
+ void KUiServerJobTracker::resumed(KJob *job)
+ {
+-    if (!d->progressIds.contains(job)) return;
+-    int id = d->progressIds[job];
+-    serverProxy->uiserver().jobResumed(id);
++    if (!d->progressJobView.contains(job)) {
++        return;
++    }
++
++    org::kde::JobView *jobView = d->progressJobView[job].jobView;
++
++    jobView->setSuspended(false);
+ }
+ 
+ void KUiServerJobTracker::description(KJob *job, const QString &title,
+                                       const QPair<QString, QString> &field1,
+                                       const QPair<QString, QString> &field2)
+ {
+-    int id = d->progressIds[job];
++    if (!d->progressJobView.contains(job)) {
++        return;
++    }
++
++    Private::JobView jobView = d->progressJobView[job];
+ 
+-    serverProxy->uiserver().setDescription(id, title);
+-    serverProxy->uiserver().setDescriptionFirstField(id, field1.first, field1.second);
+-    serverProxy->uiserver().setDescriptionSecondField(id, field2.first, field2.second);
++    jobView.jobView->setInfoMessage(title);
++
++    if (!field1.first.isNull()) {
++        jobView.jobView->setDescriptionField(jobView.descriptionFields, field1.first, field1.second);
++        jobView.descriptionFields++;
++    }
++
++    if (!field2.first.isNull()) {
++        jobView.jobView->setDescriptionField(jobView.descriptionFields, field2.first, field2.second);
++        jobView.descriptionFields++;
++    }
+ }
+ 
+-void KUiServerJobTracker::infoMessage(KJob *job, const QString &plain, const QString &/*rich*/)
++void KUiServerJobTracker::infoMessage(KJob *job, const QString &plain, const QString &rich)
+ {
+-    serverProxy->uiserver().infoMessage(d->progressIds[job], plain);
++    Q_UNUSED(rich)
++
++    if (!d->progressJobView.contains(job)) {
++        return;
++    }
++
++    org::kde::JobView *jobView = d->progressJobView[job].jobView;
++
++    jobView->setInfoMessage(plain);
+ }
+ 
+ void KUiServerJobTracker::totalAmount(KJob *job, KJob::Unit unit, qulonglong amount)
+ {
+-    switch (unit)
+-    {
++    if (!d->progressJobView.contains(job)) {
++        return;
++    }
++
++    org::kde::JobView *jobView = d->progressJobView[job].jobView;
++
++    switch (unit) {
+     case KJob::Bytes:
+-        serverProxy->uiserver().totalSize(d->progressIds[job], amount);
++        jobView->setTotalAmount(amount, "bytes");
+         break;
+     case KJob::Files:
+-        serverProxy->uiserver().totalFiles(d->progressIds[job], amount);
++        jobView->setTotalAmount(amount, "files");
+         break;
+     case KJob::Directories:
+-        serverProxy->uiserver().totalDirs(d->progressIds[job], amount);
++        jobView->setTotalAmount(amount, "dirs");
++        break;
++    default:
+         break;
+     }
+ }
+ 
+ void KUiServerJobTracker::processedAmount(KJob *job, KJob::Unit unit, qulonglong amount)
+ {
+-    switch (unit)
+-    {
++    if (!d->progressJobView.contains(job)) {
++        return;
++    }
++
++    org::kde::JobView *jobView = d->progressJobView[job].jobView;
++
++    switch (unit) {
+     case KJob::Bytes:
+-        serverProxy->uiserver().processedSize(d->progressIds[job], amount);
++        jobView->setProcessedAmount(amount, "bytes");
+         break;
+     case KJob::Files:
+-        serverProxy->uiserver().processedFiles(d->progressIds[job], amount);
++        jobView->setProcessedAmount(amount, "files");
+         break;
+     case KJob::Directories:
+-        serverProxy->uiserver().processedDirs(d->progressIds[job], amount);
++        jobView->setProcessedAmount(amount, "dirs");
++        break;
++    default:
+         break;
+     }
+ }
+ 
+ void KUiServerJobTracker::percent(KJob *job, unsigned long percent)
+ {
+-    serverProxy->uiserver().percent(d->progressIds[job], percent);
++    if (!d->progressJobView.contains(job)) {
++        return;
++    }
++
++    org::kde::JobView *jobView = d->progressJobView[job].jobView;
++
++    jobView->setPercent(percent);
+ }
+ 
+ void KUiServerJobTracker::speed(KJob *job, unsigned long value)
+ {
+-    if (value)
+-        serverProxy->uiserver().speed(d->progressIds[job], KGlobal::locale()->formatByteSize(value) + QString("/s"));
+-    else
+-        serverProxy->uiserver().speed(d->progressIds[job], QString());
++    if (!d->progressJobView.contains(job)) {
++        return;
++    }
++
++    org::kde::JobView *jobView = d->progressJobView[job].jobView;
++
++    jobView->setSpeed(value);
+ }
+ 
+ KSharedUiServerProxy::KSharedUiServerProxy()
+-    : m_uiserver("org.kde.kuiserver", "/UiServer", QDBusConnection::sessionBus())
++    : m_uiserver("org.kde.JobViewServer", "/JobViewServer", QDBusConnection::sessionBus())
+ {
+-    if (!QDBusConnection::sessionBus().interface()->isServiceRegistered("org.kde.kuiserver"))
++    if (!QDBusConnection::sessionBus().interface()->isServiceRegistered("org.kde.JobViewServer"))
+     {
+-        //kDebug(KDEBUG_OBSERVER) << "Starting kuiserver";
+         QString error;
+         int ret = KToolInvocation::startServiceByDesktopPath("kuiserver.desktop",
+                                                              QStringList(), &error);
+         if (ret > 0)
+         {
+             kError() << "Couldn't start kuiserver from kuiserver.desktop: " << error << endl;
+-        } //else
+-          //  kDebug(KDEBUG_OBSERVER) << "startServiceByDesktopPath returned " << ret;
++        }
+     }
+ 
+-    //if (!QDBusConnection::sessionBus().interface()->isServiceRegistered("org.kde.kuiserver"))
+-    //    kDebug(KDEBUG_OBSERVER) << "The application kuiserver is STILL NOT REGISTERED";
+-    //else
+-    //    kDebug(KDEBUG_OBSERVER) << "kuiserver registered";
+-
+-    new UiServerCallbacksAdaptor(this);
+-    QDBusConnection::sessionBus().registerObject(QLatin1String("/UiServerCallbacks"), this);
++    if (!QDBusConnection::sessionBus().interface()->isServiceRegistered("org.kde.JobViewServer"))
++        kDebug() << "The application kuiserver is STILL NOT REGISTERED";
++    else
++        kDebug() << "kuiserver registered";
+ }
+ 
+ KSharedUiServerProxy::~KSharedUiServerProxy()
+ {
+ }
+ 
+-org::kde::UiServer &KSharedUiServerProxy::uiserver()
++org::kde::JobViewServer &KSharedUiServerProxy::uiserver()
+ {
+     return m_uiserver;
+ }
+ 
+-int KSharedUiServerProxy::newJob(KJob *job, JobVisibility visibility, const QString &icon)
+-{
+-    if (!job) return 0;
+-
+-    KComponentData componentData = KGlobal::mainComponent();
+-
+-    // Notify the kuiserver about the new job
+-    int progressId = m_uiserver.newJob(QDBusConnection::sessionBus().baseService(), job->capabilities(),
+-                                       visibility, componentData.aboutData()->appName(),
+-                                       icon, componentData.aboutData()->programName());
+-
+-    m_jobs.insert(progressId, job);
+-
+-    return progressId;
+-}
+-
+-void KSharedUiServerProxy::jobFinished(int progressId, int errorCode)
+-{
+-    m_uiserver.jobFinished(progressId, errorCode);
+-    m_jobs.remove(progressId);
+-}
+-
+-void KSharedUiServerProxy::slotActionPerformed(int actionId, int jobId)
+-{
+-    KJob *job = m_jobs[jobId];
+-
+-    if (job) {
+-        switch (actionId)
+-        {
+-        case KJob::Suspendable:
+-            if (job->isSuspended())
+-                job->resume();
+-            else
+-                job->suspend();
+-            break;
+-        case KJob::Killable:
+-            job->kill( KJob::EmitResult ); // notify that the job has been killed
+-            break;
+-        default:
+-            kWarning() << "Unknown actionId (" << actionId << ") for jobId " << jobId;
+-            break;
+-        }
+-    }
+-}
+-
+-
+ #include "kuiserverjobtracker.moc"
+ #include "kuiserverjobtracker_p.moc"
+Index: kdeui/jobs/kstatusbarjobtracker.cpp
+===================================================================
+--- kdeui/jobs/kstatusbarjobtracker.cpp	(revisión: 780695)
++++ kdeui/jobs/kstatusbarjobtracker.cpp	(copia de trabajo)
+@@ -59,6 +59,8 @@ void KStatusBarJobTracker::registerJob(K
+ 
+ void KStatusBarJobTracker::unregisterJob(KJob *job)
+ {
++    KAbstractWidgetJobTracker::unregisterJob(job);
++
+     if (!d->progressWidget.contains(job))
+         return;
+ 
+@@ -170,11 +172,13 @@ void KStatusBarJobTracker::Private::Prog
+     stack->insertWidget(2, label);
+     setMinimumSize(sizeHint());
+ 
+-    parent->layout()->addWidget(widget);
+-
+     setMode(KStatusBarJobTracker::LabelOnly);
+ 
+     q->setAutoDelete(job, true);
++
++    QVBoxLayout *layout = new QVBoxLayout;
++    layout->addWidget(widget);
++    setLayout(layout);
+ }
+ 
+ void KStatusBarJobTracker::Private::ProgressWidget::setMode(StatusBarModes newMode)
+Index: kdeui/tests/kjobtrackerstest.cpp
+===================================================================
+--- kdeui/tests/kjobtrackerstest.cpp	(revisión: 780695)
++++ kdeui/tests/kjobtrackerstest.cpp	(copia de trabajo)
+@@ -19,7 +19,8 @@
+ 
+ #include "kjobtrackerstest.h"
+ 
+-#include <QtGui/QWidget>
++#include <QtGui/QMainWindow>
++#include <QtGui/QStatusBar>
+ 
+ #include <kapplication.h>
+ #include <kcmdlineargs.h>
+@@ -140,7 +141,6 @@ bool KTestJob::doKill()
+ {
+     m_timer.stop();
+     m_state = Stopped;
+-    deleteLater();
+     return true;
+ }
+ 
+@@ -151,7 +151,7 @@ int main(int argc, char **argv)
+ 
+     KApplication app;
+ 
+-    QWidget *main = new QWidget;
++    QMainWindow *main = new QMainWindow;
+     main->show();
+ 
+     KTestJob *testJob = new KTestJob(10 /* 100000 bytes to process */);
+@@ -159,8 +159,12 @@ int main(int argc, char **argv)
+     KWidgetJobTracker *tracker1 = new KWidgetJobTracker();
+     tracker1->registerJob(testJob);
+ 
++    QStatusBar *statusBar = new QStatusBar(main);
+     KStatusBarJobTracker *tracker2 = new KStatusBarJobTracker(main, true);
+     tracker2->registerJob(testJob);
++    statusBar->addWidget(tracker2->widget(testJob));
++
++    main->setStatusBar(statusBar);
+ 
+     KUiServerJobTracker *tracker3 = new KUiServerJobTracker(main);
+     tracker3->registerJob(testJob);
+Index: kdeui/CMakeLists.txt
+===================================================================
+--- kdeui/CMakeLists.txt	(revisión: 780695)
++++ kdeui/CMakeLists.txt	(copia de trabajo)
+@@ -274,8 +274,8 @@ install(FILES ${kwallet_xml} DESTINATION
+ 
+ qt4_add_dbus_interface( kdeui_LIB_SRCS ${kwallet_xml} kwallet_interface )
+ 
+-qt4_add_dbus_interfaces(kdeui_LIB_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/jobs/org.kde.UiServer.xml )
+-qt4_add_dbus_adaptor(kdeui_LIB_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/jobs/org.kde.UiServerCallbacks.xml kuiserverjobtracker_p.h KSharedUiServerProxy uiservercallbacks )
++qt4_add_dbus_interfaces(kdeui_LIB_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/jobs/org.kde.JobViewServer.xml )
++qt4_add_dbus_interface(kdeui_LIB_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/jobs/org.kde.JobView.xml jobviewiface )
+ 
+ kde4_add_library(kdeui SHARED ${kdeui_LIB_SRCS})
+ 
+@@ -527,7 +527,7 @@ install( TARGETS kded_globalaccel DESTIN
+ install( FILES shortcuts/kdedglobalaccel.desktop DESTINATION ${SERVICES_INSTALL_DIR}/kded )
+ 
+ install( FILES
+-  jobs/org.kde.UiServer.xml
+-  jobs/org.kde.UiServerCallbacks.xml
++  jobs/org.kde.JobViewServer.xml
++  jobs/org.kde.JobView.xml
+   shortcuts/org.kde.KdedGlobalAccel.xml
+   DESTINATION ${DBUS_INTERFACES_INSTALL_DIR})

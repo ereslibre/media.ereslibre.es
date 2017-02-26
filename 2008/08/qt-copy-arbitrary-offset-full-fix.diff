@@ -1,0 +1,452 @@
+qt-bugs@ issue : N225160
+Trolltech task ID : none
+bugs.kde.org number : none
+applied: no
+author: Rafael Fernández López <ereslibre@kde.org>
+
+Don't let the user move the toolbar with an arbitrary offset, so toolbars are always next to others. Also now, when adding or removing actions, toolbars will update themselves to be perfectly aligned.
+
+This patch has no regressions with QToolBar functionality. Changes:
+
+· When QMainWindow::toolBarPositioningBehavior() == NoForceToolBarProximity there are no changes. Is behaving exactly the same as the original QToolBar class.
+
+· When QMainWindow::toolBarPositioningBehavior() == ForceToolBarProximity:
+
+    · Toolbars are always next to others
+
+    · We don't allow users to give random offset to toolbars
+    
+        · Adding/Removing actions from toolbars always behaves correctly
+
+    · The layout detects if a toolbar wants to expand
+    
+        · This removes the need of giving arbitrary offsets to the toolbar
+
+    · Making the main window smaller works as expected
+
+You can check out http://media.ereslibre.es/2008/08/qtoolbar-explanation.ogg to see it working.
+
+diff --git a/src/corelib/global/qnamespace.h b/src/corelib/global/qnamespace.h
+index e041a4e..5ddbe60 100644
+--- a/src/corelib/global/qnamespace.h
++++ b/src/corelib/global/qnamespace.h
+@@ -73,7 +73,7 @@ Qt {
+     Q_ENUMS(DockWidgetArea)
+     Q_ENUMS(TextElideMode)
+     Q_ENUMS(TextInteractionFlag)
+-    Q_ENUMS(WindowModality ToolBarArea DayOfWeek)
++    Q_ENUMS(WindowModality ToolBarArea ToolBarPositioningBehavior DayOfWeek)
+     Q_FLAGS(ToolBarAreas)
+     Q_ENUMS(CursorShape)
+     Q_FLAGS(TextInteractionFlags)
+@@ -1180,6 +1180,11 @@ public:
+         NoToolBarArea = 0
+     };
+ 
++    enum ToolBarPositioningBehavior {
++        ForceToolBarProximity = 0x0,
++        NoForceToolBarProximity = 0x1
++    };
++
+     enum ToolBarAreaSizes {
+         NToolBarAreas = 4
+     };
+diff --git a/src/gui/widgets/qmainwindow.cpp b/src/gui/widgets/qmainwindow.cpp
+index d40c6b8..2935134 100644
+--- a/src/gui/widgets/qmainwindow.cpp
++++ b/src/gui/widgets/qmainwindow.cpp
+@@ -74,7 +74,7 @@ class QMainWindowPrivate : public QWidgetPrivate
+     Q_DECLARE_PUBLIC(QMainWindow)
+ public:
+     inline QMainWindowPrivate()
+-        : layout(0), toolButtonStyle(Qt::ToolButtonIconOnly)
++        : layout(0), toolButtonStyle(Qt::ToolButtonIconOnly), behavior(Qt::ForceToolBarProximity)
+ #ifdef Q_WS_MAC
+             , useHIToolBar(false)
+ #endif
+@@ -86,6 +86,7 @@ public:
+     QSize iconSize;
+     bool explicitIconSize;
+     Qt::ToolButtonStyle toolButtonStyle;
++    Qt::ToolBarPositioningBehavior behavior;
+ #ifdef Q_WS_MAC
+     bool useHIToolBar;
+ #endif
+@@ -423,6 +424,19 @@ void QMainWindow::setToolButtonStyle(Qt::ToolButtonStyle toolButtonStyle)
+     emit toolButtonStyleChanged(d->toolButtonStyle);
+ }
+ 
++Qt::ToolBarPositioningBehavior QMainWindow::toolBarPositioningBehavior() const
++{ return d_func()->behavior; }
++
++void QMainWindow::setToolBarPositioningBehavior(Qt::ToolBarPositioningBehavior behavior)
++{
++    Q_D(QMainWindow);
++    if (d->behavior == behavior)
++        return;
++
++    d->behavior = behavior;
++    emit toolbarPositioningBehaviorChanged(d->behavior);
++}
++
+ #ifndef QT_NO_MENUBAR
+ /*!
+     Returns the menu bar for the main window. This function creates
+@@ -680,6 +694,8 @@ void QMainWindow::addToolBar(Qt::ToolBarArea area, QToolBar *toolbar)
+                toolbar, SLOT(_q_updateIconSize(QSize)));
+     disconnect(this, SIGNAL(toolButtonStyleChanged(Qt::ToolButtonStyle)),
+                toolbar, SLOT(_q_updateToolButtonStyle(Qt::ToolButtonStyle)));
++    disconnect(this, SIGNAL(toolbarPositioningBehaviorChanged(Qt::ToolBarPositioningBehavior)),
++               toolbar, SLOT(_q_updateToolPositioningBehavior(Qt::ToolBarPositioningBehavior)));
+ 
+     if(toolbar->d_func()->state && toolbar->d_func()->state->dragging) {
+         //removing a toolbar which is dragging will cause crash
+@@ -705,6 +721,8 @@ void QMainWindow::addToolBar(Qt::ToolBarArea area, QToolBar *toolbar)
+             toolbar, SLOT(_q_updateIconSize(QSize)));
+     connect(this, SIGNAL(toolButtonStyleChanged(Qt::ToolButtonStyle)),
+             toolbar, SLOT(_q_updateToolButtonStyle(Qt::ToolButtonStyle)));
++    connect(this, SIGNAL(toolbarPositioningBehaviorChanged(Qt::ToolBarPositioningBehavior)),
++            toolbar, SLOT(_q_updateToolPositioningBehavior(Qt::ToolBarPositioningBehavior)));
+ 
+     d->layout->addToolBar(area, toolbar);
+ }
+@@ -751,6 +769,8 @@ void QMainWindow::insertToolBar(QToolBar *before, QToolBar *toolbar)
+             toolbar, SLOT(_q_updateIconSize(QSize)));
+     connect(this, SIGNAL(toolButtonStyleChanged(Qt::ToolButtonStyle)),
+             toolbar, SLOT(_q_updateToolButtonStyle(Qt::ToolButtonStyle)));
++    connect(this, SIGNAL(toolbarPositioningBehaviorChanged(Qt::ToolBarPositioningBehavior)),
++            toolbar, SLOT(_q_updateToolPositioningBehavior(Qt::ToolBarPositioningBehavior)));
+ 
+     d->layout->insertToolBar(before, toolbar);
+ }
+diff --git a/src/gui/widgets/qmainwindow.h b/src/gui/widgets/qmainwindow.h
+index 06fe264..687862c 100644
+--- a/src/gui/widgets/qmainwindow.h
++++ b/src/gui/widgets/qmainwindow.h
+@@ -97,6 +97,9 @@ public:
+     Qt::ToolButtonStyle toolButtonStyle() const;
+     void setToolButtonStyle(Qt::ToolButtonStyle toolButtonStyle);
+ 
++    void setToolBarPositioningBehavior(Qt::ToolBarPositioningBehavior behavior);
++    Qt::ToolBarPositioningBehavior toolBarPositioningBehavior() const;
++
+     bool isAnimated() const;
+     bool isDockNestingEnabled() const;
+ 
+@@ -176,6 +179,7 @@ public Q_SLOTS:
+ Q_SIGNALS:
+     void iconSizeChanged(const QSize &iconSize);
+     void toolButtonStyleChanged(Qt::ToolButtonStyle toolButtonStyle);
++    void toolbarPositioningBehaviorChanged(Qt::ToolBarPositioningBehavior behavior);
+ 
+ protected:
+     void contextMenuEvent(QContextMenuEvent *event);
+diff --git a/src/gui/widgets/qtoolbar.cpp b/src/gui/widgets/qtoolbar.cpp
+index ab0af35..ca6af7a 100644
+--- a/src/gui/widgets/qtoolbar.cpp
++++ b/src/gui/widgets/qtoolbar.cpp
+@@ -146,6 +146,12 @@ void QToolBarPrivate::_q_updateToolButtonStyle(Qt::ToolButtonStyle style)
+     }
+ }
+ 
++void QToolBarPrivate::_q_updateToolPositioningBehavior(Qt::ToolBarPositioningBehavior behavior)
++{
++    layout->invalidate();
++    layout->activate();
++}
++
+ void QToolBarPrivate::setWindowState(bool floating, bool unplug, const QRect &rect)
+ {
+     Q_Q(QToolBar);
+diff --git a/src/gui/widgets/qtoolbar.h b/src/gui/widgets/qtoolbar.h
+index 3cb4367..c366378 100644
+--- a/src/gui/widgets/qtoolbar.h
++++ b/src/gui/widgets/qtoolbar.h
+@@ -169,6 +169,7 @@ private:
+     Q_PRIVATE_SLOT(d_func(), void _q_toggleView(bool))
+     Q_PRIVATE_SLOT(d_func(), void _q_updateIconSize(const QSize &))
+     Q_PRIVATE_SLOT(d_func(), void _q_updateToolButtonStyle(Qt::ToolButtonStyle))
++    Q_PRIVATE_SLOT(d_func(), void _q_updateToolPositioningBehavior(Qt::ToolBarPositioningBehavior))
+     Q_PRIVATE_SLOT(d_func(), void _q_waitForPopup())
+ 
+     friend class QMainWindow;
+diff --git a/src/gui/widgets/qtoolbar_p.h b/src/gui/widgets/qtoolbar_p.h
+index 06d2b6f..d95bf99 100644
+--- a/src/gui/widgets/qtoolbar_p.h
++++ b/src/gui/widgets/qtoolbar_p.h
+@@ -86,6 +86,7 @@ public:
+     void _q_toggleView(bool b);
+     void _q_updateIconSize(const QSize &sz);
+     void _q_updateToolButtonStyle(Qt::ToolButtonStyle style);
++    void _q_updateToolPositioningBehavior(Qt::ToolBarPositioningBehavior behavior);
+     void _q_waitForPopup();
+ 
+     bool explicitIconSize;
+diff --git a/src/gui/widgets/qtoolbararealayout.cpp b/src/gui/widgets/qtoolbararealayout.cpp
+index b0eaa0a..2f35e28 100644
+--- a/src/gui/widgets/qtoolbararealayout.cpp
++++ b/src/gui/widgets/qtoolbararealayout.cpp
+@@ -95,8 +95,8 @@ bool QToolBarAreaLayoutItem::skip() const
+ ** QToolBarAreaLayoutLine
+ */
+ 
+-QToolBarAreaLayoutLine::QToolBarAreaLayoutLine(Qt::Orientation orientation)
+-    : o(orientation)
++QToolBarAreaLayoutLine::QToolBarAreaLayoutLine(Qt::Orientation orientation, QMainWindow *win)
++    : o(orientation), mainWindow(win)
+ {
+ }
+ 
+@@ -142,11 +142,29 @@ QSize QToolBarAreaLayoutLine::minimumSize() const
+ 
+ void QToolBarAreaLayoutLine::fitLayout()
+ {
++    /**
++      * ATTENTION !
++      *
++      * The most important part of the patch is in this method. Here is where we will decide if the
++      * main window is in proximity mode for the toolbars.
++      *
++      * Also, take in count that in theory it wouldn't be needed to give arbitrary offsets to
++      * toolbars, since now, here we check if the toolbar is expanding in the desired direction,
++      * and we will reserve the extra space for those toolbars that are expanding. The user is still
++      * allowed to change indexes between toolbars and to snap them to different parts (top, left,
++      * right and bottom), also he/she can place the toolbar in a new line. No usability is lost,
++      * just not letting the user give random offsets to toolbars.
++      *
++      */
++
+     int last = -1;
+     int min = pick(o, minimumSize());
+     int space = pick(o, rect.size());
++    int spaceLeft = pick(o, rect.size());
+     int extra = qMax(0, space - min);
++    bool forceToolBarProximity = mainWindow->toolBarPositioningBehavior() == Qt::ForceToolBarProximity;
+ 
++    QList<LayoutItem> expandingItems;
+     for (int i = 0; i < toolBarItems.count(); ++i) {
+         QToolBarAreaLayoutItem &item = toolBarItems[i];
+         if (item.skip())
+@@ -160,12 +178,44 @@ void QToolBarAreaLayoutLine::fitLayout()
+         int itemHint = pick(o, item.sizeHint()) + item.extraSpace;
+         int itemExtra = qMin(itemHint - itemMin, extra);
+ 
+-        item.size = itemMin + itemExtra;
+-        extra -= itemExtra;
++        item.size = forceToolBarProximity ? pick(o, item.sizeHint()) : itemMin + itemExtra;
++        if (forceToolBarProximity && tblayout && (tblayout->expandingDirections() & o)) {
++            LayoutItem layoutItem;
++            layoutItem.item = item;
++            layoutItem.i = i;
++            expandingItems << layoutItem;
++        }
++        extra -= forceToolBarProximity ? pick(o, item.sizeHint()) - pick(o, item.minimumSize()) : itemExtra;
++        spaceLeft -= item.size;
+ 
+         last = i;
+     }
+ 
++    // If we are forcing toolbar proximiy, make sure we give valid sizes for those items that want
++    // to be expanding, this way the user doesn't need to give an arbitrary offset to different
++    // toolbars.
++    if (expandingItems.count()) {
++        int expandingItemSize = extra / expandingItems.count();
++        foreach (const LayoutItem &_item, expandingItems) {
++            LayoutItem item = _item;
++            item.item.size += qMax(0, expandingItemSize);
++            toolBarItems[item.i] = item.item;
++        }
++    }
++
++    // we haven't got enough room for all toolbars. Let's go from right to left shrinking them
++    int i = toolBarItems.count() - 1;
++    while (i > -1 && spaceLeft < 0) {
++        QToolBarAreaLayoutItem &item = toolBarItems[i];
++        if (!item.skip()) {
++            int newSize = qMax(item.size + spaceLeft, pick(o, item.minimumSize()));
++            int dif = item.size - newSize;
++            item.size = newSize;
++            spaceLeft += dif;
++        }
++        --i;
++    }
++
+     // calculate the positions from the sizes
+     int pos = 0;
+     for (int i = 0; i < toolBarItems.count(); ++i) {
+@@ -174,7 +224,7 @@ void QToolBarAreaLayoutLine::fitLayout()
+             continue;
+ 
+         item.pos = pos;
+-        if (i == last) // stretch the last item to the end of the line
++        if (!forceToolBarProximity && i == last) // stretch the last item to the end of the line
+             item.size = qMax(0, pick(o, rect.size()) - item.pos);
+         pos += item.size;
+     }
+@@ -193,8 +243,8 @@ bool QToolBarAreaLayoutLine::skip() const
+ ** QToolBarAreaLayoutInfo
+ */
+ 
+-QToolBarAreaLayoutInfo::QToolBarAreaLayoutInfo(QInternal::DockPosition pos)
+-    : dockPos(pos), dirty(false)
++QToolBarAreaLayoutInfo::QToolBarAreaLayoutInfo(QMainWindow *win, QInternal::DockPosition pos)
++    : dockPos(pos), dirty(false), mainWindow(win)
+ {
+     switch (pos) {
+         case QInternal::LeftDock:
+@@ -299,8 +349,9 @@ void QToolBarAreaLayoutInfo::insertItem(QToolBar *before, QLayoutItem *item)
+ {
+     if (before == 0) {
+         if (lines.isEmpty())
+-            lines.append(QToolBarAreaLayoutLine(o));
+-        lines.last().toolBarItems.append(item);
++            lines.append(QToolBarAreaLayoutLine(o, mainWindow));
++        QToolBarAreaLayoutItem theItem(mainWindow, item);
++        lines.last().toolBarItems.append(theItem);
+         return;
+     }
+ 
+@@ -309,7 +360,8 @@ void QToolBarAreaLayoutInfo::insertItem(QToolBar *before, QLayoutItem *item)
+ 
+         for (int k = 0; k < line.toolBarItems.count(); ++k) {
+             if (line.toolBarItems.at(k).widgetItem->widget() == before) {
+-                line.toolBarItems.insert(k, item);
++                QToolBarAreaLayoutItem theItem(mainWindow, item);
++                line.toolBarItems.insert(k, theItem);
+                 return;
+             }
+         }
+@@ -342,7 +394,7 @@ void QToolBarAreaLayoutInfo::insertToolBarBreak(QToolBar *before)
+     if (before == 0) {
+         if (!lines.isEmpty() && lines.last().toolBarItems.isEmpty())
+             return;
+-        lines.append(QToolBarAreaLayoutLine(o));
++        lines.append(QToolBarAreaLayoutLine(o, mainWindow));
+         return;
+     }
+ 
+@@ -354,7 +406,7 @@ void QToolBarAreaLayoutInfo::insertToolBarBreak(QToolBar *before)
+                 if (k == 0)
+                     return;
+ 
+-                QToolBarAreaLayoutLine newLine(o);
++                QToolBarAreaLayoutLine newLine(o, mainWindow);
+                 newLine.toolBarItems = line.toolBarItems.mid(k);
+                 line.toolBarItems = line.toolBarItems.mid(0, k);
+                 lines.insert(j + 1, newLine);
+@@ -459,7 +511,7 @@ void QToolBarAreaLayoutInfo::moveToolBar(QToolBar *toolbar, int pos)
+                                 }
+                             }
+                         }
+-                        Q_ASSERT(extra == 0);
++                        Q_ASSERT(mainWindow->toolBarPositioningBehavior() == Qt::ForceToolBarProximity || extra == 0);
+                     }
+                 } else {
+                     //the item is the first one, it should be at position 0
+@@ -520,7 +572,7 @@ bool QToolBarAreaLayoutInfo::insertGap(QList<int> path, QLayoutItem *item)
+ {
+     int j = path.at(0);
+     if (j == lines.count())
+-        lines.append(QToolBarAreaLayoutLine(o));
++        lines.append(QToolBarAreaLayoutLine(o, mainWindow));
+ 
+     QToolBarAreaLayoutLine &line = lines[j];
+     const int k = path.at(1);
+@@ -610,7 +662,7 @@ QToolBarAreaLayout::QToolBarAreaLayout(QMainWindow *win)
+     mainWindow = win;
+     for (int i = 0; i < QInternal::DockCount; ++i) {
+         QInternal::DockPosition pos = static_cast<QInternal::DockPosition>(i);
+-        docks[i] = QToolBarAreaLayoutInfo(pos);
++        docks[i] = QToolBarAreaLayoutInfo(win, pos);
+     }
+ }
+ 
+@@ -843,8 +895,9 @@ void QToolBarAreaLayout::moveToolBar(QToolBar *toolbar, int p)
+ void QToolBarAreaLayout::insertItem(QInternal::DockPosition pos, QLayoutItem *item)
+ {
+     if (docks[pos].lines.isEmpty())
+-        docks[pos].lines.append(QToolBarAreaLayoutLine(docks[pos].o));
+-    docks[pos].lines.last().toolBarItems.append(item);
++        docks[pos].lines.append(QToolBarAreaLayoutLine(docks[pos].o, mainWindow));
++    QToolBarAreaLayoutItem theItem(mainWindow, item);
++    docks[pos].lines.last().toolBarItems.append(theItem);
+ }
+ 
+ void QToolBarAreaLayout::insertItem(QToolBar *before, QLayoutItem *item)
+@@ -1277,10 +1330,10 @@ bool QToolBarAreaLayout::restoreState(QDataStream &stream, const QList<QToolBar*
+         stream >> cnt;
+ 
+         QToolBarAreaLayoutInfo &dock = docks[pos];
+-        QToolBarAreaLayoutLine line(dock.o);
++        QToolBarAreaLayoutLine line(dock.o, mainWindow);
+ 
+         for (int k = 0; k < cnt; ++k) {
+-            QToolBarAreaLayoutItem item;
++            QToolBarAreaLayoutItem item(mainWindow);
+ 
+             QString objectName;
+             stream >> objectName;
+diff --git a/src/gui/widgets/qtoolbararealayout_p.h b/src/gui/widgets/qtoolbararealayout_p.h
+index 0502025..9b72811 100644
+--- a/src/gui/widgets/qtoolbararealayout_p.h
++++ b/src/gui/widgets/qtoolbararealayout_p.h
+@@ -71,8 +71,10 @@ class QStyleOptionToolBar;
+ class QToolBarAreaLayoutItem
+ {
+ public:
+-    QToolBarAreaLayoutItem(QLayoutItem *item = 0)
+-        : widgetItem(item), pos(0), size(-1), extraSpace(0), gap(false) {}
++    QToolBarAreaLayoutItem() {}
++
++    QToolBarAreaLayoutItem(QMainWindow *win, QLayoutItem *item = 0)
++        : widgetItem(item), pos(0), size(-1), extraSpace(0), gap(false), mainWindow(win) {}
+ 
+     bool skip() const;
+     QSize minimumSize() const;
+@@ -83,12 +85,19 @@ public:
+     int size;
+     int extraSpace;
+     bool gap;
++    QMainWindow *mainWindow;
++};
++
++struct LayoutItem
++{
++    QToolBarAreaLayoutItem item;
++    int i;
+ };
+ 
+ class QToolBarAreaLayoutLine
+ {
+ public:
+-    QToolBarAreaLayoutLine(Qt::Orientation orientation);
++    QToolBarAreaLayoutLine(Qt::Orientation orientation, QMainWindow *win);
+ 
+     QSize sizeHint() const;
+     QSize minimumSize() const;
+@@ -98,6 +107,7 @@ public:
+ 
+     QRect rect;
+     Qt::Orientation o;
++    QMainWindow *mainWindow;
+ 
+     QList<QToolBarAreaLayoutItem> toolBarItems;
+ };
+@@ -107,7 +117,8 @@ class QToolBarAreaLayoutInfo
+ public:
+     enum { EmptyDockAreaSize = 80 }; // when a dock area is empty, how "wide" is it?
+ 
+-    QToolBarAreaLayoutInfo(QInternal::DockPosition pos = QInternal::TopDock);
++    QToolBarAreaLayoutInfo() {}
++    QToolBarAreaLayoutInfo(QMainWindow *win, QInternal::DockPosition pos = QInternal::TopDock);
+ 
+     QList<QToolBarAreaLayoutLine> lines;
+ 
+@@ -133,6 +144,7 @@ public:
+     Qt::Orientation o;
+     QInternal::DockPosition dockPos;
+     bool dirty;
++    QMainWindow *mainWindow;
+ };
+ 
+ class QToolBarAreaLayout

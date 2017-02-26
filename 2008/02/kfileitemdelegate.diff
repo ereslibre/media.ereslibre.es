@@ -1,0 +1,100 @@
+Index: kio/kio/kfileitemdelegate.h
+===================================================================
+--- kio/kio/kfileitemdelegate.h	(revisión: 772275)
++++ kio/kio/kfileitemdelegate.h	(copia de trabajo)
+@@ -248,6 +248,7 @@ class KIO_EXPORT KFileItemDelegate : pub
+         class Private;
+         Private * const d; /// @internal
+         Q_DISABLE_COPY(KFileItemDelegate)
++        Q_PRIVATE_SLOT(d, void _k_slotSettingsChanged(int category))
+ };
+ 
+ #endif // KFILEITEMDELEGATE_H
+Index: kio/kio/kfileitemdelegate.cpp
+===================================================================
+--- kio/kio/kfileitemdelegate.cpp	(revisión: 772275)
++++ kio/kio/kfileitemdelegate.cpp	(copia de trabajo)
+@@ -22,7 +22,6 @@
+ #include <config.h>
+ 
+ #include "kfileitemdelegate.h"
+-#include "kfileitemdelegate.moc"
+ 
+ #include <QApplication>
+ #include <QStyle>
+@@ -42,6 +41,7 @@
+ #include <kdirmodel.h>
+ #include <kfileitem.h>
+ #include <kcolorscheme.h>
++#include <kglobalsettings.h>
+ 
+ #include "delegateanimationhandler_p.h"
+ 
+@@ -115,6 +115,8 @@ class KFileItemDelegate::Private
+         QPixmap applyHoverEffect(const QPixmap &icon) const;
+         QPixmap transition(const QPixmap &from, const QPixmap &to, qreal amount) const;
+ 
++        void _k_slotSettingsChanged(int category);
++
+     public:
+         KFileItemDelegate::InformationList informationList;
+ 
+@@ -124,12 +126,17 @@ class KFileItemDelegate::Private
+         Margin verticalMargin[NMargins];
+         Margin horizontalMargin[NMargins];
+         Margin *activeMargins;
++        // Caching this property prevents us from asking KGlobalSettings very
++        // repeatedly. We need to update this property when KGlobalSettings notifies
++        // a certain change on the current settings. (ereslibre)
++        bool animationsEnabled;
+ };
+ 
+ 
+ KFileItemDelegate::Private::Private(KFileItemDelegate *parent)
+     : q(parent), animationHandler(new KIO::DelegateAnimationHandler(parent))
+ {
++    animationsEnabled = KGlobalSettings::animationsEnabled();
+ }
+ 
+ 
+@@ -679,6 +686,9 @@ KIO::AnimationState *KFileItemDelegate::
+                                                                 const QModelIndex &index,
+                                                                 const QAbstractItemView *view) const
+ {
++    if (!animationsEnabled)
++        return NULL;
++
+     if (index.column() == KDirModel::Name)
+         return animationHandler->animationState(option, index, view);
+ 
+@@ -902,6 +912,13 @@ void KFileItemDelegate::Private::drawBac
+ 
+ 
+ 
++void KFileItemDelegate::Private::_k_slotSettingsChanged(int /*category*/)
++{
++    animationsEnabled = KGlobalSettings::animationsEnabled();
++}
++
++
++
+ 
+ // ---------------------------------------------------------------------------
+ 
+@@ -911,6 +928,8 @@ void KFileItemDelegate::Private::drawBac
+ KFileItemDelegate::KFileItemDelegate(QObject *parent)
+     : QAbstractItemDelegate(parent), d(new Private(this))
+ {
++    connect(KGlobalSettings::self(), SIGNAL(settingsChanged(int)), this, SLOT(_k_slotSettingsChanged(int)));
++
+     int focusHMargin = QApplication::style()->pixelMetric(QStyle::PM_FocusFrameHMargin);
+     int focusVMargin = QApplication::style()->pixelMetric(QStyle::PM_FocusFrameVMargin);
+ 
+@@ -1303,4 +1322,7 @@ bool KFileItemDelegate::helpEvent(QHelpE
+ }
+ 
+ 
++#include "kfileitemdelegate.moc"
++
++
+ // kate: space-indent on; indent-width 4; replace-tabs on;

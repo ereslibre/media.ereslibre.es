@@ -1,0 +1,302 @@
+Index: src/dolphinsortfilterproxymodel.cpp
+===================================================================
+--- src/dolphinsortfilterproxymodel.cpp	(revisión: 678237)
++++ src/dolphinsortfilterproxymodel.cpp	(copia de trabajo)
+@@ -22,11 +22,14 @@
+ 
+ #include "dolphinsortfilterproxymodel.h"
+ 
++#include <config-nepomuk.h>
++#include <nepomuk/resource.h>
++
+ #include <kdirmodel.h>
+ #include <kfileitem.h>
+ #include <kdatetime.h>
+ 
+-static const int dolphinMapSize = 7;
++static const int dolphinMapSize = 9;
+ static int dolphinViewToDirModelColumn[] =
+ {
+     KDirModel::Name,         // DolphinView::SortByName
+@@ -36,6 +39,10 @@ static int dolphinViewToDirModelColumn[]
+     KDirModel::Owner,        // DolphinView::SortByOwner
+     KDirModel::Group,        // DolphinView::SortByGroup
+     KDirModel::Type          // DolphinView::SortByType
++#ifdef HAVE_NEPOMUK
++    , KDirModel::Rating      // DolphinView::SortByRating
++    , KDirModel::Tags        // DolphinView::SortByTags
++#endif
+ };
+ 
+ static DolphinView::Sorting dirModelColumnToDolphinView[] =
+@@ -47,6 +54,10 @@ static DolphinView::Sorting dirModelColu
+     DolphinView::SortByOwner,       // KDirModel::Owner
+     DolphinView::SortByGroup,       // KDirModel::Group
+     DolphinView::SortByType         // KDirModel::Type
++#ifdef HAVE_NEPOMUK
++    , DolphinView::SortByRating     // KDirModel::Rating
++    , DolphinView::SortByTags       // KDirModel::Tags
++#endif
+ };
+ 
+ 
+@@ -178,6 +189,14 @@ bool DolphinSortFilterProxyModel::lessTh
+         return naturalCompare(leftFileItem->mimeComment().toLower(),
+                               rightFileItem->mimeComment().toLower()) < 0;
+     }
++#ifdef HAVE_NEPOMUK
++    case DolphinView::SortByRating: {
++        quint32 leftRating = dirModel->resourceForIndex(left).rating();
++        quint32 rightRating = dirModel->resourceForIndex(right).rating();
++
++        return leftRating > rightRating;
++    }
++#endif
+     }
+     return false;
+ }
+@@ -307,6 +326,21 @@ bool DolphinSortFilterProxyModel::lessTh
+         return naturalCompare(leftFileItem->mimeComment(),
+                               rightFileItem->mimeComment()) < 0;
+     }
++
++#ifdef HAVE_NEPOMUK
++    case DolphinView::SortByRating: {
++        quint32 leftRating = dirModel->resourceForIndex(left).rating();
++        quint32 rightRating = dirModel->resourceForIndex(right).rating();
++
++        if (leftRating == rightRating) {
++            return sortCaseSensitivity() ?
++                   (naturalCompare(leftFileItem->name(), rightFileItem->name()) < 0) :
++                   (naturalCompare(leftFileItem->name().toLower(), rightFileItem->name().toLower()) < 0);
++        }
++
++        return leftRating > rightRating;
++    }
++#endif
+     }
+ 
+     // We have set a SortRole and trust the ProxyModel to do
+Index: src/dolphinmainwindow.cpp
+===================================================================
+--- src/dolphinmainwindow.cpp	(revisión: 678237)
++++ src/dolphinmainwindow.cpp	(copia de trabajo)
+@@ -292,6 +292,15 @@ void DolphinMainWindow::slotSortingChang
+         break;
+     case DolphinView::SortByType:
+         action = actionCollection()->action("by_type");
++        break;
++#ifdef HAVE_NEPOMUK
++    case DolphinView::SortByRating:
++        action = actionCollection()->action("by_rating");
++        break;
++    case DolphinView::SortByTags:
++        action = actionCollection()->action("by_tags");
++        break;
++#endif
+     default:
+         break;
+     }
+@@ -722,6 +731,16 @@ void DolphinMainWindow::sortByType()
+     m_activeViewContainer->view()->setSorting(DolphinView::SortByType);
+ }
+ 
++void DolphinMainWindow::sortByRating()
++{
++    m_activeViewContainer->view()->setSorting(DolphinView::SortByRating);
++}
++
++void DolphinMainWindow::sortByTags()
++{
++    m_activeViewContainer->view()->setSorting(DolphinView::SortByTags);
++}
++
+ void DolphinMainWindow::toggleSortOrder()
+ {
+     DolphinView* view = m_activeViewContainer->view();
+@@ -1157,6 +1176,26 @@ void DolphinMainWindow::setupActions()
+     sortByType->setText(i18n("By Type"));
+     connect(sortByType, SIGNAL(triggered()), this, SLOT(sortByType()));
+ 
++    KToggleAction* sortByRating = actionCollection()->add<KToggleAction>("by_rating");
++    sortByRating->setText(i18n("By Rating"));
++
++    KToggleAction* sortByTags = actionCollection()->add<KToggleAction>("by_tags");
++    sortByTags->setText(i18n("By Tags"));
++
++#ifdef HAVE_NEPOMUK
++    if (MetaDataWidget::metaDataAvailable()) {
++        connect(sortByRating, SIGNAL(triggered()), this, SLOT(sortByRating()));
++        connect(sortByTags, SIGNAL(triggered()), this, SLOT(sortByTags()));
++    }
++    else {
++        sortByRating->setEnabled(false);
++        sortByTags->setEnabled(false);
++    }
++#else
++    sortByRating->setEnabled(false);
++    sortByTags->setEnabled(false);
++#endif
++
+     QActionGroup* sortGroup = new QActionGroup(this);
+     sortGroup->addAction(sortByName);
+     sortGroup->addAction(sortBySize);
+@@ -1165,6 +1204,8 @@ void DolphinMainWindow::setupActions()
+     sortGroup->addAction(sortByOwner);
+     sortGroup->addAction(sortByGroup);
+     sortGroup->addAction(sortByType);
++    sortGroup->addAction(sortByRating);
++    sortGroup->addAction(sortByTags);
+ 
+     KToggleAction* sortDescending = actionCollection()->add<KToggleAction>("descending");
+     sortDescending->setText(i18n("Descending"));
+Index: src/viewpropertiesdialog.cpp
+===================================================================
+--- src/viewpropertiesdialog.cpp	(revisión: 678237)
++++ src/viewpropertiesdialog.cpp	(copia de trabajo)
+@@ -26,6 +26,9 @@
+ #include "dolphin_generalsettings.h"
+ #include "viewproperties.h"
+ 
++#include <config-nepomuk.h>
++#include <nepomuk/resourcemanager.h>
++
+ #include <kcomponentdata.h>
+ #include <klocale.h>
+ #include <kiconloader.h>
+@@ -107,6 +110,12 @@ ViewPropertiesDialog::ViewPropertiesDial
+     m_sorting->addItem(i18n("By Owner"));
+     m_sorting->addItem(i18n("By Group"));
+     m_sorting->addItem(i18n("By Type"));
++#ifdef HAVE_NEPOMUK
++    if (!Nepomuk::ResourceManager::instance()->init()) {
++        m_sorting->addItem(i18n("By Rating"));
++        m_sorting->addItem(i18n("By Tags"));
++    }
++#endif
+     m_sorting->setCurrentIndex(m_viewProps->sorting());
+ 
+     QHBoxLayout* sortingLayout = new QHBoxLayout();
+Index: src/dolphinui.rc
+===================================================================
+--- src/dolphinui.rc	(revisión: 678237)
++++ src/dolphinui.rc	(copia de trabajo)
+@@ -31,6 +31,8 @@
+     <Action name="by_owner" />
+     <Action name="by_group" />
+     <Action name="by_type" />
++    <Action name="by_rating" />
++    <Action name="by_tags" />
+     <Separator/>
+     <Action name="descending" />
+    </Menu>
+Index: src/dolphinmainwindow.h
+===================================================================
+--- src/dolphinmainwindow.h	(revisión: 678237)
++++ src/dolphinmainwindow.h	(copia de trabajo)
+@@ -25,6 +25,8 @@
+ #include "dolphinview.h"
+ #include "sidebarpage.h"
+ 
++#include <config-nepomuk.h>
++
+ #include <kxmlguiwindow.h>
+ #include <ksortablelist.h>
+ #include <konq_undo.h>
+@@ -278,6 +280,12 @@ private slots:
+     /** The sorting of the current view should be done by the type. */
+     void sortByType();
+ 
++    /** The sorting of the current view should be done by the rating. */
++    void sortByRating();
++
++    /** The sorting of the current view should be done by tags. */
++    void sortByTags();
++
+     /** Switches between an ascending and descending sorting order. */
+     void toggleSortOrder();
+ 
+Index: src/dolphinview.h
+===================================================================
+--- src/dolphinview.h	(revisión: 678237)
++++ src/dolphinview.h	(copia de trabajo)
+@@ -22,6 +22,8 @@
+ #ifndef DOLPHINVIEW_H
+ #define DOLPHINVIEW_H
+ 
++#include <config-nepomuk.h>
++
+ #include <kparts/part.h>
+ #include <kfileitem.h>
+ #include <kfileitemdelegate.h>
+@@ -102,7 +104,13 @@ public:
+         SortByOwner,
+         SortByGroup,
+         SortByType,
++#ifdef HAVE_NEPOMUK
++        SortByRating,
++        SortByTags,
++        MaxSortEnum = SortByTags
++#else
+         MaxSortEnum = SortByType
++#endif
+     };
+ 
+     /**
+Index: src/dolphinitemcategorizer.cpp
+===================================================================
+--- src/dolphinitemcategorizer.cpp	(revisión: 678237)
++++ src/dolphinitemcategorizer.cpp	(copia de trabajo)
+@@ -22,6 +22,9 @@
+ 
+ #include "dolphinview.h"
+ 
++#include <config-nepomuk.h>
++#include <nepomuk/resource.h>
++
+ #include <klocale.h>
+ #include <kdirmodel.h>
+ #include <kdatetime.h>
+@@ -47,7 +50,8 @@ QString DolphinItemCategorizer::category
+         return retString;
+     }
+ 
+-    int column;
++    int column = KDirModel::Name;
++    bool rating = false;
+ 
+     switch (sortRole)
+     {
+@@ -72,8 +76,13 @@ QString DolphinItemCategorizer::category
+         case DolphinView::SortByType:         // KDirModel::Type
+             column = KDirModel::Type;
+             break;
+-        default:
+-            column = KDirModel::Name;
++#ifdef HAVE_NEPOMUK
++        case DolphinView::SortByRating:
++            rating = true;
++            break;
++        case DolphinView::SortByTags:
++            break;
++#endif
+     }
+ 
+     // KDirModel checks columns to know to which role are
+@@ -178,6 +187,16 @@ QString DolphinItemCategorizer::category
+         case DolphinView::SortByType:
+             retString = item->mimeComment();
+             break;
++
++#ifdef HAVE_NEPOMUK
++        case DolphinView::SortByRating: {
++            quint32 rating = dirModel->resourceForIndex(index).rating();
++            retString = i18np("1 star", "%1 stars", rating);
++            break;
++        }
++        case DolphinView::SortByTags:
++            break;
++#endif
+     }
+ 
+     return retString;

@@ -1,0 +1,216 @@
+diff --git a/kdeui/CMakeLists.txt b/kdeui/CMakeLists.txt
+index e311887..d4756be 100644
+--- a/kdeui/CMakeLists.txt
++++ b/kdeui/CMakeLists.txt
+@@ -195,6 +195,7 @@ set(kdeui_LIB_SRCS
+  widgets/kled.cpp
+  widgets/klineedit.cpp
+  widgets/kmainwindow.cpp
++ widgets/kmainwindowinlinemessagewidget.cpp
+  widgets/kmenu.cpp
+  widgets/kmenubar.cpp
+  widgets/kmultitabbar.cpp
+@@ -495,6 +496,7 @@ install( FILES
+  widgets/kled.h
+  widgets/klineedit.h
+  widgets/kmainwindow.h
++ widgets/kmainwindowinlinemessagewidget.h
+  widgets/kmenu.h
+  widgets/kmenubar.h
+  widgets/kmultitabbar.h
+diff --git a/kdeui/widgets/kmainwindow.cpp b/kdeui/widgets/kmainwindow.cpp
+index cdeb091..d8a430e 100644
+--- a/kdeui/widgets/kmainwindow.cpp
++++ b/kdeui/widgets/kmainwindow.cpp
+@@ -33,6 +33,8 @@
+ #include "ktoggleaction.h"
+ #include "ksessionmanager.h"
+ #include "kstandardaction.h"
++#include "kmainwindowinlinemessagewidget.h"
++#include "ktip.h"
+ 
+ #include <QtCore/QList>
+ #include <QtCore/QObject>
+@@ -44,6 +46,7 @@
+ #include <QtGui/QSessionManager>
+ #include <QtGui/QStyle>
+ #include <QtGui/QWidget>
++#include <QtGui/QToolButton>
+ 
+ #include <kaction.h>
+ #include <kapplication.h>
+@@ -206,6 +209,54 @@ public:
+     }
+ };
+ 
++KTipInline::KTipInline(KMainWindow *parent)
++    : tipWidget(new KMainWindowInlineMessageWidget(parent))
++    , tipDatabase(new KTipDatabase)
++    , closeForThisSession(0)
++{
++    QList<QWidget*> widgetList;
++
++    QToolButton *prevTip = new QToolButton(tipWidget);
++    prevTip->setAutoRaise(true);
++    prevTip->setIcon(KIcon(tipWidget->layoutDirection() == Qt::LeftToRight ? "arrow-left"
++                                                                           : "arrow-right"));
++    QToolButton *nextTip = new QToolButton(tipWidget);
++    nextTip->setAutoRaise(true);
++    nextTip->setIcon(KIcon(tipWidget->layoutDirection() == Qt::LeftToRight ? "arrow-right"
++                                                                           : "arrow-left"));
++    QToolButton *closeTips = new QToolButton(tipWidget);
++    closeTips->setPopupMode(QToolButton::InstantPopup);
++    closeTips->setAutoRaise(true);
++    closeTips->setIcon(KIcon("dialog-close"));
++    QMenu *menu = new QMenu();
++    closeForThisSession = menu->addAction(i18n("Hide tips"));
++    QAction *closePermanently = menu->addAction(i18n("Hide tips and don't show them again"));
++    closeTips->setMenu(menu);
++    widgetList << tipWidget->spacer() << prevTip << nextTip << closeTips;
++    tipWidget->addInlineMessage("ktip", tipDatabase->tip(), KIcon("ktip"), widgetList);
++
++    QObject::connect(closeForThisSession, SIGNAL(triggered()), tipWidget, SLOT(close()));
++    QObject::connect(closePermanently, SIGNAL(triggered()), tipWidget, SLOT(close()));
++    QObject::connect(prevTip, SIGNAL(clicked(bool)), this, SLOT(previousTip()));
++    QObject::connect(nextTip, SIGNAL(clicked(bool)), this, SLOT(nextTip()));
++
++    if (tipDatabase->tip().isEmpty()) {
++        tipWidget->close();
++    }
++}
++
++void KTipInline::previousTip()
++{
++    tipDatabase->prevTip();
++    tipWidget->modifyInlineMessage("ktip", KMainWindowInlineMessageWidget::Message, tipDatabase->tip());
++}
++
++void KTipInline::nextTip()
++{
++    tipDatabase->nextTip();
++    tipWidget->modifyInlineMessage("ktip", KMainWindowInlineMessageWidget::Message, tipDatabase->tip());
++}
++
+ K_GLOBAL_STATIC(KMWSessionManager, ksm)
+ K_GLOBAL_STATIC(QList<KMainWindow*>, sMemberList)
+ static bool being_first = true;
+@@ -375,6 +426,8 @@ void KMainWindowPrivate::polish(KMainWindow *q)
+                                        QDBusConnection::ExportNonScriptableSlots |
+                                        QDBusConnection::ExportNonScriptableProperties |
+                                        QDBusConnection::ExportAdaptors);
++
++    new KTipInline( q );
+ }
+ 
+ void KMainWindow::parseGeometry(bool parsewidth)
+@@ -714,25 +767,6 @@ void KMainWindow::applyMainWindowSettings(const KConfigGroup &cg, bool force)
+            mb->show();
+     }
+ 
+-    // Utilise the QMainWindow::restoreState() functionality.
+-    // In case we are switching between parts (and have different main toolbars), we need to save
+-    // the different states of the window (taking in count some toolbars could have the same name,
+-    // as "mainToolbar", for instance). This way we always load the state of the correct window. (ereslibre)
+-    QString componentDataName;
+-    if (KGlobal::hasActiveComponent()) {
+-        componentDataName = KGlobal::activeComponent().componentName();
+-    } else if (KGlobal::hasMainComponent()) {
+-        componentDataName = KGlobal::mainComponent().componentName();
+-    }
+-    QString entry = QString("State%1").arg(componentDataName);
+-    if (cg.hasKey(entry)) {
+-        QByteArray state;
+-        state = cg.readEntry(entry, state);
+-        state = QByteArray::fromBase64(state);
+-        // One day will need to load the version number, but for now, assume 0
+-        restoreState(state);
+-    }
+-
+     if ( !autoSaveSettings() || cg.name() == autoSaveGroup() ) { // TODO should be cg == d->autoSaveGroup, to compare both kconfig and group name
+         QString entry = cg.readEntry ("ToolBarsMovable", "Enabled");
+         if ( entry == "Disabled" )
+@@ -753,6 +787,25 @@ void KMainWindow::applyMainWindowSettings(const KConfigGroup &cg, bool force)
+         n++;
+     }
+ 
++    // Utilise the QMainWindow::restoreState() functionality.
++    // In case we are switching between parts (and have different main toolbars), we need to save
++    // the different states of the window (taking in count some toolbars could have the same name,
++    // as "mainToolbar", for instance). This way we always load the state of the correct window. (ereslibre)
++    QString componentDataName;
++    if (KGlobal::hasActiveComponent()) {
++        componentDataName = KGlobal::activeComponent().componentName();
++    } else if (KGlobal::hasMainComponent()) {
++        componentDataName = KGlobal::mainComponent().componentName();
++    }
++    QString entry = QString("State%1").arg(componentDataName);
++    if (cg.hasKey(entry)) {
++        QByteArray state;
++        state = cg.readEntry(entry, state);
++        state = QByteArray::fromBase64(state);
++        // One day will need to load the version number, but for now, assume 0
++        restoreState(state);
++    }
++
+     d->settingsDirty = false;
+ }
+ 
+@@ -917,10 +970,13 @@ void KMainWindow::setSettingsDirty()
+         if ( !d->settingsTimer )
+         {
+            d->settingsTimer = new QTimer( this );
++           // This interval cannot be more than 0. It causes toolbars to not be saved correctly, since
++           // some of them can be destroyed when changing the active part, and the saved result of
++           // toolbar sizes are incorrect.
++           d->settingsTimer->setInterval(0);
++           d->settingsTimer->setSingleShot(true);
+            connect( d->settingsTimer, SIGNAL( timeout() ), SLOT( saveAutoSaveSettings() ) );
+         }
+-        d->settingsTimer->setInterval(500);
+-        d->settingsTimer->setSingleShot(true);
+         d->settingsTimer->start();
+     }
+ }
+@@ -1139,4 +1195,4 @@ QString KMainWindow::dbusName() const
+ }
+ 
+ #include "kmainwindow.moc"
+-
++#include "kmainwindow_p.moc"
+diff --git a/kdeui/widgets/kmainwindow_p.h b/kdeui/widgets/kmainwindow_p.h
+index 62fc092..8e2bb17 100644
+--- a/kdeui/widgets/kmainwindow_p.h
++++ b/kdeui/widgets/kmainwindow_p.h
+@@ -36,6 +36,8 @@
+ class QObject;
+ class QTimer;
+ class KHelpMenu;
++class KTipDatabase;
++class KMainWindowInlineMessageWidget;
+ 
+ class KMainWindowPrivate
+ {
+@@ -62,5 +64,23 @@ public:
+     void polish(KMainWindow *q);
+ };
+ 
++class KTipInline
++    : public QObject
++{
++    Q_OBJECT
++
++public:
++    KTipInline(KMainWindow *parent);
++
++private Q_SLOTS:
++    void previousTip();
++    void nextTip();
++
++private:
++    KMainWindowInlineMessageWidget *tipWidget;
++    KTipDatabase *tipDatabase;
++    QAction *closeForThisSession;
++};
++
+ #endif
+ 

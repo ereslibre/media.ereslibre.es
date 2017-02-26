@@ -1,0 +1,1933 @@
+Index: runtime/kuiserver/progresslistdelegate.h
+===================================================================
+--- runtime/kuiserver/progresslistdelegate.h	(revisión: 780700)
++++ runtime/kuiserver/progresslistdelegate.h	(copia de trabajo)
+@@ -1,6 +1,6 @@
+ /**
+   * This file is part of the KDE project
+-  * Copyright (C) 2007, 2006 Rafael Fernández López <ereslibre@kde.org>
++  * Copyright (C) 2006-2008 Rafael Fernández López <ereslibre@kde.org>
+   *
+   * This library is free software; you can redistribute it and/or
+   * modify it under the terms of the GNU Library General Public
+@@ -42,8 +42,6 @@ public:
+      */
+     ~ProgressListDelegate();
+ 
+-    QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const;
+-
+     /**
+       * @brief Paints the progress delegate.
+       */
+@@ -66,31 +64,20 @@ public:
+ 
+     enum ProgressItemRole
+     {
+-        JobId = 33,
+-        ApplicationInternalName,
++        Capabilities = 33,
+         ApplicationName,
+         Icon,
+-        FileTotals,
+-        FilesProcessed,
+-        DirTotals,
+-        DirsProcessed,
+         SizeTotals,
+         SizeProcessed,
+         TimeTotals,
+         TimeElapsed,
+-        From,
+-        To,
+-        FromLabel,
+-        ToLabel,
+         Speed,
+         Percent,
+         Message,
+-        ProgressMessage
++        DescFields,
++        State
+     };
+ 
+-Q_SIGNALS:
+-    void actionPerformed(int actionId, int jobId);
+-
+ private:
+     class Private;
+     Private *d;
+Index: runtime/kuiserver/uiserver.cpp
+===================================================================
+--- runtime/kuiserver/uiserver.cpp	(revisión: 780700)
++++ runtime/kuiserver/uiserver.cpp	(copia de trabajo)
+@@ -1,6 +1,6 @@
+ /**
+   * This file is part of the KDE project
+-  * Copyright (C) 2007, 2006 Rafael Fernández López <ereslibre@kde.org>
++  * Copyright (C) 2006-2008 Rafael Fernández López <ereslibre@kde.org>
+   * Copyright (C) 2001 George Staikos <staikos@kde.org>
+   * Copyright (C) 2000 Matej Koss <koss@miesto.sk>
+   *                    David Faure <faure@kde.org>
+@@ -21,14 +21,16 @@
+   */
+ 
+ #include "uiserver.h"
+-#include "uiserveradaptor.h"
++#include "uiserver_p.h"
++#include "jobviewadaptor.h"
++#include "jobviewserveradaptor.h"
+ #include "progresslistmodel.h"
+ #include "progresslistdelegate.h"
+-#include "callbacksiface.h"
+ 
+-#include <QWidget>
+-#include <QAction>
+-#include <QTabWidget>
++#include <QtGui/QWidget>
++#include <QtGui/QAction>
++#include <QtGui/QTabWidget>
++#include <QtGui/QBoxLayout>
+ 
+ #include <ksqueezedtextlabel.h>
+ #include <kconfig.h>
+@@ -39,6 +41,7 @@
+ #include <kcmdlineargs.h>
+ #include <kglobal.h>
+ #include <klocale.h>
++#include <kpushbutton.h>
+ #include <kstatusbar.h>
+ #include <kdebug.h>
+ #include <kdialog.h>
+@@ -49,13 +52,154 @@
+ #include <kio/jobclasses.h>
+ #include <kjob.h>
+ 
++UIServer *UIServer::s_uiserver = 0;
++
++UIServer::JobView::JobView(QObject *parent)
++    : QObject(parent)
++{
++    m_objectPath.setPath(QString("/JobViewServer/JobView_%1").arg(s_jobId));
++
++    new JobViewAdaptor(this);
++    QDBusConnection::sessionBus().registerObject(m_objectPath.path(), this);
++}
++
++void UIServer::JobView::terminate(const QString &errorMessage)
++{
++    QModelIndex index = s_uiserver->m_progressListModel->indexForJob(this);
++
++    s_uiserver->m_progressListModel->setData(index, JobInfo::Cancelled, ProgressListDelegate::State);
++
++    if (errorMessage.isNull())
++    {
++        s_uiserver->m_progressListFinishedModel->newJob(s_uiserver->m_progressListModel->data(index, ProgressListDelegate::ApplicationName).toString(),
++                                                        s_uiserver->m_progressListModel->data(index, ProgressListDelegate::Icon).toString(),
++                                                        s_uiserver->m_progressListModel->data(index, ProgressListDelegate::Capabilities).toInt(),
++                                                        0);
++    }
++
++    s_uiserver->m_progressListModel->finishJob(this);
++
++    QDBusConnection::sessionBus().unregisterObject(m_objectPath.path(), QDBusConnection::UnregisterTree);
++}
++
++void UIServer::JobView::setSuspended(bool suspended)
++{
++    QModelIndex currentIndex = s_uiserver->listProgress->currentIndex();
++
++    s_uiserver->m_progressListModel->setData(currentIndex, suspended ? JobInfo::Suspended
++                                                                     : JobInfo::Running, ProgressListDelegate::State);
++
++    if (currentIndex.isValid() &&
++        s_uiserver->listProgress->selectionModel()->isSelected(currentIndex))
++    {
++        JobView *jobView = s_uiserver->m_progressListModel->jobView(currentIndex);
++
++        if (s_uiserver->m_progressListModel->state(currentIndex) == JobInfo::Running)
++        {
++            s_uiserver->pauseResumeButton->setText(i18n("Pause"));
++            s_uiserver->pauseResumeButton->setIcon(KIcon("media-playback-pause"));
++        }
++        else
++        {
++            s_uiserver->pauseResumeButton->setText(i18n("Resume"));
++            s_uiserver->pauseResumeButton->setIcon(KIcon("media-playback-start"));
++        }
++    }
++}
++
++void UIServer::JobView::setTotalAmount(qlonglong amount, const QString &unit)
++{
++    QModelIndex index = s_uiserver->m_progressListModel->indexForJob(this);
++
++    if (unit == "bytes") {
++        s_uiserver->m_progressListModel->setData(index, amount ? KGlobal::locale()->formatByteSize(amount)
++                                                               : QString(), ProgressListDelegate::SizeTotals);
++    } else if (unit == "files") {
++        s_uiserver->m_progressListModel->setData(index, amount ? i18np("%1 file", "%1 files", amount)
++                                                               : QString(), ProgressListDelegate::SizeTotals);
++    } else if (unit == "dirs") {
++        s_uiserver->m_progressListModel->setData(index, amount ? i18np("%1 folder", "%1 folders", amount)
++                                                               : QString(), ProgressListDelegate::SizeTotals);
++    }
++}
++
++void UIServer::JobView::setProcessedAmount(qlonglong amount, const QString &unit)
++{
++    QModelIndex index = s_uiserver->m_progressListModel->indexForJob(this);
++
++    if (unit == "bytes") {
++        s_uiserver->m_progressListModel->setData(index, amount ? KGlobal::locale()->formatByteSize(amount)
++                                                               : QString(), ProgressListDelegate::SizeProcessed);
++    } else if (unit == "files") {
++        s_uiserver->m_progressListModel->setData(index, amount ? i18np("%1 file", "%1 files", amount)
++                                                               : QString(), ProgressListDelegate::SizeProcessed);
++    } else if (unit == "dirs") {
++        s_uiserver->m_progressListModel->setData(index, amount ? i18np("%1 folder", "%1 folders", amount)
++                                                               : QString(), ProgressListDelegate::SizeProcessed);
++    }
++}
++
++void UIServer::JobView::setPercent(uint percent)
++{
++    QModelIndex index = s_uiserver->m_progressListModel->indexForJob(this);
++
++    if (index.isValid())
++        s_uiserver->m_progressListModel->setData(index, percent, ProgressListDelegate::Percent);
++}
++
++void UIServer::JobView::setSpeed(qlonglong bytesPerSecond)
++{
++    QModelIndex index = s_uiserver->m_progressListModel->indexForJob(this);
++
++    if (index.isValid())
++        s_uiserver->m_progressListModel->setData(index, bytesPerSecond ? KGlobal::locale()->formatByteSize(bytesPerSecond)
++                                                                       : QString(), ProgressListDelegate::Speed);
++}
++
++void UIServer::JobView::setInfoMessage(const QString &infoMessage)
++{
++    QModelIndex index = s_uiserver->m_progressListModel->indexForJob(this);
++
++    if (index.isValid())
++        s_uiserver->m_progressListModel->setData(index, infoMessage, ProgressListDelegate::Message);
++}
++
++bool UIServer::JobView::setDescriptionField(uint number, const QString &name, const QString &value)
++{
++    QModelIndex index = s_uiserver->m_progressListModel->indexForJob(this);
++
++    if (index.isValid())
++        return s_uiserver->m_progressListModel->setDescriptionField(index, number, name, value);
++
++    return false;
++}
++
++void UIServer::JobView::clearDescriptionField(uint number)
++{
++    QModelIndex index = s_uiserver->m_progressListModel->indexForJob(this);
++
++    if (index.isValid())
++        s_uiserver->m_progressListModel->clearDescriptionField(index, number);
++}
++
++QDBusObjectPath UIServer::JobView::objectPath() const
++{
++    return m_objectPath;
++}
++
+ UIServer::UIServer()
+     : KXmlGuiWindow(0)
+ {
+-    serverAdaptor = new UiServerAdaptor(this);
+-    QDBusConnection::sessionBus().registerObject(QLatin1String("/UiServer"), this);
++    // Register necessary services and D-Bus adaptors.
++    new JobViewServerAdaptor(this);
++    QDBusConnection::sessionBus().registerService(QLatin1String("org.kde.JobViewServer"));
++    QDBusConnection::sessionBus().registerObject(QLatin1String("/JobViewServer"), this);
++
++    QWidget *centralWidget = new QWidget(this);
++    QVBoxLayout *layout = new QVBoxLayout;
++    centralWidget->setLayout(layout);
+ 
+-    tabWidget = new QTabWidget();
++    tabWidget = new QTabWidget(this);
+ 
+     QString configure = i18n("Configure...");
+ 
+@@ -69,6 +213,10 @@ UIServer::UIServer()
+     connect(configureAction, SIGNAL(triggered(bool)), this,
+             SLOT(showConfigurationDialog()));
+ 
++    connect(QDBusConnection::sessionBus().interface(), SIGNAL(serviceOwnerChanged(const QString&,const QString&,const QString&)), this,
++            SLOT(slotServiceOwnerChanged(const QString&,const QString&,const QString&)));
++
++
+     toolBar->addSeparator();
+ 
+     searchText = new KLineEdit(toolBar);
+@@ -78,25 +226,43 @@ UIServer::UIServer()
+     toolBar->addWidget(searchText);
+ 
+     listProgress = new QListView(tabWidget);
+-    listProgress->setFrameStyle(QFrame::NoFrame);
+     listProgress->setObjectName("progresslist");
+     listProgress->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+ 
+     listFinished = new QListView(tabWidget);
+-    listFinished->setFrameStyle(QFrame::NoFrame);
+     listFinished->setObjectName("progresslistFinished");
+     listFinished->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+ 
+-    tabWidget->addTab(listProgress, i18n("In Progress"));
++    layout->addWidget(listProgress);
++
++    QHBoxLayout *horizLayout = new QHBoxLayout;
++
++    cancelButton = new KPushButton(KIcon("media-playback-stop"), i18n("Cancel"), this);
++    pauseResumeButton = new KPushButton(KIcon("media-playback-pause"), i18n("Pause"), this);
++
++    connect(cancelButton, SIGNAL(clicked(bool)), this, SLOT(slotCancelClicked()));
++    connect(pauseResumeButton, SIGNAL(clicked(bool)), this, SLOT(slotPauseResumeClicked()));
++
++    cancelButton->setEnabled(false);
++    pauseResumeButton->setEnabled(false);
++
++    horizLayout->addStretch();
++    horizLayout->addWidget(pauseResumeButton);
++    horizLayout->addSpacing(KDialog::spacingHint());
++    horizLayout->addWidget(cancelButton);
++
++    layout->addLayout(horizLayout);
++
++    tabWidget->addTab(centralWidget, i18n("In Progress"));
+     tabWidget->addTab(listFinished, i18n("Finished"));
+ 
+     setCentralWidget(tabWidget);
+ 
+-    progressListModel = new ProgressListModel(this);
+-    progressListFinishedModel = new ProgressListModel(this);
++    m_progressListModel = new ProgressListModel(this);
++    m_progressListFinishedModel = new ProgressListModel(this);
+ 
+-    listProgress->setModel(progressListModel);
+-    listFinished->setModel(progressListFinishedModel);
++    listProgress->setModel(m_progressListModel);
++    listFinished->setModel(m_progressListFinishedModel);
+ 
+     progressListDelegate = new ProgressListDelegate(this, listProgress);
+     progressListDelegate->setSeparatorPixels(10);
+@@ -120,11 +286,8 @@ UIServer::UIServer()
+ 
+     applySettings();
+ 
+-    connect(progressListDelegate, SIGNAL(actionPerformed(int,int)), this,
+-            SLOT(slotActionPerformed(int,int)));
+-
+-    connect(progressListDelegateFinished, SIGNAL(actionPerformed(int,int)), this,
+-            SLOT(slotActionPerformedFinishedJob(int,int)));
++    connect(listProgress->selectionModel(), SIGNAL(selectionChanged(const QItemSelection&,const QItemSelection&)), this,
++            SLOT(slotSelectionChanged(const QItemSelection&)));
+ 
+     hide();
+ }
+@@ -135,206 +298,26 @@ UIServer::~UIServer()
+ 
+ UIServer* UIServer::createInstance()
+ {
+-    return new UIServer;
++    s_uiserver = new UIServer;
++    return s_uiserver;
+ }
+ 
+-int UIServer::newJob(const QString &appServiceName, int capabilities, bool showProgress, const QString &internalAppName, const QString &jobIcon, const QString &appName)
++QDBusObjectPath UIServer::requestView(const QString &appName, const QString &appIconName, int capabilities)
+ {
+-    // Uncomment if you want to see kuiserver in action (ereslibre)
+-    // if (isHidden()) show();
++    if (isHidden()) show();
+ 
+     s_jobId++;
+ 
+-    OrgKdeUiServerCallbacksInterface *callbacks = new org::kde::UiServerCallbacks(appServiceName, "/UiServerCallbacks", QDBusConnection::sessionBus());
+-
+-    m_hashCallbacksInterfaces.insert(s_jobId, callbacks);
+-
+-    progressListModel->newJob(s_jobId, internalAppName, jobIcon, appName, showProgress);
+-    progressListModel->setData(progressListModel->indexForJob(s_jobId), s_jobId,
+-                               ProgressListDelegate::JobId);
+-
+-    if (capabilities == KJob::NoCapabilities)
+-        return s_jobId;
+-
+-    if (capabilities & KJob::Suspendable)
+-        newAction(s_jobId, KJob::Suspendable, i18n("Pause"));
+-
+-    if (capabilities & KJob::Killable)
+-        newAction(s_jobId, KJob::Killable, i18n("Cancel"));
+-
+-    return s_jobId;
+-}
+-
+-void UIServer::jobFinished(int id, int errorCode)
+-{
+-    if (errorCode == KJob::NoError)
+-    {
+-        if ((id < 1) || !m_hashCallbacksInterfaces.contains(id)) return;
+-
+-        QModelIndex index = progressListModel->indexForJob(id);
+-
+-        progressListFinishedModel->newJob(id, progressListModel->data(index, ProgressListDelegate::ApplicationInternalName).toString(),
+-                                        progressListModel->data(index, ProgressListDelegate::Icon).toString(),
+-                                        progressListModel->data(index, ProgressListDelegate::ApplicationName).toString(),
+-                                        true /* showProgress (show or hide) */);
+-
+-        progressListFinishedModel->newAction(id, KJob::Killable, i18n("Close Information"));
+-    }
+-
+-    delete m_hashCallbacksInterfaces[id];
+-    m_hashCallbacksInterfaces.remove(id);
+-
+-    progressListModel->finishJob(id);
+-}
+-
+-void UIServer::jobSuspended(int id)
+-{
+-    if (id < 1) return;
+-
+-    progressListModel->editAction(id, KJob::Suspendable, i18n("Resume"));
+-}
+-
+-void UIServer::jobResumed(int id)
+-{
+-    if (id < 1) return;
+-
+-    progressListModel->editAction(id, KJob::Suspendable, i18n("Pause"));
+-}
+-
+-
+-/// ===========================================================
+-
+-
+-void UIServer::newAction(int jobId, int actionId, const QString &actionText)
+-{
+-    m_hashActions.insert(actionId, jobId);
+-
+-    progressListModel->newAction(jobId, actionId, actionText);
+-}
+-
+-/// ===========================================================
+-
+-
+-void UIServer::totalSize(int id, KIO::filesize_t size)
+-{
+-    if (id < 1) return;
+-
+-    progressListModel->setData(progressListModel->indexForJob(id), KIO::convertSize(size),
+-                               ProgressListDelegate::SizeTotals);
+-}
+-
+-void UIServer::totalFiles(int id, unsigned long files)
+-{
+-    if (id < 1) return;
+-
+-    progressListModel->setData(progressListModel->indexForJob(id), qulonglong(files),
+-                               ProgressListDelegate::FileTotals);
+-}
+-
+-void UIServer::totalDirs(int id, unsigned long dirs)
+-{
+-    if (id < 1) return;
+-
+-    progressListModel->setData(progressListModel->indexForJob(id), qulonglong(dirs),
+-                               ProgressListDelegate::DirTotals);
+-}
+-
+-void UIServer::processedSize(int id, KIO::filesize_t bytes)
+-{
+-    if (id < 1) return;
+-
+-    progressListModel->setData(progressListModel->indexForJob(id), KIO::convertSize(bytes),
+-                               ProgressListDelegate::SizeProcessed);
+-}
+-
+-void UIServer::processedFiles(int id, unsigned long files)
+-{
+-    if (id < 1) return;
+-
+-    progressListModel->setData(progressListModel->indexForJob(id), qulonglong(files),
+-                               ProgressListDelegate::FilesProcessed);
+-}
+-
+-void UIServer::processedDirs(int id, unsigned long dirs)
+-{
+-    if (id < 1) return;
+-
+-    progressListModel->setData(progressListModel->indexForJob(id), qulonglong(dirs),
+-                               ProgressListDelegate::DirsProcessed);
+-}
+-
+-void UIServer::percent(int id, unsigned long ipercent)
+-{
+-    if (id < 1) return;
+-
+-    progressListModel->setData(progressListModel->indexForJob(id), qulonglong(ipercent),
+-                               ProgressListDelegate::Percent);
+-}
+-
+-void UIServer::speed(int id, QString bytes_per_second)
+-{
+-    if (id < 1) return;
+-
+-    progressListModel->setData(progressListModel->indexForJob(id), bytes_per_second,
+-                               ProgressListDelegate::Speed);
+-}
+-
+-void UIServer::infoMessage(int id, QString msg)
+-{
+-    if (id < 1) return;
+-
+-    progressListModel->setData(progressListModel->indexForJob(id), msg,
+-                               ProgressListDelegate::Message);
+-}
+-
+-void UIServer::progressInfoMessage(int id, QString msg)
+-{
+-    if (id < 1) return;
+-
+-    progressListModel->setData(progressListModel->indexForJob(id), msg,
+-                               ProgressListDelegate::ProgressMessage);
+-}
+-
+-
+-bool UIServer::setDescription(int id, const QString &description)
+-{
+-    if (id < 1) return false;
+-
+-    progressListModel->setData(progressListModel->indexForJob(id), description,
+-                               ProgressListDelegate::Message);
+-
+-    return true;
+-}
+-
+-bool UIServer::setDescriptionFirstField(int id, const QString &name, const QString &value)
+-{
+-    if (id < 1) return false;
+-
+-    progressListModel->setData(progressListModel->indexForJob(id), name,
+-                               ProgressListDelegate::FromLabel);
+-
+-    progressListModel->setData(progressListModel->indexForJob(id), value,
+-                               ProgressListDelegate::From);
+-
+-    return true;
+-}
+-
+-bool UIServer::setDescriptionSecondField(int id, const QString &name, const QString &value)
+-{
+-    if (id < 1) return false;
++    // Since s_jobId is an unsigned int, if we got overflow and go back to 0,
++    // be sure we do not assign 0 to a valid job, since 0 is reserved only for
++    // reporting problems.
++    if (!s_jobId) s_jobId++;
+ 
+-    progressListModel->setData(progressListModel->indexForJob(id), name,
+-                               ProgressListDelegate::ToLabel);
++    JobView *jobView = new JobView();
+ 
+-    progressListModel->setData(progressListModel->indexForJob(id), value,
+-                               ProgressListDelegate::To);
++    m_progressListModel->newJob(appName, appIconName, capabilities, jobView);
+ 
+-    return true;
+-}
+-
+-void UIServer::setJobVisible(int id, bool visible)
+-{
+-    listProgress->setRowHidden(progressListModel->indexForJob(id).row(), !visible);
++    return jobView->objectPath();
+ }
+ 
+ void UIServer::slotRemoveSystemTrayIcon()
+@@ -357,18 +340,6 @@ void UIServer::applySettings()
+      m_systemTray->show();
+ }
+ 
+-void UIServer::slotActionPerformed(int actionId, int jobId)
+-{
+-    if (!m_hashCallbacksInterfaces.contains(jobId)) return;
+-
+-    m_hashCallbacksInterfaces[jobId]->slotActionPerformed(actionId, jobId);
+-}
+-
+-void UIServer::slotActionPerformedFinishedJob(int /* actionId */, int jobId)
+-{
+-    progressListFinishedModel->finishJob(jobId);
+-}
+-
+ void UIServer::showConfigurationDialog()
+ {
+     if (KConfigDialog::showDialog("configuration"))
+@@ -387,6 +358,78 @@ void UIServer::showConfigurationDialog()
+     dialog->show();
+ }
+ 
++void UIServer::slotServiceOwnerChanged(const QString &name, const QString &oldOwner, const QString &newOwner)
++{
++    kDebug() << "dbus name: " << name << " oldowner: " << oldOwner << " newowner: " << newOwner;
++}
++
++void UIServer::slotCancelClicked()
++{
++    if (listProgress->currentIndex().isValid())
++    {
++        JobView *jobView = m_progressListModel->jobView(listProgress->currentIndex());
++
++        emit jobView->cancelRequested();
++    }
++}
++
++void UIServer::slotPauseResumeClicked()
++{
++    if (listProgress->currentIndex().isValid())
++    {
++        JobView *jobView = m_progressListModel->jobView(listProgress->currentIndex());
++
++        if (s_uiserver->m_progressListModel->state(listProgress->currentIndex()) == JobInfo::Running)
++        {
++            emit jobView->suspendRequested();
++            pauseResumeButton->setText(i18n("Resume"));
++            pauseResumeButton->setIcon(KIcon("media-playback-start"));
++        }
++        else
++        {
++            emit jobView->resumeRequested();
++            pauseResumeButton->setText(i18n("Pause"));
++            pauseResumeButton->setIcon(KIcon("media-playback-pause"));
++        }
++    }
++}
++
++void UIServer::slotSelectionChanged(const QItemSelection &selection)
++{
++    bool enableCancelButton = false;
++    bool enableResumeButton = false;
++
++    if (selection.indexes().count())
++    {
++        JobView *jobView = m_progressListModel->jobView(listProgress->currentIndex());
++
++        if ((m_progressListModel->state(listProgress->currentIndex()) == JobInfo::Running) &&
++            ((m_progressListModel->data(listProgress->currentIndex(), ProgressListDelegate::Capabilities).toInt() &
++              KJob::Suspendable)))
++        {
++            pauseResumeButton->setText(i18n("Pause"));
++            pauseResumeButton->setIcon(KIcon("media-playback-pause"));
++            enableResumeButton = true;
++        }
++        else if ((m_progressListModel->data(listProgress->currentIndex(), ProgressListDelegate::Capabilities).toInt() &
++                  KJob::Suspendable))
++        {
++            pauseResumeButton->setText(i18n("Resume"));
++            pauseResumeButton->setIcon(KIcon("media-playback-start"));
++            enableResumeButton = true;
++        }
++
++        if ((m_progressListModel->data(listProgress->currentIndex(), ProgressListDelegate::Capabilities).toInt() &
++             KJob::Killable))
++        {
++            enableCancelButton = true;
++        }
++    }
++
++    cancelButton->setEnabled(enableCancelButton);
++    pauseResumeButton->setEnabled(enableResumeButton);
++}
++
+ 
+ /// ===========================================================
+ 
+@@ -406,7 +449,7 @@ UIConfigurationDialog::~UIConfigurationD
+ /// ===========================================================
+ 
+ 
+-int UIServer::s_jobId = 0;
++uint UIServer::s_jobId = 0;
+ 
+ extern "C" KDE_EXPORT int kdemain(int argc, char **argv)
+ {
+@@ -414,10 +457,10 @@ extern "C" KDE_EXPORT int kdemain(int ar
+     //              in the titles of dialogs which are displayed.
+     KAboutData aboutdata("kuiserver", "kdelibs4", ki18n("Progress Manager"),
+                          "0.8", ki18n("KDE Progress Information UI Server"),
+-                         KAboutData::License_GPL, ki18n("(C) 2000-2005, David Faure & Matt Koss"));
+-    aboutdata.addAuthor(ki18n("David Faure"),ki18n("Maintainer"),"faure@kde.org");
++                         KAboutData::License_GPL, ki18n("(C) 2000-2008, KDE Team"));
++    aboutdata.addAuthor(ki18n("Rafael Fernández López"),ki18n("Maintainer"),"ereslibre@kde.org");
++    aboutdata.addAuthor(ki18n("David Faure"),ki18n("Former maintainer"),"faure@kde.org");
+     aboutdata.addAuthor(ki18n("Matej Koss"),ki18n("Developer"),"koss@miesto.sk");
+-    aboutdata.addAuthor(ki18n("Rafael Fernández López"),ki18n("Developer"),"ereslibre@kde.org");
+ 
+     KCmdLineArgs::init( argc, argv, &aboutdata );
+     // KCmdLineArgs::addCmdLineOptions( options );
+Index: runtime/kuiserver/uiserver.h
+===================================================================
+--- runtime/kuiserver/uiserver.h	(revisión: 780700)
++++ runtime/kuiserver/uiserver.h	(copia de trabajo)
+@@ -1,6 +1,6 @@
+ /**
+   * This file is part of the KDE project
+-  * Copyright (C) 2007, 2006 Rafael Fernández López <ereslibre@kde.org>
++  * Copyright (C) 2006-2008 Rafael Fernández López <ereslibre@kde.org>
+   * Copyright (C) 2000 Matej Koss <koss@miesto.sk>
+   *                    David Faure <faure@kde.org>
+   *
+@@ -22,211 +22,58 @@
+ #ifndef UISERVER_H
+ #define UISERVER_H
+ 
+-#include <QListView>
++#include <QtGui/QListView>
++#include <QtDBus/QDBusObjectPath>
++
+ #include <kxmlguiwindow.h>
+ #include <kio/global.h>
+ #include <kio/authinfo.h>
+ #include <kurl.h>
+ #include <ktoolbar.h>
+ 
+-#include "uiserver_p.h"
+ #include <kuiserversettings.h>
+ 
+ class ProgressListModel;
+ class ProgressListDelegate;
+-class UiServerAdaptor;
++class JobViewServerAdaptor;
+ class QToolBar;
+ class QTabWidget;
+ class KLineEdit;
+-class OrgKdeUiServerCallbacksInterface;
++class KPushButton;
++class OrgKdeJobViewInterface;
++class JobViewAdaptor;
+ 
+ class UIServer
+     : public KXmlGuiWindow
+ {
+   Q_OBJECT
+-
+-  UIServer();
+-
+-  virtual ~UIServer();
++  Q_CLASSINFO("D-Bus Interface", "org.kde.JobViewServer")
+ 
+ public:
+-   static UIServer* createInstance();
+-
+-    /**
+-      * Signal a new job
+-      *
+-      * @param appServiceName   the DBUS service name
+-      * @see                    KIO::Observer::newJob
+-      * @param capabilities		the capabilities that this job accepts
+-      * @param showProgress     whether to popup the progress for the job.
+-      *                         Usually true, but may be false when we use kuiserver for
+-      *                         other things, like SSL dialogs.
+-      * @param internalAppName  the application name that launched the job (kopete, konqueror...)
+-      * @param jobIcon          the job icon name
+-      * @param appName          the translated application name (Kopete, Konqueror...)
+-      * @return                 the identification number of the job (jobId)
+-      */
+-    int newJob(const QString &appServiceName, int capabilities, bool showProgress, const QString &internalAppName, const QString &jobIcon, const QString &appName);
+-
+-    /**
+-      * Finishes a job
+-      *
+-      * @param jobId     the identification number of the job
+-      * @param errorCode the error code of the job (succeeded, killed...)
+-      */
+-    void jobFinished(int jobId, int errorCode);
+-
+-    /**
+-      * Suspends a job
+-      *
+-      * @param jobId the identification number of the job
+-      */
+-    void jobSuspended(int jobId);
+-
+-    /**
+-      * Resumes a job
+-      *
+-      * @param jobId the identification number of the job
+-      */
+-    void jobResumed(int jobId);
+-
+-    /**
+-      * Adds an action (button) to a job
+-      *
+-      * @param jobId        the identification number of the job in which the action will be added
+-      * @param actionId     the identification number of the action
+-      * @param actionText   the button text
+-      * @return             the identification number of the action (actionId)
+-      */
+-    void newAction(int jobId, int actionId, const QString &actionText);
+-
+-    /**
+-      * Sets the total size of a job
+-      *
+-      * @param jobId    the identification number of the job
+-      * @param size     the total size
+-      */
+-    void totalSize(int jobId, KIO::filesize_t size);
+-
+-    /**
+-      * Sets the total files of a job
+-      *
+-      * @param jobId    the identification number of the job
+-      * @param files    total files to be processed
+-      */
+-    void totalFiles(int jobId, unsigned long files);
+-
+-    /**
+-      * Sets the total directories of a job
+-      *
+-      * @param jobId    the identification number of the job
+-      * @param dirs     total dirs to be processed
+-      */
+-    void totalDirs(int jobId, unsigned long dirs);
+-
+-    /**
+-      * Sets the current processed size
+-      *
+-      * @param jobId    the identification number of the job
+-      * @param bytes    the current processed bytes
+-      */
+-    void processedSize(int jobId, KIO::filesize_t bytes);
+-
+-    /**
+-      * Sets the current processed files
+-      *
+-      * @param jobId    the identification number of the job
+-      * @param files    the current processed files
+-      */
+-    void processedFiles(int jobId, unsigned long files);
+-
+-    /**
+-      * Sets the current processed dirs
+-      *
+-      * @param jobId    the identification number of the job
+-      * @param dirs     the current processed dirs
+-      */
+-    void processedDirs(int jobId, unsigned long dirs);
++    class JobView;
+ 
+-    /**
+-      * Sets the current percent
+-      *
+-      * @param jobId    the identification number of the job
+-      * @param ipercent the current percent
+-      */
+-    void percent(int jobId, unsigned long ipercent);
+-
+-    /**
+-      * Sets the current speed transfer
+-      *
+-      * @param jobId            the identification number of the job
+-      * @param bytes_per_second number of bytes per second on the transfer
+-      */
+-    void speed(int jobId, QString bytes_per_second);
+-
+-    /**
+-      * Sets the current info message
+-      *
+-      * @param jobId    the identification number of the job
+-      * @param msg      the info message to show
+-      */
+-    void infoMessage(int jobId, QString msg);
+-
+-    /**
+-      * Sets the current progress info message
+-      *
+-      * @param jobId    the identification number of the job
+-      * @param msg      the progress info message to show
+-      */
+-    void progressInfoMessage(int jobId, QString msg);
+-
+-    /**
+-     * Set the current job description
+-     *
+-     * @param jobId       the identification number of the job
+-     * @param description the description of the job
+-     */
+-    bool setDescription(int jobId, const QString &title);
+-
+-    /**
+-     * Set the current first field for the job description
+-     *
+-     * @param jobId       the identification number of the job
+-     * @param name        the name of this field
+-     * @param value       the value of this field
+-     */
+-    bool setDescriptionFirstField(int jobId, const QString &name, const QString &value);
+-
+-    /**
+-     * Set the current second field for the job description
+-     *
+-     * @param jobId       the identification number of the job
+-     * @param name        the name of this field
+-     * @param value       the value of this field
+-     */
+-    bool setDescriptionSecondField(int jobId, const QString &name, const QString &value);
++    static UIServer* createInstance();
+ 
+-    /**
+-      * Sets a job visible or hidden
+-      *
+-      * @param jobId    the job that will be hidden or shown
+-      * @param visible  whether the job will be shown or not
+-      */
+-    void setJobVisible(int jobId, bool visible);
++    QDBusObjectPath requestView(const QString &appName, const QString &appIconName, int capabilities);
+ 
+ public Q_SLOTS:
+     void slotRemoveSystemTrayIcon();
+     void updateConfiguration();
+     void applySettings();
+-    void slotActionPerformed(int actionId, int jobId);
+-    void slotActionPerformedFinishedJob(int actionId, int jobId);
+ 
+ private Q_SLOTS:
+     void showConfigurationDialog();
++    void slotServiceOwnerChanged(const QString &name, const QString &oldOwner, const QString &newOwner);
++    void slotCancelClicked();
++    void slotPauseResumeClicked();
++    void slotSelectionChanged(const QItemSelection &selection);
+ 
+ private:
+-    ProgressListModel *progressListModel;
+-    ProgressListModel *progressListFinishedModel;
++    UIServer();
++    virtual ~UIServer();
++
++    ProgressListModel *m_progressListModel;
++    ProgressListModel *m_progressListFinishedModel;
+     ProgressListDelegate *progressListDelegate;
+     ProgressListDelegate *progressListDelegateFinished;
+     QListView *listProgress;
+@@ -235,11 +82,46 @@ private:
+ 
+     QToolBar *toolBar;
+     KLineEdit *searchText;
+-    UiServerAdaptor *serverAdaptor;
+-    QHash<int, int> m_hashActions;
+-    QHash<int, OrgKdeUiServerCallbacksInterface*> m_hashCallbacksInterfaces;
+ 
+-    static int s_jobId;
++    KPushButton *cancelButton;
++    KPushButton *pauseResumeButton;
++
++    static uint s_jobId;
++    static UIServer *s_uiserver;
++
++    friend class JobView;
++};
++
++class UIServer::JobView
++    : public QObject
++{
++    Q_OBJECT
++    Q_CLASSINFO("D-Bus Interface", "org.kde.JobView")
++
++public:
++    JobView(QObject *parent = 0);
++
++    void terminate(const QString &errorMessage);
++    void setSuspended(bool suspended);
++    void setTotalAmount(qlonglong amount, const QString &unit);
++    void setProcessedAmount(qlonglong amount, const QString &unit);
++    void setPercent(uint percent);
++    void setSpeed(qlonglong bytesPerSecond);
++    void setInfoMessage(const QString &infoMessage);
++    bool setDescriptionField(uint number, const QString &name, const QString &value);
++    void clearDescriptionField(uint number);
++
++    QDBusObjectPath objectPath() const;
++
++Q_SIGNALS:
++    void suspendRequested();
++    void resumeRequested();
++    void cancelRequested();
++
++private:
++    QDBusObjectPath m_objectPath;
++
++    friend class UIServer;
+ };
+ 
+ #endif // UISERVER_H
+Index: runtime/kuiserver/progresslistdelegate_p.h
+===================================================================
+--- runtime/kuiserver/progresslistdelegate_p.h	(revisión: 780700)
++++ runtime/kuiserver/progresslistdelegate_p.h	(copia de trabajo)
+@@ -39,20 +39,14 @@ class ProgressListDelegate::Private
+ public:
+     Private(QObject *parent, QListView *listView)
+         : QObject(parent)
++        , listView(listView)
+     {
+-        this->listView = listView;
+-
+-        ProgressListModel *progressListModel = static_cast<ProgressListModel*>(listView->model());
+-
+-        connect(progressListModel, SIGNAL(actionModified(const QModelIndex&)), this,
+-                SLOT(actionModified(const QModelIndex&)));
+     }
+ 
+     ~Private()
+     {
+     }
+ 
+-    int getJobId(const QModelIndex &index) const;
+     QString getApplicationInternalName(const QModelIndex &index) const;
+     QString getApplicationName(const QModelIndex &index) const;
+     QString getIcon(const QModelIndex &index) const;
+@@ -72,13 +66,9 @@ public:
+     int getPercent(const QModelIndex &index) const;
+     QString getMessage(const QModelIndex &index) const;
+     QString getProgressMessage(const QModelIndex &index) const;
+-    const QList<ActionInfo> &getActionList(const QModelIndex &index) const;
+     QStyleOptionProgressBarV2 *getProgressBar(const QModelIndex &index) const;
+     int getCurrentLeftMargin(int fontHeight) const;
+ 
+-public Q_SLOTS:
+-    void actionModified(const QModelIndex &index);
+-
+ public:
+     int separatorPixels;
+     int leftMargin;
+@@ -89,26 +79,6 @@ public:
+     int editorHeight;
+     int iconWidth;
+     QListView *listView;
+-    class QActionPushButton;
+-};
+-
+-class ProgressListDelegate::Private::QActionPushButton
+-    : public QPushButton
+-{
+-    Q_OBJECT
+-
+-public:
+-    QActionPushButton(int actionId, int jobId, const QString &actionText, QWidget *parent = 0);
+-
+-public Q_SLOTS:
+-    void buttonPressed();
+-
+-Q_SIGNALS:
+-    void actionButtonPressed(int actionId, int jobId);
+-
+-private:
+-    int actionId;
+-    int jobId;
+ };
+ 
+ #endif // PROGRESSLISTDELEGATE_P_H
+Index: runtime/kuiserver/progresslistmodel.cpp
+===================================================================
+--- runtime/kuiserver/progresslistmodel.cpp	(revisión: 780700)
++++ runtime/kuiserver/progresslistmodel.cpp	(copia de trabajo)
+@@ -1,6 +1,6 @@
+ /**
+   * This file is part of the KDE project
+-  * Copyright (C) 2007, 2006 Rafael Fernández López <ereslibre@kde.org>
++  * Copyright (C) 2006-2008 Rafael Fernández López <ereslibre@kde.org>
+   *
+   * This library is free software; you can redistribute it and/or
+   * modify it under the terms of the GNU Library General Public
+@@ -22,7 +22,6 @@
+ 
+ #include <QStyleOptionProgressBarV2>
+ 
+-#include <kiconloader.h>
+ #include <kwidgetjobtracker.h>
+ 
+ ProgressListModel::ProgressListModel(QObject *parent)
+@@ -35,11 +34,17 @@ ProgressListModel::~ProgressListModel()
+     foreach (const JobInfo &it, jobInfoList)
+     {
+         delete it.progressBar;
+-        delete it.iconLoader;
+-        delete it.defaultTracker;
+     }
+ }
+ 
++UIServer::JobView *ProgressListModel::jobView(const QModelIndex &index) const
++{
++    if (!index.isValid())
++        return 0;
++
++    return jobInfoList[index.row()].jobView;
++}
++
+ QModelIndex ProgressListModel::parent(const QModelIndex&) const
+ {
+     return QModelIndex();
+@@ -54,11 +59,8 @@ QVariant ProgressListModel::data(const Q
+ 
+     switch (role)
+     {
+-        case ProgressListDelegate::JobId:
+-            result = jobInfoList[index.row()].jobId;
+-            break;
+-        case ProgressListDelegate::ApplicationInternalName:
+-            result = jobInfoList[index.row()].applicationInternalName;
++        case ProgressListDelegate::Capabilities:
++            result = jobInfoList[index.row()].capabilities;
+             break;
+         case ProgressListDelegate::ApplicationName:
+             result = jobInfoList[index.row()].applicationName;
+@@ -66,12 +68,6 @@ QVariant ProgressListModel::data(const Q
+         case ProgressListDelegate::Icon:
+             result = jobInfoList[index.row()].icon;
+             break;
+-        case ProgressListDelegate::FileTotals:
+-            result = jobInfoList[index.row()].fileTotals;
+-            break;
+-        case ProgressListDelegate::FilesProcessed:
+-            result = jobInfoList[index.row()].filesProcessed;
+-            break;
+         case ProgressListDelegate::SizeTotals:
+             result = jobInfoList[index.row()].sizeTotals;
+             break;
+@@ -84,18 +80,6 @@ QVariant ProgressListModel::data(const Q
+         case ProgressListDelegate::TimeElapsed:
+             result = jobInfoList[index.row()].timeElapsed;
+             break;
+-        case ProgressListDelegate::From:
+-            result = jobInfoList[index.row()].from;
+-            break;
+-        case ProgressListDelegate::To:
+-            result = jobInfoList[index.row()].to;
+-            break;
+-        case ProgressListDelegate::FromLabel:
+-            result = jobInfoList[index.row()].fromLabel;
+-            break;
+-        case ProgressListDelegate::ToLabel:
+-            result = jobInfoList[index.row()].toLabel;
+-            break;
+         case ProgressListDelegate::Speed:
+             result = jobInfoList[index.row()].speed;
+             break;
+@@ -105,6 +89,9 @@ QVariant ProgressListModel::data(const Q
+         case ProgressListDelegate::Message:
+             result = jobInfoList[index.row()].message;
+             break;
++        case ProgressListDelegate::State:
++            result = jobInfoList[index.row()].state;
++            break;
+         default:
+             return result;
+     }
+@@ -128,16 +115,16 @@ QModelIndex ProgressListModel::index(int
+     if (row >= rowCount())
+         return QModelIndex();
+ 
+-    return createIndex(row, column, iconLoader(row));
++    return createIndex(row, column, 0);
+ }
+ 
+-QModelIndex ProgressListModel::indexForJob(uint jobId) const
++QModelIndex ProgressListModel::indexForJob(UIServer::JobView *jobView) const
+ {
+     int i = 0;
+     foreach (const JobInfo &it, jobInfoList)
+     {
+-        if ((uint)it.jobId == jobId)
+-            return createIndex(i, 0, iconLoader(i));
++        if (it.jobView == jobView)
++            return createIndex(i, 0, 0);
+ 
+         i++;
+     }
+@@ -166,29 +153,18 @@ bool ProgressListModel::insertRows(int r
+ 
+     JobInfo newJob;
+ 
+-    newJob.jobId = -1;
+-    newJob.applicationInternalName = QString();
++    newJob.jobView = 0;
+     newJob.applicationName = QString();
+     newJob.icon = QString();
+-    newJob.fileTotals = -1;
+-    newJob.filesProcessed = -1;
+-    newJob.dirTotals = -1;
+-    newJob.dirsProcessed = -1;
+     newJob.sizeTotals = QString();
+     newJob.sizeProcessed = QString();
+     newJob.timeElapsed = -1;
+     newJob.timeTotals = -1;
+-    newJob.from = QString();
+-    newJob.to = QString();
+-    newJob.fromLabel = QString();
+-    newJob.toLabel = QString();
+     newJob.speed = QString();
+     newJob.percent = -1;
+     newJob.message = QString();
+-    newJob.progressMessage = QString();
+     newJob.progressBar = 0;
+-    newJob.iconLoader = 0;
+-    newJob.defaultTracker = 0;
++    newJob.state = JobInfo::Running;
+ 
+     jobInfoList.append(newJob);
+ 
+@@ -221,11 +197,8 @@ bool ProgressListModel::setData(const QM
+ 
+     switch (role)
+     {
+-        case ProgressListDelegate::JobId:
+-            jobInfoList[index.row()].jobId = value.toInt();
+-            break;
+-        case ProgressListDelegate::ApplicationInternalName:
+-            jobInfoList[index.row()].applicationInternalName = value.toString();
++        case ProgressListDelegate::Capabilities:
++            jobInfoList[index.row()].capabilities = value.toInt();
+             break;
+         case ProgressListDelegate::ApplicationName:
+             jobInfoList[index.row()].applicationName = value.toString();
+@@ -233,12 +206,6 @@ bool ProgressListModel::setData(const QM
+         case ProgressListDelegate::Icon:
+             jobInfoList[index.row()].icon = value.toString();
+             break;
+-        case ProgressListDelegate::FileTotals:
+-            jobInfoList[index.row()].fileTotals = value.toLongLong();
+-            break;
+-        case ProgressListDelegate::FilesProcessed:
+-            jobInfoList[index.row()].filesProcessed = value.toLongLong();
+-            break;
+         case ProgressListDelegate::SizeTotals:
+             jobInfoList[index.row()].sizeTotals = value.toString();
+             break;
+@@ -251,18 +218,6 @@ bool ProgressListModel::setData(const QM
+         case ProgressListDelegate::TimeElapsed:
+             jobInfoList[index.row()].timeElapsed = value.toLongLong();
+             break;
+-        case ProgressListDelegate::From:
+-            jobInfoList[index.row()].from = value.toString();
+-            break;
+-        case ProgressListDelegate::To:
+-            jobInfoList[index.row()].to = value.toString();
+-            break;
+-        case ProgressListDelegate::FromLabel:
+-            jobInfoList[index.row()].fromLabel = value.toString();
+-            break;
+-        case ProgressListDelegate::ToLabel:
+-            jobInfoList[index.row()].toLabel = value.toString();
+-            break;
+         case ProgressListDelegate::Speed:
+             jobInfoList[index.row()].speed = value.toString();
+             break;
+@@ -282,6 +237,9 @@ bool ProgressListModel::setData(const QM
+         case ProgressListDelegate::Message:
+             jobInfoList[index.row()].message = value.toString();
+             break;
++        case ProgressListDelegate::State:
++            jobInfoList[index.row()].state = (JobInfo::State) value.toInt();
++            break;
+         default:
+             return false;
+     }
+@@ -291,88 +249,76 @@ bool ProgressListModel::setData(const QM
+     return true;
+ }
+ 
+-void ProgressListModel::newJob(uint jobId, const QString &internalAppName, const QString &jobIcon, const QString &appName, bool showProgress)
++void ProgressListModel::newJob(const QString &appName, const QString &appIcon, int capabilities, UIServer::JobView *jobView)
+ {
+-    Q_UNUSED(showProgress);
+     int newRow = rowCount();
+ 
+     insertRow(rowCount());
+-    setData(newRow, jobId, ProgressListDelegate::JobId);
+-    setData(newRow, internalAppName, ProgressListDelegate::ApplicationInternalName);
+     setData(newRow, appName, ProgressListDelegate::ApplicationName);
+-    setData(newRow, jobIcon, ProgressListDelegate::Icon);
+-    setIconLoader(newRow, new KIconLoader(internalAppName));
++    setData(newRow, appIcon, ProgressListDelegate::Icon);
++    setData(newRow, capabilities, ProgressListDelegate::Capabilities);
++    jobInfoList[newRow].jobView = jobView;
+ }
+ 
+ 
+-void ProgressListModel::finishJob(uint jobId)
++void ProgressListModel::finishJob(UIServer::JobView *jobView)
+ {
+-    QModelIndex indexToRemove = indexForJob(jobId);
++    QModelIndex indexToRemove = indexForJob(jobView);
+ 
+     if (indexToRemove.isValid())
+         removeRow(indexToRemove.row());
+ }
+ 
+-void ProgressListModel::newAction(uint jobId, uint actionId, const QString &actionText)
++QPair<QString, QString> ProgressListModel::getDescriptionField(const QModelIndex &index, uint id)
+ {
+-    QModelIndex index = indexForJob(jobId);
++    if (!index.isValid() || !jobInfoList[index.row()].descFields.contains(id))
++        return QPair<QString, QString>(QString(), QString());
+ 
+-    int row = index.row();
+-
+-    ActionInfo newActionInfo;
+-    newActionInfo.actionId = actionId;
+-    newActionInfo.actionText = actionText;
+-
+-    jobInfoList[row].actionInfoList.append(newActionInfo);
+-
+-    emit dataChanged(index, index);
+-    emit actionModified(index);
++    return jobInfoList[index.row()].descFields[id];
+ }
+ 
+-void ProgressListModel::editAction(int jobId, int actionId, const QString &actionText)
++bool ProgressListModel::setDescriptionField(const QModelIndex &index, uint id, const QString &name, const QString &value)
+ {
+-    QModelIndex index = indexForJob(jobId);
+-
+-    int i = 0;
+-    bool keepSearching = true;
+-    ActionInfo actionIt;
+-    while ((i < jobInfoList[index.row()].actionInfoList.count()) &&
+-           keepSearching)
+-    {
+-        actionIt = jobInfoList[index.row()].actionInfoList[i];
++    if (!index.isValid())
++        return false;
+ 
+-        if (actionId == actionIt.actionId)
++    if (jobInfoList[index.row()].descFields.contains(id))
+         {
+-            jobInfoList[index.row()].actionInfoList[i].actionText = actionText;
+-
+-            keepSearching = false;
++        jobInfoList[index.row()].descFields[id].first = name;
++        jobInfoList[index.row()].descFields[id].second = value;
+         }
+-
+-        i++;
++    else
++    {
++        QPair<QString, QString> descField(name, value);
++        jobInfoList[index.row()].descFields.insert(id, descField);
+     }
+ 
+-    emit dataChanged(index, index);
+-    emit actionModified(index);
++    return true;
+ }
+ 
+-const QList<ActionInfo> &ProgressListModel::actions(uint jobId) const
++void ProgressListModel::clearDescriptionField(const QModelIndex &index, uint id)
+ {
+-    return jobInfoList[indexForJob(jobId).row()].actionInfoList;
+-}
++    if (!index.isValid())
++        return;
+ 
+-QStyleOptionProgressBarV2 *ProgressListModel::progressBar(const QModelIndex &index) const
+-{
+-    return jobInfoList[index.row()].progressBar;
++    if (jobInfoList[index.row()].descFields.contains(id))
++    {
++        jobInfoList[index.row()].descFields.remove(id);
++    }
+ }
+ 
+-KWidgetJobTracker *ProgressListModel::defaultTracker(int row) const
++JobInfo::State ProgressListModel::state(const QModelIndex &index) const
+ {
+-    return jobInfoList[row].defaultTracker;
++    if (index.isValid()) {
++        return ((JobInfo::State) data(index, ProgressListDelegate::State).toInt());
++    }
++
++    return JobInfo::InvalidState;
+ }
+ 
+-void ProgressListModel::setDefaultTracker(int row, KWidgetJobTracker *defaultTracker)
++QStyleOptionProgressBarV2 *ProgressListModel::progressBar(const QModelIndex &index) const
+ {
+-    jobInfoList[row].defaultTracker = defaultTracker;
++    return jobInfoList[index.row()].progressBar;
+ }
+ 
+ bool ProgressListModel::setData(int row, const QVariant &value, int role)
+@@ -380,14 +326,4 @@ bool ProgressListModel::setData(int row,
+     return setData(index(row), value, role);
+ }
+ 
+-KIconLoader *ProgressListModel::iconLoader(int row) const
+-{
+-    return jobInfoList[row].iconLoader;
+-}
+-
+-void ProgressListModel::setIconLoader(int row, KIconLoader *iconLoader)
+-{
+-    jobInfoList[row].iconLoader = iconLoader;
+-}
+-
+ #include "progresslistmodel.moc"
+Index: runtime/kuiserver/progresslistmodel.h
+===================================================================
+--- runtime/kuiserver/progresslistmodel.h	(revisión: 780700)
++++ runtime/kuiserver/progresslistmodel.h	(copia de trabajo)
+@@ -1,6 +1,6 @@
+ /**
+   * This file is part of the KDE project
+-  * Copyright (C) 2007, 2006 Rafael Fernández López <ereslibre@kde.org>
++  * Copyright (C) 2006-2008 Rafael Fernández López <ereslibre@kde.org>
+   *
+   * This library is free software; you can redistribute it and/or
+   * modify it under the terms of the GNU Library General Public
+@@ -20,48 +20,40 @@
+ #ifndef PROGRESSLISTMODEL_H
+ #define PROGRESSLISTMODEL_H
+ 
++#include "uiserver.h"
++
+ #include <QAbstractListModel>
+ #include <QTimer>
+ 
+ #include <kio/global.h>
+ #include <kio/jobclasses.h>
+-#include <kiconloader.h>
+ 
+ class QStyleOptionProgressBarV2;
+ class KWidgetJobTracker;
+ 
+-struct ActionInfo
+-{
+-    int actionId;                           ///< The number that identificates the action
+-    QString actionText;                     ///< The text that is shown on the button on the editor
+-};
+-
+ struct JobInfo
+ {
+-    int jobId;                              ///< The number that is associated with the job
+-    QString applicationInternalName;        ///< The application name (konqueror, kopete...)
+-    QString applicationName;                ///< The friendly application name (Konqueror, Kopete...)
++    enum State {
++        InvalidState = 0,
++        Running,
++        Suspended,
++        Cancelled
++    };
++
++    int capabilities;           ///< The capabilities of the job
++    UIServer::JobView *jobView; ///< The D-Bus object associated to this job
++    QString applicationName;    ///< The application name
+     QString icon;                           ///< The icon name
+-    qlonglong fileTotals;                   ///< The number of total files to be processed
+-    qlonglong filesProcessed;               ///< The number of processed files
+-    qlonglong dirTotals;                    ///< The number of total dirs to be processed
+-    qlonglong dirsProcessed;                ///< The number of processed dirs
+     QString sizeTotals;                     ///< The total size of the operation
+     QString sizeProcessed;                  ///< The processed size at the moment
+     qlonglong timeElapsed;                  ///< The elapsed time
+     qlonglong timeTotals;                   ///< The total time of the operation
+-    QString from;                           ///< From where are we performing the operation
+-    QString to;                             ///< To where are we performing the operation
+-    QString fromLabel;                      ///< The label to be shown on the delegate
+-    QString toLabel;                        ///< The label to be shown on the delegate
+     QString speed;                          ///< The current speed of the operation (human readable, example, "3Mb/s")
+     int percent;                            ///< The current percent of the progress
+     QString message;                        ///< The information message to be shown
+-    QString progressMessage;                ///< The progress information message to be shown
+-    QList<ActionInfo> actionInfoList;       ///< The list of actions added to the job
++    QHash<uint, QPair<QString, QString> > descFields; ///< Description fields
+     QStyleOptionProgressBarV2 *progressBar; ///< The progress bar to be shown
+-    KIconLoader *iconLoader;                ///< The icon loader for loading the icon on the delegate
+-    KWidgetJobTracker *defaultTracker;      ///< The default progress operation window
++    State state;                ///< The state of the job
+ };
+ 
+ class ProgressListModel
+@@ -74,6 +66,8 @@ public:
+ 
+     ~ProgressListModel();
+ 
++    UIServer::JobView *jobView(const QModelIndex &index) const;
++
+     QModelIndex parent(const QModelIndex&) const;
+ 
+     /**
+@@ -105,13 +99,7 @@ public:
+       */
+     QModelIndex index(int row, int column = 0, const QModelIndex &parent = QModelIndex()) const;
+ 
+-    /**
+-      * Returns the index for the given @p jobId
+-      *
+-      * @param jobId    the jobId of which you want to get the index
+-      * @return         the index for the give @p jobId as a QModelIndex
+-      */
+-    QModelIndex indexForJob(uint jobId) const;
++    QModelIndex indexForJob(UIServer::JobView *jobView) const;
+ 
+     /**
+       * Returns the number of columns
+@@ -143,49 +131,17 @@ public:
+       */
+     bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole);
+ 
+-    /**
+-      * Creates a new job on the model with the given @p jobId
+-      *
+-      * @param jobId            the identification number of the job that is going to be added to the model
+-      * @param internalAppName  the application name (konqueror, kopete...)
+-      * @param jobIcon          the icon name that will be shown for this job
+-      * @param appName          the friendly application name (Konqueror, Kopete...)
+-      * @param showProgress     whether the progress of this job is going to be shown or not
+-      */
+-    void newJob(uint jobId, const QString &internalAppName, const QString &jobIcon, const QString &appName, bool showProgress);
++    void newJob(const QString &appName, const QString &appIcon, int capabilities, UIServer::JobView *jobView);
+ 
+-    /**
+-      * Removes from the model the data related to the job
+-      *
+-      * @param jobId the identification number of the job that is going to be removed
+-      */
+-    void finishJob(uint jobId);
++    void finishJob(UIServer::JobView *jobView);
+ 
+-    /**
+-      * Adds a new action to the job on the model
+-      *
+-      * @param jobId        the identification number of the job that will contain the new action
+-      * @param actionId     the identification number of the new action
+-      * @param actionText   the text that will be shown for this action
+-      */
+-    void newAction(uint jobId, uint actionId, const QString &actionText);
++    QPair<QString, QString> getDescriptionField(const QModelIndex &index, uint id);
+ 
+-    /**
+-      * Edits an existing action
+-      *
+-      * @param jobId        the identification number of the job that contains the action to be modified
+-      * @param actionId     the identification number of the action to be modified
+-      * @param actionText   the new text to be shown related to this action
+-      */
+-    void editAction(int jobId, int actionId, const QString &actionText);
++    bool setDescriptionField(const QModelIndex &index, uint id, const QString &name, const QString &value);
+ 
+-    /**
+-      * Returns all existing actions related to a given job identification number
+-      *
+-      * @param jobId    the job which we want to retrieve all actions
+-      * @return         the list of actions related to the identification job number @p jobId
+-      */
+-    const QList<ActionInfo> &actions(uint jobId) const;
++    void clearDescriptionField(const QModelIndex &index, uint id);
++
++    JobInfo::State state(const QModelIndex &index) const;
+ 
+     /**
+       * Returns the progress bar for the given @p index
+@@ -195,46 +151,12 @@ public:
+       */
+     QStyleOptionProgressBarV2 *progressBar(const QModelIndex &index) const;
+ 
+-    /**
+-      * Returns the default progress window for the given @p row
+-      *
+-      * @param row  the row of which we want to retrieve the default progress window
+-      * @return     the default progress window for given @p row
+-      */
+-    KWidgetJobTracker *defaultTracker(int row) const;
+-
+-    /**
+-      * Sets the default progress window for the given @p row to @p defaultProgress
+-      *
+-      * @param row              the row in which we want to set the default window progress
+-      * @param defaultTracker   the default window progress
+-      */
+-    void setDefaultTracker(int row, KWidgetJobTracker *defaultTracker);
+-
+-Q_SIGNALS:
+-    /**
+-      * Called when an action has been modified at @p index
+-      *
+-      * @param index the index where the action has been modified
+-      */
+-    void actionModified(const QModelIndex &index);
+-
+ private:
+     /**
+       * @internal
+       */
+     bool setData(int row, const QVariant &value, int role = Qt::EditRole);
+ 
+-    /**
+-      * @internal
+-      */
+-    KIconLoader *iconLoader(int row) const;
+-
+-    /**
+-      * @internal
+-      */
+-    void setIconLoader(int row, KIconLoader *iconLoader);
+-
+     QList<JobInfo> jobInfoList; /// @internal
+ };
+ 
+Index: runtime/kuiserver/uiserver_p.h
+===================================================================
+--- runtime/kuiserver/uiserver_p.h	(revisión: 780700)
++++ runtime/kuiserver/uiserver_p.h	(copia de trabajo)
+@@ -20,7 +20,8 @@
+ #ifndef UISERVER_P_H
+ #define UISERVER_P_H
+ 
+-#include <QWidget>
++#include <QtGui/QWidget>
++#include <QtDBus/QDBusObjectPath>
+ 
+ #include "ui_uiserverConfigDialog.h"
+ 
+Index: runtime/kuiserver/progresslistdelegate.cpp
+===================================================================
+--- runtime/kuiserver/progresslistdelegate.cpp	(revisión: 780700)
++++ runtime/kuiserver/progresslistdelegate.cpp	(copia de trabajo)
+@@ -1,6 +1,6 @@
+ /**
+   * This file is part of the KDE project
+-  * Copyright (C) 2007, 2006 Rafael Fernández López <ereslibre@kde.org>
++  * Copyright (C) 2006-2008 Rafael Fernández López <ereslibre@kde.org>
+   *
+   * This library is free software; you can redistribute it and/or
+   * modify it under the terms of the GNU Library General Public
+@@ -33,17 +33,6 @@
+ #include <kdebug.h>
+ #include <kicon.h>
+ #include <klocale.h>
+-#include <kiconloader.h>
+-
+-int ProgressListDelegate::Private::getJobId(const QModelIndex &index) const
+-{
+-    return index.model()->data(index, JobId).toInt();
+-}
+-
+-QString ProgressListDelegate::Private::getApplicationInternalName(const QModelIndex &index) const
+-{
+-    return index.model()->data(index, ApplicationInternalName).toString();
+-}
+ 
+ QString ProgressListDelegate::Private::getApplicationName(const QModelIndex &index) const
+ {
+@@ -55,26 +44,6 @@ QString ProgressListDelegate::Private::g
+     return index.model()->data(index, Icon).toString();
+ }
+ 
+-qlonglong ProgressListDelegate::Private::getFileTotals(const QModelIndex &index) const
+-{
+-    return index.model()->data(index, FileTotals).toLongLong();
+-}
+-
+-qlonglong ProgressListDelegate::Private::getFilesProcessed(const QModelIndex &index) const
+-{
+-    return index.model()->data(index, FilesProcessed).toLongLong();
+-}
+-
+-qlonglong ProgressListDelegate::Private::getDirTotals(const QModelIndex &index) const
+-{
+-    return index.model()->data(index, DirTotals).toLongLong();
+-}
+-
+-qlonglong ProgressListDelegate::Private::getDirsProcessed(const QModelIndex &index) const
+-{
+-    return index.model()->data(index, DirsProcessed).toLongLong();
+-}
+-
+ QString ProgressListDelegate::Private::getSizeTotals(const QModelIndex &index) const
+ {
+     return index.model()->data(index, SizeTotals).toString();
+@@ -95,26 +64,6 @@ qlonglong ProgressListDelegate::Private:
+     return index.model()->data(index, TimeElapsed).toLongLong();
+ }
+ 
+-QString ProgressListDelegate::Private::getFromLabel(const QModelIndex &index) const
+-{
+-    return index.model()->data(index, FromLabel).toString();
+-}
+-
+-QString ProgressListDelegate::Private::getFrom(const QModelIndex &index) const
+-{
+-    return index.model()->data(index, From).toString();
+-}
+-
+-QString ProgressListDelegate::Private::getToLabel(const QModelIndex &index) const
+-{
+-    return index.model()->data(index, ToLabel).toString();
+-}
+-
+-QString ProgressListDelegate::Private::getTo(const QModelIndex &index) const
+-{
+-    return index.model()->data(index, To).toString();
+-}
+-
+ QString ProgressListDelegate::Private::getSpeed(const QModelIndex &index) const
+ {
+     return index.model()->data(index, Speed).toString();
+@@ -130,18 +79,6 @@ QString ProgressListDelegate::Private::g
+     return index.model()->data(index, Message).toString();
+ }
+ 
+-QString ProgressListDelegate::Private::getProgressMessage(const QModelIndex &index) const
+-{
+-    return index.model()->data(index, ProgressMessage).toString();
+-}
+-
+-const QList<ActionInfo> &ProgressListDelegate::Private::getActionList(const QModelIndex &index) const
+-{
+-    const ProgressListModel *progressListModel = static_cast<const ProgressListModel*>(index.model());
+-
+-    return progressListModel->actions(getJobId(index));
+-}
+-
+ QStyleOptionProgressBarV2 *ProgressListDelegate::Private::getProgressBar(const QModelIndex &index) const
+ {
+     const ProgressListModel *progressListModel = static_cast<const ProgressListModel*>(index.model());
+@@ -154,27 +91,6 @@ int ProgressListDelegate::Private::getCu
+     return leftMargin + separatorPixels + fontHeight;
+ }
+ 
+-void ProgressListDelegate::Private::actionModified(const QModelIndex &index)
+-{
+-    listView->closePersistentEditor(index);
+-    listView->openPersistentEditor(index);
+-}
+-
+-ProgressListDelegate::Private::QActionPushButton::QActionPushButton(int actionId, int jobId, const QString &actionText, QWidget *parent)
+-    : QPushButton(actionText, parent)
+-{
+-    this->actionId = actionId;
+-    this->jobId = jobId;
+-
+-    connect(this, SIGNAL(clicked(bool)), this,
+-            SLOT(buttonPressed()));
+-}
+-
+-void ProgressListDelegate::Private::QActionPushButton::buttonPressed()
+-{
+-    emit actionButtonPressed(actionId, jobId);
+-}
+-
+ ProgressListDelegate::ProgressListDelegate(QObject *parent, QListView *listView)
+     : QItemDelegate(parent)
+     , d(new Private(parent, listView))
+@@ -186,56 +102,14 @@ ProgressListDelegate::~ProgressListDeleg
+     delete d;
+ }
+ 
+-QWidget *ProgressListDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const
+-{
+-    Q_UNUSED(option);
+-
+-    const ProgressListModel *progressListModel = static_cast<const ProgressListModel*>(index.model());
+-
+-    int jobIdModel = index.model()->data(index, JobId).toInt();
+-
+-    QList<ActionInfo> actionsModel = progressListModel->actions(jobIdModel);
+-
+-    if (actionsModel.isEmpty())
+-        return 0;
+-
+-    QWidget *returnWidget = new QWidget(parent);
+-    QHBoxLayout *layout = new QHBoxLayout();
+-    layout->setMargin(0);
+-    layout->setSpacing(0);
+-    returnWidget->setLayout(layout);
+-
+-    QPushButton *newButton;
+-    int i = 0;
+-    foreach (const ActionInfo &actionIt, actionsModel)
+-    {
+-        newButton = new Private::QActionPushButton(actionIt.actionId, jobIdModel, actionIt.actionText);
+-
+-        connect(newButton, SIGNAL(actionButtonPressed(int,int)), this,
+-                SIGNAL(actionPerformed(int,int)));
+-
+-        layout->addWidget(newButton);
+-
+-        if (i < actionsModel.count() - 1)
+-            layout->addSpacing(d->separatorPixels);
+-
+-        i++;
+-    }
+-
+-    return returnWidget;
+-}
+-
+ void ProgressListDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
+ {
+-    painter->setClipping(false); // workaround for qt bug
+-
+     QFontMetrics fontMetrics = painter->fontMetrics();
+     int textHeight = fontMetrics.height();
+ 
+     int coordY = d->separatorPixels + option.rect.top();
+ 
+-    KIconLoader *iconLoader = static_cast<KIconLoader*>(index.internalPointer());
+-    KIcon iconToShow(d->getIcon(index), iconLoader);
++    KIcon iconToShow(d->getIcon(index));
+ 
+     QColor unselectedTextColor = option.palette.text().color();
+     QColor selectedTextColor = option.palette.highlightedText().color();
+@@ -268,7 +142,7 @@ void ProgressListDelegate::paint(QPainte
+ 
+     painter->drawPixmap(option.rect.right() - iconWidth - d->rightMargin, coordY, iconToShow.pixmap(iconWidth, iconHeight));
+ 
+-    painter->translate(d->leftMargin, d->separatorPixels + (fontMetrics.width(d->getApplicationName(index)) / 2) + (iconHeight / 2) + canvas.top());
++    painter->translate(d->leftMargin + option.rect.left(), d->separatorPixels + (fontMetrics.width(d->getApplicationName(index)) / 2) + (iconHeight / 2) + canvas.top());
+     painter->rotate(270);
+ 
+     QRect appNameRect(0, 0, fontMetrics.width(d->getApplicationName(index)), textHeight);
+@@ -285,55 +159,7 @@ void ProgressListDelegate::paint(QPainte
+ 
+         textHeight = fontMetrics.size(Qt::TextSingleLine, textToShow).height();
+ 
+-        painter->drawText(d->getCurrentLeftMargin(textHeight), coordY, fontMetrics.width(textToShow), textHeight, Qt::AlignLeft, textToShow);
+-
+-        coordY += d->separatorPixels + textHeight;
+-    }
+-
+-    if (!d->getFrom(index).isEmpty())
+-    {
+-        QString textToShow = fontMetrics.elidedText(i18n("%1: %2", d->getFromLabel(index), d->getFrom(index)), Qt::ElideMiddle, canvas.width() - d->getCurrentLeftMargin(textHeight) - d->rightMargin);
+-
+-        textHeight = fontMetrics.size(Qt::TextSingleLine, textToShow).height();
+-
+-        painter->drawText(d->getCurrentLeftMargin(textHeight), coordY, fontMetrics.width(textToShow), textHeight, Qt::AlignLeft, textToShow);
+-
+-        coordY += d->separatorPixels + textHeight;
+-    }
+-
+-    if (!d->getTo(index).isEmpty())
+-    {
+-        QString textToShow = fontMetrics.elidedText(i18n("%1: %2", d->getToLabel(index), d->getTo(index)), Qt::ElideMiddle, canvas.width() - d->getCurrentLeftMargin(textHeight) - d->rightMargin);
+-
+-        textHeight = fontMetrics.size(Qt::TextSingleLine, textToShow).height();
+-
+-        painter->drawText(d->getCurrentLeftMargin(textHeight), coordY, fontMetrics.width(textToShow), textHeight, Qt::AlignLeft, textToShow);
+-
+-        coordY += d->separatorPixels + textHeight;
+-    }
+-
+-    if (!d->getProgressMessage(index).isEmpty())
+-    {
+-        QString textToShow = fontMetrics.elidedText(d->getProgressMessage(index), Qt::ElideRight, canvas.width() - d->getCurrentLeftMargin(textHeight) - d->rightMargin);
+-
+-        textHeight = fontMetrics.size(Qt::TextSingleLine, textToShow).height();
+-
+-        painter->drawText(d->getCurrentLeftMargin(textHeight), coordY, fontMetrics.width(textToShow), textHeight, Qt::AlignLeft, textToShow);
+-
+-        coordY += d->separatorPixels + textHeight;
+-    }
+-
+-    if (d->getFilesProcessed(index) > 1)
+-    {
+-        QString textToShow;
+-        if (d->getFileTotals(index))
+-            textToShow = fontMetrics.elidedText(i18np("1 of %2 files processed", "%1 of %2 files processed", d->getFilesProcessed(index), d->getFileTotals(index)), Qt::ElideRight, canvas.width() - d->getCurrentLeftMargin(textHeight) - d->rightMargin);
+-        else
+-            textToShow = fontMetrics.elidedText(i18np("1 file processed", "%1 files processed", d->getFilesProcessed(index)), Qt::ElideRight, canvas.width() - d->getCurrentLeftMargin(textHeight) - d->rightMargin);
+-
+-        textHeight = fontMetrics.size(Qt::TextSingleLine, textToShow).height();
+-
+-        painter->drawText(d->getCurrentLeftMargin(textHeight), coordY, fontMetrics.width(textToShow), textHeight, Qt::AlignLeft, textToShow);
++        painter->drawText(d->getCurrentLeftMargin(textHeight) + option.rect.left(), coordY, fontMetrics.width(textToShow), textHeight, Qt::AlignLeft, textToShow);
+ 
+         coordY += d->separatorPixels + textHeight;
+     }
+@@ -342,17 +168,17 @@ void ProgressListDelegate::paint(QPainte
+     {
+         QString textToShow;
+         if (!d->getSizeTotals(index).isEmpty() && !d->getSpeed(index).isEmpty())
+-            textToShow = fontMetrics.elidedText(i18n("%1 of %2 processed at %3", d->getSizeProcessed(index), d->getSizeTotals(index), d->getSpeed(index)), Qt::ElideRight, canvas.width() - d->getCurrentLeftMargin(textHeight) - d->rightMargin);
++            textToShow = fontMetrics.elidedText(i18n("%1 of %2 processed at %3/s", d->getSizeProcessed(index), d->getSizeTotals(index), d->getSpeed(index)), Qt::ElideRight, canvas.width() - d->getCurrentLeftMargin(textHeight) - d->rightMargin);
+         else if (!d->getSizeTotals(index).isEmpty() && d->getSpeed(index).isEmpty())
+             textToShow = fontMetrics.elidedText(i18n("%1 of %2 processed", d->getSizeProcessed(index), d->getSizeTotals(index)), Qt::ElideRight, canvas.width() - d->getCurrentLeftMargin(textHeight) - d->rightMargin);
+         else if (d->getSizeTotals(index).isEmpty() && !d->getSpeed(index).isEmpty())
+-            textToShow = fontMetrics.elidedText(i18n("%1 processed at %2", d->getSizeProcessed(index), d->getSpeed(index)), Qt::ElideRight, canvas.width() - d->getCurrentLeftMargin(textHeight) - d->rightMargin);
++            textToShow = fontMetrics.elidedText(i18n("%1 processed at %2/s", d->getSizeProcessed(index), d->getSpeed(index)), Qt::ElideRight, canvas.width() - d->getCurrentLeftMargin(textHeight) - d->rightMargin);
+         else
+             textToShow = fontMetrics.elidedText(i18n("%1 processed", d->getSizeProcessed(index)), Qt::ElideRight, canvas.width() - d->getCurrentLeftMargin(textHeight) - d->rightMargin);
+ 
+         textHeight = fontMetrics.size(Qt::TextSingleLine, textToShow).height();
+ 
+-        painter->drawText(d->getCurrentLeftMargin(textHeight), coordY, fontMetrics.width(textToShow), textHeight, Qt::AlignLeft, textToShow);
++        painter->drawText(d->getCurrentLeftMargin(textHeight) + option.rect.left(), coordY, fontMetrics.width(textToShow), textHeight, Qt::AlignLeft, textToShow);
+ 
+         coordY += d->separatorPixels + textHeight;
+     }
+@@ -361,14 +187,12 @@ void ProgressListDelegate::paint(QPainte
+     {
+         QStyleOptionProgressBarV2 *progressBarModel = d->getProgressBar(index);
+ 
+-        progressBarModel->rect = QRect(d->getCurrentLeftMargin(textHeight), coordY, canvas.width() - d->getCurrentLeftMargin(textHeight) - d->rightMargin - iconWidth - d->separatorPixels, d->progressBarHeight);
++        progressBarModel->rect = QRect(d->getCurrentLeftMargin(textHeight) + option.rect.left(), coordY, canvas.width() - d->getCurrentLeftMargin(textHeight) - d->rightMargin - iconWidth - d->separatorPixels, d->progressBarHeight);
+ 
+         QApplication::style()->drawControl(QStyle::CE_ProgressBar, progressBarModel, painter);
+     }
+ 
+     painter->restore();
+-
+-    painter->setClipping(true); // workaround for qt bug
+ }
+ 
+ QSize ProgressListDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
+@@ -386,30 +210,6 @@ QSize ProgressListDelegate::sizeHint(con
+         itemHeight += textSize;
+     }
+ 
+-    if (!d->getProgressMessage(index).isEmpty())
+-    {
+-        textSize = fontMetrics.size(Qt::TextSingleLine, d->getProgressMessage(index)).height() + d->separatorPixels;
+-        itemHeight += textSize;
+-    }
+-
+-    if (!d->getFrom(index).isEmpty())
+-    {
+-        textSize = fontMetrics.size(Qt::TextSingleLine, d->getFrom(index)).height() + d->separatorPixels;
+-        itemHeight += textSize;
+-    }
+-
+-    if (!d->getTo(index).isEmpty())
+-    {
+-        textSize = fontMetrics.size(Qt::TextSingleLine, d->getTo(index)).height() + d->separatorPixels;
+-        itemHeight += textSize;
+-    }
+-
+-    if (d->getFilesProcessed(index) > 1)
+-    {
+-        textSize = fontMetrics.size(Qt::TextSingleLine, QString::number(d->getFilesProcessed(index))).height() + d->separatorPixels;
+-        itemHeight += textSize;
+-    }
+-
+     if (!d->getSizeProcessed(index).isEmpty())
+     {
+         textSize = fontMetrics.size(Qt::TextSingleLine, d->getSizeProcessed(index)).height() + d->separatorPixels;
+Index: runtime/kuiserver/CMakeLists.txt
+===================================================================
+--- runtime/kuiserver/CMakeLists.txt	(revisión: 780700)
++++ runtime/kuiserver/CMakeLists.txt	(copia de trabajo)
+@@ -14,8 +14,8 @@ uiserver_p.h
+ )
+ 
+ kde4_add_ui_files(kuiserver_KDEINIT_SRCS uiserverConfigDialog.ui)
+-qt4_add_dbus_interface(kuiserver_KDEINIT_SRCS ${KDE4_DBUS_INTERFACES_DIR}/org.kde.UiServerCallbacks.xml callbacksiface )
+-qt4_add_dbus_adaptor(kuiserver_KDEINIT_SRCS ${KDE4_DBUS_INTERFACES_DIR}/org.kde.UiServer.xml uiserver.h UIServer uiserveradaptor )
++qt4_add_dbus_adaptor(kuiserver_KDEINIT_SRCS ${KDE4_DBUS_INTERFACES_DIR}/org.kde.JobView.xml uiserver.h UIServer::JobView jobviewadaptor )
++qt4_add_dbus_adaptor(kuiserver_KDEINIT_SRCS ${KDE4_DBUS_INTERFACES_DIR}/org.kde.JobViewServer.xml uiserver.h UIServer jobviewserveradaptor )
+ kde4_add_kcfg_files(kuiserver_KDEINIT_SRCS kuiserversettings.kcfgc)
+ 
+ kde4_add_kdeinit_executable( kuiserver ${kuiserver_KDEINIT_SRCS})

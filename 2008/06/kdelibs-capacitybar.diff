@@ -1,0 +1,623 @@
+diff --git a/kdeui/CMakeLists.txt b/kdeui/CMakeLists.txt
+index d31be0e..948f338 100644
+--- a/kdeui/CMakeLists.txt
++++ b/kdeui/CMakeLists.txt
+@@ -177,6 +177,7 @@ set(kdeui_LIB_SRCS
+  widgets/karrowbutton.cpp
+  widgets/kdialogbuttonbox.cpp
+  widgets/kbuttongroup.cpp
++ widgets/kcapacitybar.cpp
+  widgets/kcharselect.cpp
+  widgets/kcharselectdata.cpp
+  widgets/kcmodule.cpp
+@@ -463,6 +464,7 @@ install( FILES
+  widgets/kanimatedbutton.h
+  widgets/karrowbutton.h
+  widgets/kdatepicker.h
++ widgets/kcapacitybar.h
+  widgets/kcmodule.h
+  widgets/kcombobox.h
+  widgets/kcompletionbox.h
+diff --git a/kdeui/widgets/kcapacitybar.cpp b/kdeui/widgets/kcapacitybar.cpp
+new file mode 100644
+index 0000000..295168a
+--- /dev/null
++++ b/kdeui/widgets/kcapacitybar.cpp
+@@ -0,0 +1,320 @@
++/*
++ * This file is part of the KDE project
++ * Copyright (C) 2008 Rafael Fernández López <ereslibre@kde.org>
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Library General Public
++ * License as published by the Free Software Foundation; either
++ * version 2 of the License, or (at your option) any later version.
++ *
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Library General Public License for more details.
++ *
++ * You should have received a copy of the GNU Library General Public License
++ * along with this library; see the file COPYING.LIB.  If not, write to
++ * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++ * Boston, MA 02110-1301, USA.
++ */
++
++#include "kcapacitybar.h"
++
++#include <math.h>
++
++#include <QtGui/QApplication>
++#include <QtGui/QLabel>
++#include <QtGui/QStyle>
++#include <QtGui/QPainter>
++#include <QtGui/QBoxLayout>
++#include <QtGui/QPaintEvent>
++#include <QtGui/QPainterPath>
++#include <QtGui/QLinearGradient>
++#include <QtGui/QStyleOptionFrame>
++
++#include <kcolorscheme.h>
++
++#define ROUND_MARGIN     10
++#define VERTICAL_SPACING  1
++
++class KCapacityBar::Private
++{
++public:
++    Private(KCapacityBar::DrawTextMode drawTextMode)
++        : value(0)
++        , fillFullBlocks(true)
++        , continuous(true)
++        , barHeight(12)
++        , horizontalTextAlignment(Qt::AlignCenter)
++        , drawTextMode(drawTextMode) {}
++
++    ~Private() {}
++
++    int value;
++    QString text;
++    bool fillFullBlocks;
++    bool continuous;
++    int barHeight;
++    Qt::Alignment horizontalTextAlignment;
++
++    const KCapacityBar::DrawTextMode drawTextMode;
++};
++
++KCapacityBar::KCapacityBar(KCapacityBar::DrawTextMode drawTextMode, QWidget *parent)
++    : QWidget(parent)
++    , d(new Private(drawTextMode))
++{
++}
++
++KCapacityBar::~KCapacityBar()
++{
++    delete d;
++}
++
++void KCapacityBar::setValue(int value)
++{
++    d->value = value;
++}
++
++int KCapacityBar::value() const
++{
++    return d->value;
++}
++
++void KCapacityBar::setText(const QString &text)
++{
++    d->text = text;
++}
++
++QString KCapacityBar::text() const
++{
++    return d->text;
++}
++
++void KCapacityBar::setFillFullBlocks(bool fillFullBlocks)
++{
++    d->fillFullBlocks = fillFullBlocks;
++}
++
++bool KCapacityBar::fillFullBlocks() const
++{
++    return d->fillFullBlocks;
++}
++
++void KCapacityBar::setContinuous(bool continuous)
++{
++    d->continuous = continuous;
++}
++
++bool KCapacityBar::continuous() const
++{
++    return d->continuous;
++}
++
++void KCapacityBar::setBarHeight(int barHeight)
++{
++    // automatically convert odd values to even. This will make the bar look
++    // better.
++    d->barHeight = (barHeight % 2) ? barHeight + 1 : barHeight;
++}
++
++int KCapacityBar::barHeight() const
++{
++    return d->barHeight;
++}
++
++void KCapacityBar::setHorizontalTextAlignment(Qt::Alignment horizontalTextAlignment)
++{
++    Qt::Alignment alignment = horizontalTextAlignment;
++
++    // if the value came with any vertical alignment flag, remove it.
++    alignment &= ~Qt::AlignTop;
++    alignment &= ~Qt::AlignBottom;
++    alignment &= ~Qt::AlignVCenter;
++
++    d->horizontalTextAlignment = alignment;
++}
++
++Qt::Alignment KCapacityBar::horizontalTextAlignment() const
++{
++    return d->horizontalTextAlignment;
++}
++
++void KCapacityBar::drawCapacityBar(QPainter *p, const QRect &rect) const
++{
++    p->setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
++
++    p->save();
++
++    QRect drawRect(rect);
++    drawRect.setHeight(d->barHeight);
++
++    QPainterPath outline;
++    outline.moveTo(ROUND_MARGIN / 4 + 1, 0);
++    outline.lineTo(drawRect.width() - ROUND_MARGIN / 4 - 1, 0);
++    outline.quadTo(drawRect.width() + ROUND_MARGIN / 2, drawRect.height() / 2, drawRect.width() - ROUND_MARGIN / 4 - 1, drawRect.height());
++    outline.lineTo(ROUND_MARGIN / 4 + 1, drawRect.height());
++    outline.quadTo(-ROUND_MARGIN / 2, drawRect.height() / 2, ROUND_MARGIN / 4 + 1, 0);
++    const QColor fillColor = KColorScheme::shade(palette().window().color(), KColorScheme::DarkShade);
++    p->fillPath(outline, QColor(fillColor.red(), fillColor.green(), fillColor.blue(), 50));
++
++    QRadialGradient bottomGradient(QPointF(rect.width() / 2, drawRect.bottom() + 1), rect.width() / 2);
++    bottomGradient.setColorAt(0, KColorScheme::shade(palette().window().color(), KColorScheme::LightShade));
++    bottomGradient.setColorAt(1, Qt::transparent);
++    p->fillRect(QRect(0, drawRect.bottom() + 1, rect.width(), 1), bottomGradient);
++
++    p->translate(2, 1);
++
++    drawRect.setWidth(drawRect.width() - 4);
++    drawRect.setHeight(drawRect.height() - 2);
++
++    QPainterPath path;
++    path.moveTo(ROUND_MARGIN / 4, 0);
++    path.lineTo(drawRect.width() - ROUND_MARGIN / 4, 0);
++    path.quadTo(drawRect.width() + ROUND_MARGIN / 2, drawRect.height() / 2, drawRect.width() - ROUND_MARGIN / 4, drawRect.height());
++    path.lineTo(ROUND_MARGIN / 4, drawRect.height());
++    path.quadTo(-ROUND_MARGIN / 2, drawRect.height() / 2, ROUND_MARGIN / 4, 0);
++
++    QLinearGradient linearGradient(0, 0, 0, drawRect.height());
++    linearGradient.setColorAt(0.5, KColorScheme::shade(palette().window().color(), KColorScheme::MidShade));
++    linearGradient.setColorAt(1, KColorScheme::shade(palette().window().color(), KColorScheme::LightShade));
++    p->fillPath(path, linearGradient);
++
++    p->setBrush(Qt::NoBrush);
++    p->setPen(Qt::NoPen);
++
++    if (d->continuous || !d->fillFullBlocks) {
++        int start = (layoutDirection() == Qt::LeftToRight) ? -1
++                                                           : (drawRect.width() + 2) - (drawRect.width() + 2) * (d->value / 100.0);
++
++        p->setClipRect(QRect(start, 0, (drawRect.width() + 2) * (d->value / 100.0), drawRect.height()), Qt::IntersectClip);
++    }
++
++    int left = (layoutDirection() == Qt::LeftToRight) ? 0
++                                                      : drawRect.width();
++
++    int right = (layoutDirection() == Qt::LeftToRight) ? drawRect.width()
++                                                        : 0;
++
++    int roundMargin = (layoutDirection() == Qt::LeftToRight) ? ROUND_MARGIN
++                                                             : -ROUND_MARGIN;
++
++    int spacing = 2;
++    int verticalSpacing = VERTICAL_SPACING;
++    int slotWidth = 6;
++    int start = roundMargin / 4;
++
++    QPainterPath internalBar;
++    internalBar.moveTo(left + roundMargin / 4, 0);
++    internalBar.lineTo(right - roundMargin / 4, 0);
++    internalBar.quadTo(right + roundMargin / 2, drawRect.height() / 2, right - roundMargin / 4, drawRect.height());
++    internalBar.lineTo(left + roundMargin / 4, drawRect.height());
++    internalBar.quadTo(left - roundMargin / 2, drawRect.height() / 2, left + roundMargin / 4, 0);
++
++    QLinearGradient fillInternalBar(left, 0, right, 0);
++    fillInternalBar.setColorAt(0, KColorScheme::shade(palette().highlight().color(), KColorScheme::MidShade));
++    fillInternalBar.setColorAt(0.5, KColorScheme::shade(palette().highlight().color(), KColorScheme::LightShade));
++    fillInternalBar.setColorAt(1, KColorScheme::shade(palette().highlight().color(), KColorScheme::MidShade));
++
++    if (d->drawTextMode == KCapacityBar::DrawTextInline) {
++        p->save();
++        p->setOpacity(0.7);
++    }
++
++    if (!d->continuous) {
++        int numSlots = (drawRect.width() - ROUND_MARGIN - ((slotWidth + spacing) * 2)) / (slotWidth + spacing);
++        int stopSlot = floor((numSlots + 2) * (d->value / 100.0));
++
++        int plusOffset = d->fillFullBlocks ? ((drawRect.width() - ROUND_MARGIN - ((slotWidth + spacing) * 2)) - (numSlots * (slotWidth + spacing))) / 2.0
++                                           : 0;
++
++        if (!d->fillFullBlocks || stopSlot) {
++            QPainterPath firstSlot;
++            firstSlot.moveTo(left + roundMargin / 4, verticalSpacing);
++            firstSlot.lineTo(left + slotWidth + roundMargin / 4 + plusOffset, verticalSpacing);
++            firstSlot.lineTo(left + slotWidth + roundMargin / 4 + plusOffset, drawRect.height() - verticalSpacing);
++            firstSlot.lineTo(left + roundMargin / 4, drawRect.height() - verticalSpacing);
++            firstSlot.quadTo(left, drawRect.height() / 2, left + roundMargin / 4, verticalSpacing);
++            p->fillPath(firstSlot, fillInternalBar);
++            start += slotWidth + spacing + plusOffset;
++
++            bool stopped = false;
++            for (int i = 0; i < numSlots + 1; i++) {
++                if (d->fillFullBlocks && (i == (stopSlot + 1))) {
++                    stopped = true;
++                    break;
++                }
++                p->fillRect(QRect(start, verticalSpacing, slotWidth, drawRect.height() - verticalSpacing * 2), fillInternalBar);
++                start += slotWidth + spacing;
++            }
++
++            if (!d->fillFullBlocks || (!stopped && (stopSlot != (numSlots + 1)) && (stopSlot != numSlots))) {
++                QPainterPath lastSlot;
++                lastSlot.moveTo(start, verticalSpacing);
++                lastSlot.lineTo(start, drawRect.height() - verticalSpacing);
++                lastSlot.lineTo(start + slotWidth + plusOffset, drawRect.height() - verticalSpacing);
++                lastSlot.quadTo(start + roundMargin, drawRect.height() / 2, start + slotWidth + plusOffset, verticalSpacing);
++                lastSlot.lineTo(start, verticalSpacing);
++                p->fillPath(lastSlot, fillInternalBar);
++            }
++        }
++    } else {
++        p->fillPath(internalBar, fillInternalBar);
++    }
++
++    if (d->drawTextMode == KCapacityBar::DrawTextInline) {
++        p->restore();
++    }
++
++    p->save();
++    p->setClipping(false);
++    QRadialGradient topGradient(QPointF(rect.width() / 2, drawRect.top()), rect.width() / 2);
++    const QColor fillTopColor = KColorScheme::shade(palette().window().color(), KColorScheme::LightShade);
++    topGradient.setColorAt(0, QColor(fillTopColor.red(), fillTopColor.green(), fillTopColor.blue(), 127));
++    topGradient.setColorAt(1, Qt::transparent);
++    p->fillRect(QRect(0, drawRect.top(), rect.width(), 2), topGradient);
++    p->restore();
++
++    p->save();
++    p->setClipRect(QRect(-1, 0, rect.width(), drawRect.height() / 2), Qt::ReplaceClip);
++    QLinearGradient glassGradient(0, -5, 0, drawRect.height());
++    const QColor fillGlassColor = palette().highlightedText().color();
++    glassGradient.setColorAt(0, QColor(fillGlassColor.red(), fillGlassColor.green(), fillGlassColor.blue(), 255));
++    glassGradient.setColorAt(1, Qt::transparent);
++    p->fillPath(internalBar, glassGradient);
++    p->restore();
++
++    p->restore();
++
++    if (d->drawTextMode == KCapacityBar::DrawTextInline) {
++        QRect textRect(rect);
++        textRect.setHeight(textRect.height() - 1);
++        p->drawText(textRect, Qt::AlignCenter, fontMetrics().elidedText(d->text, Qt::ElideRight, drawRect.width() - 2 * ROUND_MARGIN));
++    } else {
++        p->drawText(rect, Qt::AlignBottom | d->horizontalTextAlignment, fontMetrics().elidedText(d->text, Qt::ElideRight, drawRect.width()));
++    }
++}
++
++QSize KCapacityBar::minimumSizeHint() const
++{
++    int width = (d->drawTextMode == KCapacityBar::DrawTextInline) ?
++                fontMetrics().width(d->text) + ROUND_MARGIN * 2 :
++                fontMetrics().width(d->text);
++
++    int height = (d->drawTextMode == KCapacityBar::DrawTextInline) ?
++                 qMax(fontMetrics().height(), d->barHeight) :
++                 (d->text.isEmpty() ? 0 : fontMetrics().height() + VERTICAL_SPACING * 2) + d->barHeight;
++
++    if (height % 2) {
++        height++;
++    }
++
++    return QSize(width, height);
++}
++
++void KCapacityBar::paintEvent(QPaintEvent *event)
++{
++    QPainter p(this);
++    drawCapacityBar(&p, event->rect());
++    p.end();
++}
+diff --git a/kdeui/widgets/kcapacitybar.h b/kdeui/widgets/kcapacitybar.h
+new file mode 100644
+index 0000000..a96c97c
+--- /dev/null
++++ b/kdeui/widgets/kcapacitybar.h
+@@ -0,0 +1,192 @@
++/*
++ * This file is part of the KDE project
++ * Copyright (C) 2008 Rafael Fernández López <ereslibre@kde.org>
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Library General Public
++ * License as published by the Free Software Foundation; either
++ * version 2 of the License, or (at your option) any later version.
++ *
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Library General Public License for more details.
++ *
++ * You should have received a copy of the GNU Library General Public License
++ * along with this library; see the file COPYING.LIB.  If not, write to
++ * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++ * Boston, MA 02110-1301, USA.
++ */
++
++#ifndef KCAPACITYBAR_H
++#define KCAPACITYBAR_H
++
++#include <QtGui/QWidget>
++
++#include <kdeui_export.h>
++
++class QPaintEvent;
++
++/**
++  * @brief This widget shows a bar which is filled to show the level of usage of
++  *        a certain device.
++  *
++  * This widget represents a bar which goal is to show the level of usage of a
++  * device. Its look is similar to a progress bar, but different, because this
++  * widget does not want to give a notion of progress.
++  *
++  * @since 4.2
++  *
++  * @author Rafael Fernández López <ereslibre@kde.org>
++  */
++class KDEUI_EXPORT KCapacityBar
++    : public QWidget
++{
++public:
++    enum DrawTextMode {
++        DrawTextInline = 0,     ///< If any text set, draw it into the capacity bar
++        DrawTextOutline         ///< If any text set, draw it out of the capacity bar
++    };
++
++    /**
++      * Capacity bar constructor.
++      *
++      * @param drawTextMode If any text set, whether to draw it into the capacity bar
++      *                     or not.
++      * @param parent       The parent of the widget.
++      */
++    KCapacityBar(DrawTextMode drawTextMode = DrawTextOutline, QWidget *parent = 0);
++    ~KCapacityBar();
++
++    /**
++      * Capacity bar fill value.
++      *
++      * @param value    This parameter can take values from 0 to 100.
++      *
++      * @note Its value is 0 by default.
++      */
++    void setValue(int value);
++    /**
++      * @return The fill value of the capacity bar.
++      */
++    int value() const;
++
++    /**
++      * Sets the text for the capacity bar.
++      *
++      * @param text The text that the capacity bar will show.
++      *
++      * @note This is an empty string by default.
++      */
++    void setText(const QString &text);
++    /**
++      * @return The text that the capacity bar will show.
++      */
++    QString text() const;
++
++    /**
++      * When the capacity bar is non-continuous, sets whether the last block
++      * shown should be drawn full or can be cut off (depending on the capacity
++      * bar width, and the value set on it).
++      *
++      * @param fillFullBlocks If true, the last block drawn will be fully filled,
++      *                       on other case, the last block drawn could be cut off.
++      *
++      * @note This method is only relevant if the capacity bar is in
++      *       non-continuous mode.
++      *
++      * @note Its value is true by default.
++      *
++      * @see setContinuous, continuous
++      */
++    void setFillFullBlocks(bool fillFullBlocks);
++    /**
++      * @return Whether the last block shown can be cut off when necessary.
++      */
++    bool fillFullBlocks() const;
++
++    /**
++      * Sets whether the fill of the capacity bar should be continuous or in
++      * block mode.
++      *
++      * @param continuous If true, the fill of the capacity bar is done in a
++      *                   continuous way. In other case, the fill is done with
++      *                   separated blocks.
++      *
++      * @note Its value is true by default.
++      */
++    void setContinuous(bool continuous);
++    /**
++      * @return Whether the fill of the capacity bar should be continuous or
++      *         block-based.
++      */
++    bool continuous() const;
++
++    /**
++      * Sets the height (in pixels) of the bar.
++      *
++      * @param barHeight The preferred height (in pixels) of the capacity bar.
++      *
++      * @note If you set a certain text and the capacity bar is in inline mode,
++      *       the height of the bar will be the maximum of the font height and
++      *       this value.
++      *
++      * @note If you set a certain text and the capacity bar is in outline mode,
++      *       the height of the whole capacity bar will be bigger than this
++      *       value. Take in count the height of this widget is got from adding
++      *       the bar height, the font metrics height and a small separator
++      *       between the bar and the outline text.
++      *
++      * @note Its value is 12 pixels by default.
++      */
++    void setBarHeight(int barHeight);
++    /**
++      * @return The preferred height of the capacity bar.
++      */
++    int barHeight() const;
++
++    /**
++      * If the capacity bar is in outline text mode, draw the text with
++      * @p textAlignment alignment.
++      *
++      * @param textAlignment    Sets the horizontal alignment for the text if
++      *                         the capacity bar is in outline text mode.
++      *
++      * @note If @p textAlignemt contains vertical alignment flags, they will be
++      *       ignored.
++      *
++      * @note If the capacity bar is in inline text mode, the text is always
++      *       centered, and both vertical and horizontal flags set through this
++      *       method are ignored.
++      *
++      * @note Its value is centered by default.
++      */
++    void setHorizontalTextAlignment(Qt::Alignment textAlignment);
++    /**
++      * @return The horizontal alignment for the text that will be drawn.
++      */
++    Qt::Alignment horizontalTextAlignment() const;
++
++    /**
++      * This method allows you to draw the widget, directly, for example on
++      * item delegates. You only need the painter object and the rect where
++      * this widget should be drawn.
++      */
++    void drawCapacityBar(QPainter *p, const QRect &rect) const;
++
++    // Reimplemented from QWidget
++    virtual QSize minimumSizeHint() const;
++
++protected:
++    // Reimplemented from QWidget
++    virtual void paintEvent(QPaintEvent *event);
++
++private:
++    /**
++      * @internal
++      */
++    class Private;
++    Private *const d;
++};
++
++#endif
+diff --git a/kio/kfile/kpropertiesdialog.cpp b/kio/kfile/kpropertiesdialog.cpp
+index f6c585b..f52508e 100644
+--- a/kio/kfile/kpropertiesdialog.cpp
++++ b/kio/kfile/kpropertiesdialog.cpp
+@@ -120,6 +120,7 @@ extern "C" {
+ #include <kacl.h>
+ #include <kconfiggroup.h>
+ #include <kshell.h>
++#include <kcapacitybar.h>
+ #ifndef Q_OS_WIN
+ #include "kfilesharedialog.h"
+ #endif
+@@ -686,7 +687,7 @@ public:
+     dirSizeJob = 0L;
+     dirSizeUpdateTimer = 0L;
+     m_lined = 0;
+-    m_freeSpaceLabel = 0;
++    m_capacityBar = 0;
+   }
+   ~KFilePropsPluginPrivate()
+   {
+@@ -701,7 +702,7 @@ public:
+   bool bIconChanged;
+   bool bKDesktopMode;
+   bool bDesktopFile;
+-  QLabel *m_freeSpaceLabel;
++  KCapacityBar *m_capacityBar;
+   QString mimeType;
+   QString oldFileName;
+   KLineEdit* m_lined;
+@@ -1095,11 +1096,11 @@ KFilePropsPlugin::KFilePropsPlugin( KPropertiesDialog *_props )
+           grid->addWidget( l, curRow++, 2 );
+       }
+ 
+-      l = new QLabel(i18n("Free disk space:"), d->m_frame );
++      l = new QLabel(i18n("Device usage:"), d->m_frame );
+       grid->addWidget(l, curRow, 0);
+ 
+-      d->m_freeSpaceLabel = new QLabel( d->m_frame );
+-      grid->addWidget( d->m_freeSpaceLabel, curRow++, 2 );
++      d->m_capacityBar = new KCapacityBar( KCapacityBar::DrawTextOutline, d->m_frame );
++      grid->addWidget( d->m_capacityBar, curRow++, 2);
+ 
+       KDiskFreeSpace * job = new KDiskFreeSpace;
+       connect(job, SIGNAL(foundMountPoint(QString, quint64, quint64, quint64)),
+@@ -1182,11 +1183,13 @@ void KFilePropsPlugin::slotFoundMountPoint( const QString&,
+ 					    quint64 /*kibUsed*/,
+ 					    quint64 kibAvail )
+ {
+-    d->m_freeSpaceLabel->setText(
+-	i18nc("Available space out of total partition size (percent used)", "%1 out of %2 (%3% used)",
++    d->m_capacityBar->setText(
++	i18nc("Available space out of total partition size (percent used)", "%1 free of %2 (%3% used)",
+ 	 KIO::convertSizeFromKiB(kibAvail),
+ 	 KIO::convertSizeFromKiB(kibSize),
+ 	  100 - (int)(100.0 * kibAvail / kibSize) ));
++
++    d->m_capacityBar->setValue(100 - (int)(100.0 * kibAvail / kibSize));
+ }
+ 
+ void KFilePropsPlugin::slotDirSizeUpdate()
+@@ -1243,7 +1246,7 @@ void KFilePropsPlugin::slotSizeDetermine()
+   d->m_sizeDetermineButton->setEnabled(false);
+ 
+   // also update the "Free disk space" display
+-  if ( d->m_freeSpaceLabel )
++  if ( d->m_capacityBar )
+   {
+     bool isLocal;
+     const KFileItem item = properties->item();
+@@ -2745,7 +2748,7 @@ KDevicePropsPlugin::KDevicePropsPlugin( KPropertiesDialog *_props ) : KPropertie
+   layout->addWidget(d->mountpoint, 3, 1);
+ 
+   // show disk free
+-  d->m_freeSpaceText = new QLabel(i18n("Free disk space:"), d->m_frame );
++  d->m_freeSpaceText = new QLabel(i18n("Device usage:"), d->m_frame );
+   layout->addWidget(d->m_freeSpaceText, 4, 0);
+ 
+   d->m_freeSpaceLabel = new QLabel( d->m_frame );

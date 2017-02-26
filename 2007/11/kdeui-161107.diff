@@ -1,0 +1,2470 @@
+Index: kdeui/CMakeLists.txt
+===================================================================
+--- kdeui/CMakeLists.txt	(revisión: 737233)
++++ kdeui/CMakeLists.txt	(copia de trabajo)
+@@ -13,6 +13,7 @@ include_directories(
+  ${CMAKE_CURRENT_SOURCE_DIR}/dialogs
+  ${CMAKE_CURRENT_SOURCE_DIR}/findreplace
+  ${CMAKE_CURRENT_SOURCE_DIR}/fonts
++ ${CMAKE_CURRENT_SOURCE_DIR}/goya
+  ${CMAKE_CURRENT_SOURCE_DIR}/icons
+  ${CMAKE_CURRENT_SOURCE_DIR}/itemviews
+  ${CMAKE_CURRENT_SOURCE_DIR}/jobs
+@@ -28,6 +29,7 @@ include_directories(
+ )
+ 
+ add_subdirectory( about )
++add_subdirectory( goya )
+ add_subdirectory( tests )
+ add_subdirectory( sonnet/tests )
+ 
+@@ -88,6 +90,11 @@ set(kdeui_LIB_SRCS
+  fonts/kfontchooser.cpp
+  fonts/kfontdialog.cpp
+  fonts/kfontrequester.cpp
++ goya/widget.cpp
++ goya/pushbutton.cpp
++ goya/lineedit.cpp
++ goya/combobox.cpp
++ goya/goya.cpp
+  icons/kiconeffect.cpp
+  icons/kiconengine.cpp
+  icons/kicon.cpp
+@@ -344,6 +351,12 @@ install( FILES
+  fonts/kfontchooser.h
+  fonts/kfontdialog.h
+  fonts/kfontrequester.h
++ goya/widget.h
++ goya/widget_p.h       # if someone wants to develop a new fake widget for Goya, this is needed
++ goya/pushbutton.h
++ goya/lineedit.h
++ goya/combobox.h
++ goya/goya.h
+  icons/kiconeffect.h
+  icons/kicon.h
+  icons/k3icon_p.h      # we install the private header as it is needed by kcm (tokoe)
+Index: kdeui/goya/goya.cpp
+===================================================================
+--- kdeui/goya/goya.cpp	(revisión: 0)
++++ kdeui/goya/goya.cpp	(revisión: 0)
+@@ -0,0 +1,576 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@kde.org>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#include "goya.h"
++
++#include <QIcon>
++#include <QSize>
++#include <QStyle>
++#include <QEvent>
++#include <QCursor>
++#include <QPainter>
++#include <QStyleOption>
++#include <QAbstractItemView>
++#include <QStyleOptionButton>
++
++#include "widget.h"
++#include "widget_p.h"
++
++#include <kdebug.h>
++
++namespace Goya
++{
++
++
++class Canvas::Private
++{
++public:
++    Private(Canvas *q);
++    ~Private();
++
++    QAbstractItemView *itemView;
++    QModelIndex hoveredIndex;
++    Widget *hoveredWidget;
++    QModelIndex focusedIndex;
++    Widget *focusedWidget;
++
++    CanvasState canvasState;
++
++    Canvas *q;
++};
++
++Canvas::Private::Private(Canvas *q)
++    : itemView(0)
++    , hoveredIndex(QModelIndex())
++    , hoveredWidget(0)
++    , focusedIndex(QModelIndex())
++    , focusedWidget(0)
++    , canvasState(NoState)
++    , q(q)
++{
++}
++
++Canvas::Private::~Private()
++{
++}
++
++Canvas::Canvas(QAbstractItemView *itemView, QObject *parent)
++    : QAbstractItemDelegate(parent)
++    , d(new Private(this))
++{
++    itemView->setMouseTracking(true);
++
++    d->itemView = itemView;
++
++    itemView->viewport()->installEventFilter(this); // mouse events
++    itemView->installEventFilter(this);             // keyboard events
++}
++
++Canvas::~Canvas()
++{
++    delete d;
++}
++
++QAbstractItemView *Canvas::itemView() const
++{
++    return d->itemView;
++}
++
++QModelIndex Canvas::hoveredIndex() const
++{
++    return d->hoveredIndex;
++}
++
++const Widget *Canvas::hoveredWidget() const
++{
++    return d->hoveredWidget;
++}
++
++QModelIndex Canvas::focusedIndex() const
++{
++    return d->focusedIndex;
++}
++
++const Widget *Canvas::focusedWidget() const
++{
++    return d->focusedWidget;
++}
++
++QList<Goya::Widget*> Canvas::widgetsForIndex(const QModelIndex &index) const
++{
++    return qvariant_cast<QList<Widget*> >(index.model()->data(index, WidgetRole));
++}
++
++QSize Canvas::widgetSize(Widget *widget, const QStyleOption *option,
++                         const QModelIndex &index) const
++{
++    return widget->widgetSize(option, index);
++}
++
++QRect Canvas::widgetRect(Widget *widget, const QStyleOption *option,
++                         const QModelIndex &index) const
++{
++    QRect retRect = QRect(widgetPosition(widget, widget->widgetOptions(option), index), widgetSize(widget, widget->widgetOptions(option), index));
++    retRect.setTop(option->rect.top() + retRect.top());
++    retRect.setBottom(option->rect.top() + retRect.bottom());
++    retRect.setLeft(option->rect.left() + retRect.left());
++    retRect.setRight(option->rect.left() + retRect.right());
++
++    return retRect;
++}
++
++Canvas::CanvasState Canvas::canvasState() const
++{
++    return d->canvasState;
++}
++
++void Canvas::paint(QPainter *painter, const QStyleOptionViewItem &option,
++                   const QModelIndex &index) const
++{
++    if (!index.isValid())
++    {
++        return;
++    }
++
++    Q_ASSERT(d->itemView);
++
++    QList<Widget*> widgetList = qvariant_cast<QList<Widget*> >(index.model()->data(index, WidgetRole));
++
++    int i = 0;
++    foreach (Widget *widget, widgetList)
++    {
++        widget->d->canvas = const_cast<Canvas*>(this);
++        widget->d->widgetIndex = i;
++
++        i++;
++    }
++
++    QStyleOption *widgetOption = 0;
++    foreach (Widget *widget, widgetList)
++    {
++        widgetOption = widget->widgetOptions(&option);
++        widgetOption->rect = widgetRect(widget, &option, index);
++
++        if (d->itemView->isEnabled() && widget->isEnabled())
++        {
++            widgetOption->state |= QStyle::State_Enabled;
++
++            widgetOption->state &= ~QStyle::State_HasFocus;
++            widgetOption->state &= ~QStyle::State_MouseOver;
++
++            if ((index == d->focusedIndex) && (widget == d->focusedWidget))
++            {
++                widgetOption->state |= QStyle::State_HasFocus;
++            }
++
++            if ((index == d->hoveredIndex) && (widget == d->hoveredWidget))
++            {
++                widgetOption->state |= QStyle::State_MouseOver;
++            }
++        }
++
++        widget->paint(widgetOption, painter, index);
++    }
++
++    foreach (Widget *widget, widgetList)
++    {
++        widget->d->widgetIndex = -1;
++        widget->d->canvas = 0;
++    }
++}
++
++QSize Canvas::sizeHint(const QStyleOptionViewItem &option,
++                       const QModelIndex &index) const
++{
++    if (!index.isValid())
++    {
++        return QSize();
++    }
++
++    QRect rect;
++
++    QList<Widget*> widgetList = qvariant_cast<QList<Widget*> >(index.model()->data(index, WidgetRole));
++
++    int i = 0;
++    foreach (Widget *widget, widgetList)
++    {
++        widget->d->canvas = const_cast<Canvas*>(this);
++        widget->d->widgetIndex = i;
++
++        i++;
++    }
++
++    QStyleOption *widgetOption = 0;
++    foreach (Widget *widget, widgetList)
++    {
++        widgetOption = widget->widgetOptions(&option);
++        widgetOption->rect = widgetRect(widget, &option, index);
++
++        rect = rect.united(widgetOption->rect);
++    }
++
++    foreach (Widget *widget, widgetList)
++    {
++        widget->d->widgetIndex = -1;
++        widget->d->canvas = 0;
++    }
++
++    return rect.size();
++}
++
++bool Canvas::eventFilter(QObject *watched, QEvent *event)
++{
++    Q_ASSERT(d->itemView);
++
++    bool eatEvents = false;
++
++    QWidget *viewport = qobject_cast<QWidget*>(watched);
++
++    if (event->type() == QEvent::MouseMove)
++    {
++        QModelIndex currentIndex = d->itemView->indexAt(viewport->mapFromGlobal(QCursor::pos()));
++
++        if (currentIndex.isValid())
++        {
++            d->hoveredIndex = currentIndex;
++
++            QList<Widget*> widgetList = qvariant_cast<QList<Widget*> >(currentIndex.model()->data(currentIndex, WidgetRole));
++
++            QRect origRect = d->itemView->visualRect(currentIndex);
++
++            int i = 0;
++            foreach (Widget *widget, widgetList)
++            {
++                widget->d->canvas = const_cast<Canvas*>(this);
++                widget->d->widgetIndex = i;
++
++                i++;
++            }
++
++            foreach (Widget *widget, widgetList)
++            {
++                QStyleOption opt;
++                opt.initFrom(d->itemView);
++                opt.rect = origRect;
++
++                QStyleOption *option = widget->widgetOptions(&opt);
++                option->rect = widgetRect(widget, option, currentIndex);
++
++                if (d->hoveredWidget && (d->hoveredWidget == widget) &&
++                    !option->rect.contains(viewport->mapFromGlobal(QCursor::pos())))
++                {
++                    d->hoveredWidget = 0;
++
++                    QEvent leaveEvent(QEvent::Leave);
++                    widget->event(&leaveEvent, option, currentIndex);
++                }
++                else if (option->rect.contains(viewport->mapFromGlobal(QCursor::pos())))
++                {
++                    if (!d->hoveredWidget)
++                    {
++                        d->hoveredWidget = widget;
++
++                        QEvent enterEvent(QEvent::Enter);
++                        widget->event(&enterEvent, option, currentIndex);
++                    }
++
++                    eatEvents = widget->event(event, option, currentIndex);
++                }
++            }
++
++            foreach (Widget *widget, widgetList)
++            {
++                widget->d->widgetIndex = -1;
++                widget->d->canvas = 0;
++            }
++        }
++        else
++        {
++#if 1 // Consider all possible situations
++            // Generate a leave event if any widget was hovered
++            if (d->hoveredWidget && d->hoveredIndex.isValid())
++            {
++                QList<Widget*> widgetList = qvariant_cast<QList<Widget*> >(d->hoveredIndex.model()->data(d->hoveredIndex, WidgetRole));
++                QRect origRect = d->itemView->visualRect(d->hoveredIndex);
++
++                int i = 0;
++                foreach (Widget *widget, widgetList)
++                {
++                    widget->d->canvas = const_cast<Canvas*>(this);
++                    widget->d->widgetIndex = i;
++
++                    i++;
++                }
++
++                QStyleOption opt;
++                opt.initFrom(d->itemView);
++                opt.rect = origRect;
++
++                QStyleOption *option = d->hoveredWidget->widgetOptions(&opt);
++                option->rect = widgetRect(d->hoveredWidget, option, d->hoveredIndex);
++
++                QEvent leaveEvent(QEvent::Leave);
++                d->hoveredWidget->event(&leaveEvent, option, d->hoveredIndex);
++
++                foreach (Widget *widget, widgetList)
++                {
++                    widget->d->widgetIndex = -1;
++                    widget->d->canvas = 0;
++                }
++            }
++#endif
++
++            d->hoveredIndex = QModelIndex();
++            d->hoveredWidget = 0;
++        }
++
++        d->itemView->viewport()->update();
++    }
++    else if (event->type() == QEvent::Leave)
++    {
++        d->hoveredIndex = QModelIndex();
++        d->hoveredWidget = 0;
++
++        d->itemView->viewport()->update();
++    }
++    else if (event->type() == QEvent::MouseButtonPress)
++    {
++        d->canvasState |= MouseButtonDown;
++
++        QModelIndex currentIndex = d->itemView->indexAt(viewport->mapFromGlobal(QCursor::pos()));
++
++        if (currentIndex.isValid())
++        {
++            d->hoveredIndex = currentIndex;
++            d->focusedIndex = currentIndex;
++            d->hoveredWidget = 0;
++            d->focusedWidget = 0;
++
++            QList<Widget*> widgetList = qvariant_cast<QList<Widget*> >(currentIndex.model()->data(currentIndex, WidgetRole));
++
++            QRect origRect = d->itemView->visualRect(currentIndex);
++
++            int i = 0;
++            foreach (Widget *widget, widgetList)
++            {
++                widget->d->canvas = const_cast<Canvas*>(this);
++                widget->d->widgetIndex = i;
++
++                i++;
++            }
++
++            foreach (Widget *widget, widgetList)
++            {
++                QStyleOption opt;
++                opt.initFrom(d->itemView);
++                opt.rect = origRect;
++
++                QStyleOption *option = widget->widgetOptions(&opt);
++                option->rect = widgetRect(widget, option, currentIndex);
++
++                if (option->rect.contains(viewport->mapFromGlobal(QCursor::pos())))
++                {
++                    d->hoveredWidget = widget;
++                    d->focusedWidget = widget;
++
++                    eatEvents = widget->event(event, option, currentIndex);
++
++                    break;
++                }
++            }
++
++            d->itemView->viewport()->update();
++
++            foreach (Widget *widget, widgetList)
++            {
++                widget->d->widgetIndex = -1;
++                widget->d->canvas = 0;
++            }
++        }
++        else
++        {
++#if 1 // Consider all possible situations
++            // Generate a leave event if any widget was focused
++            if (d->focusedWidget && d->focusedIndex.isValid())
++            {
++                QList<Widget*> widgetList = qvariant_cast<QList<Widget*> >(d->focusedIndex.model()->data(d->focusedIndex, WidgetRole));
++                QRect origRect = d->itemView->visualRect(d->focusedIndex);
++
++                int i = 0;
++                foreach (Widget *widget, widgetList)
++                {
++                    widget->d->canvas = const_cast<Canvas*>(this);
++                    widget->d->widgetIndex = i;
++
++                    i++;
++                }
++
++                QStyleOption opt;
++                opt.initFrom(d->itemView);
++                opt.rect = origRect;
++
++                QStyleOption *option = d->focusedWidget->widgetOptions(&opt);
++                option->rect = widgetRect(d->focusedWidget, option, d->focusedIndex);
++
++                QEvent focusOutEvent(QEvent::FocusOut);
++                d->focusedWidget->event(&focusOutEvent, option, d->focusedIndex);
++
++                foreach (Widget *widget, widgetList)
++                {
++                    widget->d->widgetIndex = -1;
++                    widget->d->canvas = 0;
++                }
++            }
++#endif
++
++            d->hoveredIndex = QModelIndex();
++            d->focusedIndex = QModelIndex();
++            d->hoveredWidget = 0;
++            d->focusedWidget = 0;
++
++            d->itemView->viewport()->update();
++        }
++    }
++    else if (event->type() == QEvent::MouseButtonRelease)
++    {
++        d->canvasState &= ~MouseButtonDown;
++
++        QModelIndex currentIndex = d->itemView->indexAt(viewport->mapFromGlobal(QCursor::pos()));
++
++        if (currentIndex.isValid())
++        {
++            d->hoveredIndex = currentIndex;
++            d->focusedIndex = currentIndex;
++            d->hoveredWidget = 0;
++            d->focusedWidget = 0;
++
++            QList<Widget*> widgetList = qvariant_cast<QList<Widget*> >(currentIndex.model()->data(currentIndex, WidgetRole));
++
++            QRect origRect = d->itemView->visualRect(currentIndex);
++
++            int i = 0;
++            foreach (Widget *widget, widgetList)
++            {
++                widget->d->canvas = const_cast<Canvas*>(this);
++                widget->d->widgetIndex = i;
++
++                i++;
++            }
++
++            foreach (Widget *widget, widgetList)
++            {
++                QStyleOption opt;
++                opt.initFrom(d->itemView);
++                opt.rect = origRect;
++
++                QStyleOption *option = widget->widgetOptions(&opt);
++                option->rect = widgetRect(widget, option, currentIndex);
++
++                if (option->rect.contains(viewport->mapFromGlobal(QCursor::pos())))
++                {
++                    d->hoveredWidget = widget;
++                    d->focusedWidget = widget;
++
++                    eatEvents = widget->event(event, option, currentIndex);
++
++                    break;
++                }
++            }
++
++            d->itemView->viewport()->update();
++
++            foreach (Widget *widget, widgetList)
++            {
++                widget->d->widgetIndex = -1;
++                widget->d->canvas = 0;
++            }
++        }
++        else
++        {
++#if 1 // Consider all possible situations
++            // Generate a leave event if any widget was focused
++            if (d->focusedWidget && d->focusedIndex.isValid())
++            {
++                QList<Widget*> widgetList = qvariant_cast<QList<Widget*> >(d->focusedIndex.model()->data(d->focusedIndex, WidgetRole));
++                QRect origRect = d->itemView->visualRect(d->focusedIndex);
++
++                int i = 0;
++                foreach (Widget *widget, widgetList)
++                {
++                    widget->d->canvas = const_cast<Canvas*>(this);
++                    widget->d->widgetIndex = i;
++
++                    i++;
++                }
++
++                QStyleOption opt;
++                opt.initFrom(d->itemView);
++                opt.rect = origRect;
++
++                QStyleOption *option = d->focusedWidget->widgetOptions(&opt);
++                option->rect = widgetRect(d->focusedWidget, option, d->focusedIndex);
++
++                QEvent focusOutEvent(QEvent::FocusOut);
++                d->focusedWidget->event(&focusOutEvent, option, d->focusedIndex);
++
++                foreach (Widget *widget, widgetList)
++                {
++                    widget->d->widgetIndex = -1;
++                    widget->d->canvas = 0;
++                }
++            }
++#endif
++
++            d->hoveredIndex = QModelIndex();
++            d->focusedIndex = QModelIndex();
++            d->hoveredWidget = 0;
++            d->focusedWidget = 0;
++
++            d->itemView->viewport()->update();
++        }
++    }
++    else if (event->type() == QEvent::FocusIn)
++    {
++        d->canvasState |= HasFocus;
++
++        d->itemView->viewport()->update();
++    }
++    else if (event->type() == QEvent::FocusOut)
++    {
++        d->canvasState &= ~MouseButtonDown;
++        d->canvasState &= ~HasFocus;
++
++        d->itemView->viewport()->update();
++    }
++    else if (event->type() == QEvent::MouseTrackingChange)
++    {
++        QWidget *widget = qobject_cast<QWidget*>(watched);
++
++        if (!widget->hasMouseTracking())
++        {
++            kWarning() << "Mouse tracking disabled. Goya won't behave correctly" << endl;
++        }
++    }
++
++    return eatEvents;
++}
++
++
++}
+Index: kdeui/goya/pushbutton.h
+===================================================================
+--- kdeui/goya/pushbutton.h	(revisión: 0)
++++ kdeui/goya/pushbutton.h	(revisión: 0)
+@@ -0,0 +1,72 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@kde.org>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#ifndef GOYA_PUSHBUTTON_H
++#define GOYA_PUSHBUTTON_H
++
++#include <kdeui_export.h>
++
++#include "widget.h"
++
++namespace Goya
++{
++
++
++class Canvas;
++
++class KDEUI_EXPORT PushButton
++    : public Widget
++{
++    Q_OBJECT
++
++public:
++    explicit PushButton(QObject *parent = 0);
++    virtual ~PushButton();
++
++    void setText(const QString &text);
++    QString text() const;
++
++    void setIcon(const QIcon &icon);
++    QIcon icon() const;
++
++    void setIconSize(const QSize &iconSize);
++    QSize iconSize() const;
++
++    virtual QStyleOption *widgetOptions(const QStyleOption *option);
++
++    virtual QSize widgetSize(const QStyleOption *option, const QModelIndex &index) const;
++
++    virtual void paint(const QStyleOption *option, QPainter *painter,
++                       const QModelIndex &index) const;
++
++    virtual bool event(QEvent *event, QStyleOption *option, const QModelIndex &index);
++
++Q_SIGNALS:
++    void clicked(const QModelIndex &index, const Goya::PushButton *pushButton);
++
++private:
++    class Private;
++    Private *const d;
++};
++
++
++}
++
++#endif
+Index: kdeui/goya/tests/main.cpp
+===================================================================
+--- kdeui/goya/tests/main.cpp	(revisión: 0)
++++ kdeui/goya/tests/main.cpp	(revisión: 0)
+@@ -0,0 +1,310 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@kde.org>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#include "goya.h"
++#include "lineedit.h"
++#include "combobox.h"
++
++#include <kdebug.h>
++
++#include <QList>
++#include <QAction>
++#include <QWidget>
++#include <QPainter>
++#include <QListView>
++#include <QBoxLayout>
++#include <QMessageBox>
++#include <QStringListModel>
++
++#include <kapplication.h>
++#include <kaboutdata.h>
++#include <kmessagebox.h>
++#include <kcmdlineargs.h>
++#include <klocalizedstring.h>
++#include <kicon.h>
++
++class MiModel
++    : public QStringListModel
++{
++    Q_OBJECT
++
++public:
++    MiModel(QAbstractItemView *itemView, QObject *parent = 0)
++        : QStringListModel(parent)
++        , itemView(itemView)
++    {
++        button = new Goya::LineEdit(0);
++        button2 = new Goya::ComboBox(0);
++        button3 = new Goya::ComboBox(0);
++
++        button->setObjectName("left");
++        button2->setObjectName("right");
++        button3->setObjectName("right2");
++
++        button->setText("Esto es una prueba de lo que se puede hacer con la line edit de Goya");
++        /*button->setIcon(KIcon("document-properties"));
++        button->setIconSize(QSize(16, 16));*/
++
++        QAction *action;
++        for (int i = 0; i < 10; ++i)
++        {
++            action = new QAction(KIcon("configure"), QString("Settings ") + QString::number(i + 1), 0);
++            action->setText(QString("Settings ") + QString::number(i + 1));
++            action->setData(i);
++            actions << action;
++        }
++
++        button2->setActions(actions);
++        button2->setCurrentAction(actions[0]);
++        button2->setIconSize(QSize(16,16));
++
++        button3->setActions(actions);
++        button3->setCurrentAction(actions[0]);
++        button3->setIconSize(QSize(16,16));
++
++        button->setEatEvents(QEvent::MouseButtonPress);
++        button2->setEatEvents(QEvent::MouseButtonPress);
++        button3->setEatEvents(QEvent::MouseButtonPress);
++        button->setEatEvents(QEvent::MouseButtonRelease);
++        button2->setEatEvents(QEvent::MouseButtonRelease);
++        button3->setEatEvents(QEvent::MouseButtonRelease);
++        button->setEatEvents(QEvent::MouseButtonDblClick);
++        button2->setEatEvents(QEvent::MouseButtonDblClick);
++        button3->setEatEvents(QEvent::MouseButtonDblClick);
++
++        //connect(button, SIGNAL(clicked(QModelIndex,const Goya::PushButton*)), this, SLOT(slotClicked1(QModelIndex)));
++        connect(button2, SIGNAL(currentIndexChanged(QAction*,QModelIndex,const Goya::ComboBox*)), this, SLOT(slotClicked3(QAction*,QModelIndex)));
++        connect(button3, SIGNAL(currentIndexChanged(QAction*,QModelIndex,const Goya::ComboBox*)), this, SLOT(slotClicked4(QAction*,QModelIndex)));
++    }
++
++    virtual ~MiModel()
++    {
++        delete button;
++        delete button2;
++        delete button3;
++    }
++
++    virtual QVariant data(const QModelIndex &index, int role) const
++    {
++        if (role == Goya::WidgetRole)
++        {
++            QAction *action = actions[setting[index.row()]];
++            action->setText(QString("Settings ") + QString::number(action->data().toInt() + 1));
++            button2->setCurrentAction(action);
++
++            QAction *action2 = actions[setting2[index.row()]];
++            action2->setText(QString("Settings ") + QString::number(action2->data().toInt() + 1));
++            button3->setCurrentAction(action2);
++
++            return QVariant::fromValue(QList<Goya::Widget*>() << button << button2 << button3);
++        }
++
++        return QStringListModel::data(index, role);
++    }
++
++    virtual bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole)
++    {
++        return QStringListModel::setData(index, value, role);
++    }
++
++    virtual bool insertRows(int row, int count, const QModelIndex &parent = QModelIndex())
++    {
++        for (int i = row; i < row + count; ++i)
++        {
++            setting.insert(i, 0);
++            setting2.insert(i, 4);
++        }
++
++        return QStringListModel::insertRows(row, count, parent);
++    }
++
++    virtual bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex())
++    {
++        for (int i = row; i < row + count; ++i)
++        {
++            setting.removeAt(row);
++            setting2.removeAt(row);
++        }
++
++        return QStringListModel::removeRows(row, count, parent);
++    }
++
++private:
++    Goya::LineEdit *button;
++    Goya::ComboBox *button2;
++    Goya::ComboBox *button3;
++    QAbstractItemView *itemView;
++    QList<int> setting;
++    QList<int> setting2;
++    QList<QAction*> actions;
++
++private Q_SLOTS:
++    void slotClicked1(const QModelIndex &index)
++    {
++        KMessageBox::information(0, "More information clicked on row " + QString::number(index.row() + 1), "Button clicked");
++    }
++
++    void slotClicked3(QAction *action, const QModelIndex &index)
++    {
++        //KMessageBox::information(0, "Selected action: " + action->text(), "Button clicked");
++
++        setting[index.row()] = action->data().toInt();
++    }
++
++    void slotClicked4(QAction *action, const QModelIndex &index)
++    {
++        //KMessageBox::information(0, "Selected action: " + action->text(), "Button clicked");
++
++        setting2[index.row()] = action->data().toInt();
++    }
++};
++
++class MiDelegate
++    : public Goya::Canvas
++{
++public:
++    MiDelegate(QAbstractItemView *itemView, QObject *parent = 0)
++        : Canvas(itemView, parent)
++    {
++    }
++
++    virtual ~MiDelegate()
++    {
++    }
++
++    QSize widgetSize(Goya::Widget *widget, const QStyleOption *option,
++                     const QModelIndex &index) const
++    {
++        if (widget->objectName() == "left")
++        {
++            QSize defSize = Canvas::widgetSize(widget, option, index);
++
++            defSize.setWidth(300);
++
++            return defSize;
++        }
++
++        return Canvas::widgetSize(widget, option, index);
++    }
++
++    QPoint widgetPosition(Goya::Widget *widget, const QStyleOption *option,
++                          const QModelIndex &index) const
++    {
++        if (widget->objectName() == "left")
++        {
++            return QPoint(option->fontMetrics.height(), option->fontMetrics.height());
++        }
++        else if (widget->objectName() == "right")
++        {
++            return QPoint(option->rect.right() - widgetSize(widget, option, index).width() - option->fontMetrics.height() - option->rect.left(), option->fontMetrics.height());
++        }
++        else
++        {
++            QList<Goya::Widget*> list = widgetsForIndex(index);
++            QPoint pos = widgetPosition(list[1], list[1]->widgetOptions(option), index);
++
++            return QPoint(pos.x() - widgetSize(widget, option, index).width() - option->fontMetrics.height(), option->fontMetrics.height());
++        }
++    }
++
++    void paint(QPainter *painter, const QStyleOptionViewItem &option,
++               const QModelIndex &index) const
++    {
++        if (option.state & QStyle::State_Selected)
++        {
++            painter->fillRect(option.rect, option.palette.highlight());
++        }
++
++        painter->save();
++
++        if (option.state & QStyle::State_Selected)
++        {
++            painter->setPen(QPen(option.palette.highlightedText().color()));
++        }
++
++        painter->drawText(option.fontMetrics.height() + option.rect.left(),
++                            option.fontMetrics.height() * 3 + Canvas::sizeHint(option, index).height() + option.rect.top(),
++                            QString("This is the index in row number ") + QString::number(index.row() + 1));
++
++        painter->restore();
++
++        Canvas::paint(painter, option, index);
++    }
++
++    QSize sizeHint(const QStyleOptionViewItem &option,
++                   const QModelIndex &index) const
++    {
++        Q_UNUSED(option);
++        Q_UNUSED(index);
++
++        QSize size = Canvas::sizeHint(option, index);
++
++        size.setWidth(size.width() + option.fontMetrics.height() * 4);
++        size.setHeight(size.height() + option.fontMetrics.height() * 4);
++
++        return size;
++    }
++};
++
++int main(int argc, char **argv)
++{
++    KAboutData aboutData("goyatest",
++                         0,
++                         ki18n("Goya Test "),
++                         "1.0",
++                         ki18n("A test for the Goya subsystem"),
++                         KAboutData::License_LGPL,
++                         ki18n("(c) Rafael Fernández López, 2007"),
++                         ki18n("A test for the Goya subsystem"),
++                         "http://www.ereslibre.es",
++                         "ereslibre@kde.org");
++
++    KCmdLineArgs::init(argc, argv, &aboutData);
++    KApplication app;
++
++    QWidget *widget = new QWidget();
++    QVBoxLayout *layout = new QVBoxLayout;
++
++    widget->setLayout(layout);
++    widget->resize(800, 600);
++
++    QListView *listView = new QListView();
++    MiDelegate *delegate = new MiDelegate(listView);
++    MiModel *model = new MiModel(listView);
++
++    model->insertColumn(0);
++    for (int i = 0; i < 2; ++i)
++    {
++        model->insertRow(i);
++        model->setData(model->index(i, 0), QString::number(i));
++    }
++
++    listView->setModel(model);
++    listView->setItemDelegate(delegate);
++    listView->setVerticalScrollMode(QListView::ScrollPerPixel);
++
++    layout->addWidget(listView);
++
++    widget->show();
++
++    return app.exec();
++}
++
++#include "main.moc"
+Index: kdeui/goya/tests/CMakeLists.txt
+===================================================================
+--- kdeui/goya/tests/CMakeLists.txt	(revisión: 0)
++++ kdeui/goya/tests/CMakeLists.txt	(revisión: 0)
+@@ -0,0 +1,15 @@
++set( EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR} )
++# This can be used for finding data files in the source dir, without installing them
++project(goyatest)
++
++include_directories( ${KDE4_INCLUDES} ${CMAKE_CURRENT_SOURCE_DIR}/.. )
++
++########### goyatest ###############
++
++set(goyatest_SRCS main.cpp )
++
++kde4_add_executable(goyatest ${goyatest_SRCS})
++
++target_link_libraries(goyatest ${KDE4_KDEUI_LIBS})
++
++########### install files ###############
+\ No hay ningún carácter de nueva línea al final del fichero
+Index: kdeui/goya/lineedit.h
+===================================================================
+--- kdeui/goya/lineedit.h	(revisión: 0)
++++ kdeui/goya/lineedit.h	(revisión: 0)
+@@ -0,0 +1,63 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@kde.org>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#ifndef GOYA_LINEEDIT_H
++#define GOYA_LINEEDIT_H
++
++#include <kdeui_export.h>
++
++#include "widget.h"
++
++namespace Goya
++{
++
++
++class Canvas;
++
++class KDEUI_EXPORT LineEdit
++    : public Widget
++{
++    Q_OBJECT
++
++public:
++    explicit LineEdit(QObject *parent = 0);
++    virtual ~LineEdit();
++
++    void setText(const QString &text);
++    QString text() const;
++
++    virtual QStyleOption *widgetOptions(const QStyleOption *option);
++
++    virtual QSize widgetSize(const QStyleOption *option, const QModelIndex &index) const;
++
++    virtual void paint(const QStyleOption *option, QPainter *painter,
++                       const QModelIndex &index) const;
++
++    virtual bool event(QEvent *event, QStyleOption *option, const QModelIndex &index);
++
++private:
++    class Private;
++    Private *const d;
++};
++
++
++}
++
++#endif
+Index: kdeui/goya/widget.cpp
+===================================================================
+--- kdeui/goya/widget.cpp	(revisión: 0)
++++ kdeui/goya/widget.cpp	(revisión: 0)
+@@ -0,0 +1,116 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@kde.org>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#include "widget.h"
++#include "widget_p.h"
++
++#include <QAbstractItemView>
++
++namespace Goya
++{
++
++
++Widget::Private::Private(Widget *q)
++    : canvas(0)
++    , widgetIndex(-1)
++    , enabled(true)
++    , widgetOptions(0)
++    , q(q)
++{
++}
++
++Widget::Private::~Private()
++{
++}
++
++
++Widget::Widget(QObject *parent)
++    : QObject(parent)
++    , d(new Private(this))
++{
++}
++
++Widget::~Widget()
++{
++    delete d;
++}
++
++int Widget::widgetIndex() const
++{
++    return d->widgetIndex;
++}
++
++bool Widget::eatEvents(QEvent::Type eventType) const
++{
++    return d->eventBlocker.contains(eventType);
++}
++
++void Widget::setEatEvents(QEvent::Type eventType, EatEvents eatEvents)
++{
++    if ((eatEvents == DoEatEvents) && !d->eventBlocker.contains(eventType))
++    {
++        d->eventBlocker << eventType;
++    }
++    else if ((eatEvents == DoNotEatEvents) && d->eventBlocker.contains(eventType))
++    {
++        d->eventBlocker.removeAll(eventType);
++    }
++}
++
++bool Widget::isEnabled() const
++{
++    return d->enabled;
++}
++
++void Widget::setEnabled(bool enabled)
++{
++    d->enabled = enabled;
++}
++
++Canvas *Widget::canvas() const
++{
++    return d->canvas;
++}
++
++QStyleOption *Widget::widgetOptions(const QStyleOption *option)
++{
++    Q_ASSERT(d->canvas);
++    Q_ASSERT(option);
++
++    *d->widgetOptions = *option;
++
++    if (!d->enabled)
++    {
++        d->widgetOptions->state &= ~QStyle::State_Enabled;
++    }
++
++    return d->widgetOptions;
++}
++
++bool Widget::event(QEvent *event, QStyleOption *option, const QModelIndex &index)
++{
++    Q_UNUSED(option);
++    Q_UNUSED(index);
++
++    return eatEvents(event->type());
++}
++
++
++}
+Index: kdeui/goya/goya.h
+===================================================================
+--- kdeui/goya/goya.h	(revisión: 0)
++++ kdeui/goya/goya.h	(revisión: 0)
+@@ -0,0 +1,115 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@kde.org>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#ifndef GOYA_H
++#define GOYA_H
++
++#include <QList>
++#include <QObject>
++#include <QModelIndex>
++#include <QItemDelegate>
++
++#include <kdeui_export.h>
++
++class QPainter;
++class QStyleOption;
++class QStyleOptionViewItem;
++class QAbstractItemView;
++
++namespace Goya
++{
++
++
++enum AdditionalRoles {
++    WidgetRole      = 0x0606CBD5
++};
++
++class Widget;
++
++/**
++  * Canvas
++  */
++class KDEUI_EXPORT Canvas
++    : public QAbstractItemDelegate
++{
++public:
++    enum CanvasStates {
++        NoState         = 0x00000000,
++        MouseButtonDown = 0x00000001,
++        HasFocus        = 0x00000002
++    };
++
++    Q_DECLARE_FLAGS(CanvasState, CanvasStates)
++
++    Canvas(QAbstractItemView *itemView, QObject *parent = 0);
++    virtual ~Canvas();
++
++    QAbstractItemView *itemView() const;
++
++    QModelIndex hoveredIndex() const;
++
++    const Widget *hoveredWidget() const;
++
++    QModelIndex focusedIndex() const;
++
++    const Widget *focusedWidget() const;
++
++    QList<Goya::Widget*> widgetsForIndex(const QModelIndex &index) const;
++
++    virtual QPoint widgetPosition(Widget *widget, const QStyleOption *option,
++                                  const QModelIndex &index) const = 0;
++
++    /**
++      * Returns the size that the painter will use when painting @p widget.
++      *
++      * By default, this method will return the needed size to draw the widget
++      * to fit all its contents. If you want all the widgets to be the same size
++      * despite having different contents, you need to reimplement this method.
++      */
++    virtual QSize widgetSize(Widget *widget, const QStyleOption *option,
++                             const QModelIndex &index) const;
++
++    QRect widgetRect(Widget *widget, const QStyleOption *option, const QModelIndex &index) const;
++
++    CanvasState canvasState() const;
++
++    // Reimplemented from QItemDelegate
++    virtual void paint(QPainter *painter, const QStyleOptionViewItem &option,
++                       const QModelIndex &index) const;
++
++    virtual QSize sizeHint(const QStyleOptionViewItem &option,
++                           const QModelIndex &index) const;
++
++protected:
++    virtual bool eventFilter(QObject *watched, QEvent *event);
++
++private:
++    class Private;
++    Private *const d;
++};
++
++Q_DECLARE_OPERATORS_FOR_FLAGS(Canvas::CanvasState)
++
++
++}
++
++Q_DECLARE_METATYPE(QList<Goya::Widget*>)
++
++#endif // GOYA_H
+Index: kdeui/goya/widget_p.h
+===================================================================
+--- kdeui/goya/widget_p.h	(revisión: 0)
++++ kdeui/goya/widget_p.h	(revisión: 0)
+@@ -0,0 +1,56 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@kde.org>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#ifndef GOYA_WIDGET_P_H
++#define GOYA_WIDGET_P_H
++
++#include "widget.h"
++
++#include <QList>
++#include <QEvent>
++
++class QStyleOption;
++
++namespace Goya
++{
++
++
++class Canvas;
++
++class Widget::Private
++{
++public:
++    Private(Widget *q);
++    ~Private();
++
++    Canvas *canvas;
++
++    int widgetIndex;
++    QList<QEvent::Type> eventBlocker;
++    bool enabled;
++    QStyleOption *widgetOptions;
++
++    Widget *q;
++};
++
++
++}
++
++#endif
+Index: kdeui/goya/widget.h
+===================================================================
+--- kdeui/goya/widget.h	(revisión: 0)
++++ kdeui/goya/widget.h	(revisión: 0)
+@@ -0,0 +1,85 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@kde.org>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#ifndef GOYA_WIDGET_H
++#define GOYA_WIDGET_H
++
++#include "goya.h"
++
++#include <QSize>
++#include <QEvent>
++#include <QObject>
++#include <QModelIndex>
++
++#include <kdeui_export.h>
++
++class QPainter;
++class QStyleOption;
++
++namespace Goya
++{
++
++
++class Canvas;
++
++class KDEUI_EXPORT Widget
++    : public QObject
++{
++    friend class Canvas;
++
++public:
++    enum EatEvents
++    {
++        DoEatEvents = 0,
++        DoNotEatEvents
++    };
++
++    explicit Widget(QObject *parent = 0);
++    virtual ~Widget();
++
++    int widgetIndex() const;
++
++    bool eatEvents(QEvent::Type eventType) const;
++    void setEatEvents(QEvent::Type eventType, EatEvents eatEvents = DoEatEvents);
++
++    bool isEnabled() const;
++    void setEnabled(bool enabled);
++
++    Canvas *canvas() const;
++
++    virtual QStyleOption *widgetOptions(const QStyleOption *option);
++
++    virtual QSize widgetSize(const QStyleOption *option,
++                             const QModelIndex &index) const = 0;
++
++    virtual void paint(const QStyleOption *option, QPainter *painter,
++                       const QModelIndex &index) const = 0;
++
++    virtual bool event(QEvent *event, QStyleOption *option, const QModelIndex &index);
++
++protected:
++    class Private;
++    Private *const d;
++};
++
++
++}
++
++#endif
+Index: kdeui/goya/combobox.cpp
+===================================================================
+--- kdeui/goya/combobox.cpp	(revisión: 0)
++++ kdeui/goya/combobox.cpp	(revisión: 0)
+@@ -0,0 +1,246 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@kde.org>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#include "widget_p.h"
++
++#include "combobox.h"
++
++#include <QMenu>
++#include <QStyle>
++#include <QEvent>
++#include <QPainter>
++#include <QMouseEvent>
++#include <QAbstractItemView>
++#include <QStyleOptionComboBox>
++
++namespace Goya
++{
++
++
++class ComboBox::Private
++{
++public:
++    Private(ComboBox *q);
++    ~Private();
++
++    ComboBox *q;
++
++    bool showingMenu;
++
++    const QAction *currentAction;
++    QList<QAction*> actions;
++    QSize iconSize;
++};
++
++
++ComboBox::Private::Private(ComboBox *q)
++    : q(q)
++    , showingMenu(false)
++    , currentAction(0)
++{
++}
++
++ComboBox::Private::~Private()
++{
++}
++
++
++ComboBox::ComboBox(QObject *parent)
++    : Widget(parent)
++    , d(new Private(this))
++{
++    Widget::d->widgetOptions = new QStyleOptionComboBox;
++}
++
++ComboBox::~ComboBox()
++{
++    delete d;
++    delete Widget::d->widgetOptions;
++}
++
++void ComboBox::setActions(const QList<QAction*> &actions)
++{
++    d->actions = actions;
++}
++
++QList<QAction*> ComboBox::actions() const
++{
++    return d->actions;
++}
++
++void ComboBox::setCurrentAction(const QAction *currentAction)
++{
++    d->currentAction = currentAction;
++}
++
++const QAction *ComboBox::currentAction() const
++{
++    return d->currentAction;
++}
++
++void ComboBox::setIconSize(const QSize &iconSize)
++{
++    d->iconSize = iconSize;
++}
++
++QSize ComboBox::iconSize() const
++{
++    return d->iconSize;
++}
++
++QStyleOption *ComboBox::widgetOptions(const QStyleOption *option)
++{
++    QStyleOptionComboBox *comboOptions =
++      qstyleoption_cast<QStyleOptionComboBox*>(Widget::widgetOptions(option));
++
++    comboOptions->currentText = d->currentAction->text();
++    comboOptions->currentIcon = d->currentAction->icon();
++    comboOptions->iconSize = d->iconSize;
++
++    return comboOptions;
++}
++
++QSize ComboBox::widgetSize(const QStyleOption *option,
++                           const QModelIndex &index) const
++{
++    Q_UNUSED(index);
++
++    Q_ASSERT(option);
++
++    const QStyleOptionComboBox *optionCombo =
++                               qstyleoption_cast<const QStyleOptionComboBox*>(option);
++
++    Q_ASSERT(optionCombo);
++    Q_ASSERT(Widget::d->canvas);
++
++    QStyle *style = Widget::d->canvas->itemView()->style();
++
++    Q_ASSERT(style);
++
++    return style->sizeFromContents(QStyle::CT_ComboBox, optionCombo,
++                                   QSize(optionCombo->fontMetrics.width(optionCombo->currentText) + optionCombo->iconSize.width(),
++                                         qMax(optionCombo->fontMetrics.height(),
++                                              optionCombo->iconSize.height())));
++}
++
++void ComboBox::paint(const QStyleOption *option, QPainter *painter,
++                     const QModelIndex &index) const
++{
++    Q_ASSERT(option);
++
++    const QStyleOptionComboBox *optionCombo =
++                           qstyleoption_cast<const QStyleOptionComboBox*>(option);
++
++    Q_ASSERT(optionCombo);
++
++    QStyleOptionComboBox opt(*optionCombo);
++
++    Q_ASSERT(Widget::d->canvas);
++
++    QStyle *style = Widget::d->canvas->itemView()->style();
++
++    Q_ASSERT(Widget::d->canvas->itemView()->viewport());
++    Q_ASSERT(style);
++
++    if (Widget::d->canvas->itemView() && Widget::d->canvas->itemView()->viewport() &&
++        optionCombo && style)
++    {
++        opt.state &= ~QStyle::State_On;
++        opt.state &= ~QStyle::State_Sunken;
++
++        if (Widget::d->enabled && d->showingMenu &&
++            (Widget::d->canvas->focusedIndex() == index) &&
++            (Widget::d->canvas->focusedWidget() == this))
++        {
++            opt.state |= QStyle::State_On;
++            opt.state |= QStyle::State_Sunken;
++        }
++
++        style->drawComplexControl(QStyle::CC_ComboBox, &opt, painter);
++        style->drawControl(QStyle::CE_ComboBoxLabel, &opt, painter);
++    }
++}
++
++bool ComboBox::event(QEvent *event, QStyleOption *option, const QModelIndex &index)
++{
++    Q_UNUSED(index);
++
++    const QStyleOptionComboBox *optionCombo =
++                         qstyleoption_cast<const QStyleOptionComboBox*>(option);
++
++    QStyle *style = Widget::d->canvas->itemView()->style();
++
++    switch (event->type())
++    {
++        case QEvent::MouseButtonPress: {
++            QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
++
++            if (option->rect.contains(mouseEvent->pos()))
++            {
++                if (Widget::d->enabled)
++                {
++                    QMenu menu(Widget::d->canvas->itemView()->viewport());
++
++                    for (int i = 0; i < d->actions.count(); ++i)
++                    {
++                        menu.addAction(d->actions[i]);
++                    }
++
++                    QPoint pos = Widget::d->canvas->itemView()->viewport()->mapToGlobal(style->subControlRect(QStyle::CC_ComboBox, optionCombo, QStyle::SC_ComboBoxListBoxPopup).topLeft());
++
++                    pos.setY(pos.y() + widgetSize(option, index).height());
++
++                    d->showingMenu = true;
++
++                    QAction *optionSelected;
++                    if ((optionSelected = menu.exec(pos)))
++                    {
++                        emit currentIndexChanged(optionSelected, index, this);
++                    }
++
++                    d->showingMenu = false;
++                }
++
++                return eatEvents(QEvent::MouseButtonPress);
++            }
++
++            return false;
++        }
++
++        case QEvent::MouseButtonRelease: {
++            QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
++
++            if (option->rect.contains(mouseEvent->pos()))
++            {
++                return eatEvents(QEvent::MouseButtonRelease);
++            }
++
++            return false;
++        }
++
++        default:
++            return Widget::event(event, option, index);
++    }
++}
++
++
++}
++
++#include "combobox.moc"
+Index: kdeui/goya/pushbutton.cpp
+===================================================================
+--- kdeui/goya/pushbutton.cpp	(revisión: 0)
++++ kdeui/goya/pushbutton.cpp	(revisión: 0)
+@@ -0,0 +1,204 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@kde.org>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#include "widget_p.h"
++
++#include "pushbutton.h"
++
++#include <QStyle>
++#include <QEvent>
++#include <QMouseEvent>
++#include <QAbstractItemView>
++#include <QStyleOptionButton>
++
++namespace Goya
++{
++
++
++class PushButton::Private
++{
++public:
++    Private(PushButton *q);
++    ~Private();
++
++    PushButton *q;
++
++    QString text;
++    QIcon icon;
++    QSize iconSize;
++};
++
++
++PushButton::Private::Private(PushButton *q)
++    : q(q)
++{
++}
++
++PushButton::Private::~Private()
++{
++}
++
++
++PushButton::PushButton(QObject *parent)
++    : Widget(parent)
++    , d(new Private(this))
++{
++    Widget::d->widgetOptions = new QStyleOptionButton;
++}
++
++PushButton::~PushButton()
++{
++    delete d;
++    delete Widget::d->widgetOptions;
++}
++
++void PushButton::setText(const QString &text)
++{
++    d->text = text;
++}
++
++QString PushButton::text() const
++{
++    return d->text;
++}
++
++void PushButton::setIcon(const QIcon &icon)
++{
++    d->icon = icon;
++}
++
++QIcon PushButton::icon() const
++{
++    return d->icon;
++}
++
++void PushButton::setIconSize(const QSize &iconSize)
++{
++    d->iconSize = iconSize;
++}
++
++QSize PushButton::iconSize() const
++{
++    return d->iconSize;
++}
++
++QStyleOption *PushButton::widgetOptions(const QStyleOption *option)
++{
++    QStyleOptionButton *buttonOptions =
++        qstyleoption_cast<QStyleOptionButton*>(Widget::widgetOptions(option));
++
++    buttonOptions->text = d->text;
++    buttonOptions->icon = d->icon;
++    buttonOptions->iconSize = d->iconSize;
++
++    return buttonOptions;
++}
++
++QSize PushButton::widgetSize(const QStyleOption *option,
++                             const QModelIndex &index) const
++{
++    Q_UNUSED(index);
++
++    Q_ASSERT(option);
++
++    const QStyleOptionButton *optionButton =
++                           qstyleoption_cast<const QStyleOptionButton*>(option);
++
++    Q_ASSERT(optionButton);
++    Q_ASSERT(Widget::d->canvas);
++
++    QStyle *style = Widget::d->canvas->itemView()->style();
++
++    Q_ASSERT(style);
++
++    return style->sizeFromContents(QStyle::CT_PushButton, option,
++                                   QSize(optionButton->fontMetrics.width(optionButton->text) + optionButton->iconSize.width(),
++                                         qMax(optionButton->fontMetrics.height(),
++                                              optionButton->iconSize.height())));
++}
++
++void PushButton::paint(const QStyleOption *option, QPainter *painter,
++                       const QModelIndex &index) const
++{
++    Q_UNUSED(index);
++
++    Q_ASSERT(option);
++
++    const QStyleOptionButton *optionButton =
++                           qstyleoption_cast<const QStyleOptionButton*>(option);
++
++    Q_ASSERT(optionButton);
++
++    QStyleOptionButton opt(*optionButton);
++
++    Q_ASSERT(Widget::d->canvas);
++
++    QStyle *style = Widget::d->canvas->itemView()->style();
++
++    Q_ASSERT(Widget::d->canvas->itemView()->viewport());
++    Q_ASSERT(style);
++
++    if (Widget::d->canvas->itemView() && Widget::d->canvas->itemView()->viewport() &&
++        optionButton && style)
++    {
++        style->drawControl(QStyle::CE_PushButton, &opt, painter);
++    }
++}
++
++bool PushButton::event(QEvent *event, QStyleOption *option, const QModelIndex &index)
++{
++    switch (event->type())
++    {
++        case QEvent::MouseButtonPress: {
++            QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
++
++            if (option->rect.contains(mouseEvent->pos()))
++            {
++                return eatEvents(QEvent::MouseButtonPress);
++            }
++
++            return false;
++        }
++
++        case QEvent::MouseButtonRelease: {
++            QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
++
++            if (option->rect.contains(mouseEvent->pos()))
++            {
++                if (Widget::d->enabled)
++                {
++                    emit clicked(index, this);
++                }
++
++                return eatEvents(QEvent::MouseButtonRelease);
++            }
++
++            return false;
++        }
++
++        default:
++            return Widget::event(event, option, index);
++    }
++}
++
++
++}
++
++#include "pushbutton.moc"
+Index: kdeui/goya/CMakeLists.txt
+===================================================================
+--- kdeui/goya/CMakeLists.txt	(revisión: 0)
++++ kdeui/goya/CMakeLists.txt	(revisión: 0)
+@@ -0,0 +1 @@
++add_subdirectory( tests )
+Index: kdeui/goya/combobox.h
+===================================================================
+--- kdeui/goya/combobox.h	(revisión: 0)
++++ kdeui/goya/combobox.h	(revisión: 0)
+@@ -0,0 +1,72 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@kde.org>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#ifndef GOYA_COMBOBOX_H
++#define GOYA_COMBOBOX_H
++
++#include <kdeui_export.h>
++
++#include "widget.h"
++
++namespace Goya
++{
++
++
++class Canvas;
++
++class KDEUI_EXPORT ComboBox
++    : public Widget
++{
++    Q_OBJECT
++
++public:
++    explicit ComboBox(QObject *parent = 0);
++    virtual ~ComboBox();
++
++    void setActions(const QList<QAction*> &actions);
++    QList<QAction*> actions() const;
++
++    void setCurrentAction(const QAction *currentAction);
++    const QAction *currentAction() const;
++
++    void setIconSize(const QSize &iconSize);
++    QSize iconSize() const;
++
++    virtual QStyleOption *widgetOptions(const QStyleOption *option);
++
++    virtual QSize widgetSize(const QStyleOption *option, const QModelIndex &index) const;
++
++    virtual void paint(const QStyleOption *option, QPainter *painter,
++                       const QModelIndex &index) const;
++
++    virtual bool event(QEvent *event, QStyleOption *option, const QModelIndex &index);
++
++Q_SIGNALS:
++    void currentIndexChanged(QAction *action, const QModelIndex &index, const Goya::ComboBox *comboBox);
++
++private:
++    class Private;
++    Private *const d;
++};
++
++
++}
++
++#endif
+Index: kdeui/goya/lineedit.cpp
+===================================================================
+--- kdeui/goya/lineedit.cpp	(revisión: 0)
++++ kdeui/goya/lineedit.cpp	(revisión: 0)
+@@ -0,0 +1,177 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@kde.org>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#include "widget_p.h"
++
++#include "lineedit.h"
++
++#include <QStyle>
++#include <QEvent>
++#include <QPainter>
++#include <QMouseEvent>
++#include <QAbstractItemView>
++#include <QStyleOptionFrame>
++
++#include <kdebug.h>
++
++namespace Goya
++{
++
++
++class LineEdit::Private
++{
++public:
++    Private(LineEdit *q);
++    ~Private();
++
++    LineEdit *q;
++
++    QString text;
++};
++
++
++LineEdit::Private::Private(LineEdit *q)
++    : q(q)
++{
++}
++
++LineEdit::Private::~Private()
++{
++}
++
++
++LineEdit::LineEdit(QObject *parent)
++    : Widget(parent)
++    , d(new Private(this))
++{
++    Widget::d->widgetOptions = new QStyleOptionFrame;
++}
++
++LineEdit::~LineEdit()
++{
++    delete d;
++    delete Widget::d->widgetOptions;
++}
++
++void LineEdit::setText(const QString &text)
++{
++    d->text = text;
++}
++
++QString LineEdit::text() const
++{
++    return d->text;
++}
++
++QStyleOption *LineEdit::widgetOptions(const QStyleOption *option)
++{
++    QStyleOptionFrame *frameOptions =
++           qstyleoption_cast<QStyleOptionFrame*>(Widget::widgetOptions(option));
++
++    frameOptions->lineWidth = 5;
++    frameOptions->midLineWidth = 5;
++
++    return frameOptions;
++}
++
++QSize LineEdit::widgetSize(const QStyleOption *option,
++                           const QModelIndex &index) const
++{
++    Q_UNUSED(index);
++
++    Q_ASSERT(option);
++
++    const QStyleOptionFrame *optionFrame =
++                           qstyleoption_cast<const QStyleOptionFrame*>(option);
++
++    Q_ASSERT(optionFrame);
++    Q_ASSERT(Widget::d->canvas);
++
++    QStyle *style = Widget::d->canvas->itemView()->style();
++
++    Q_ASSERT(style);
++
++    return style->sizeFromContents(QStyle::CT_LineEdit, optionFrame,
++                                   QSize(optionFrame->fontMetrics.width(d->text),
++                                         optionFrame->fontMetrics.height()));
++}
++
++void LineEdit::paint(const QStyleOption *option, QPainter *painter,
++                     const QModelIndex &index) const
++{
++    Q_ASSERT(option);
++
++    const QStyleOptionFrame *optionFrame =
++                           qstyleoption_cast<const QStyleOptionFrame*>(option);
++
++    Q_ASSERT(optionFrame);
++
++    QStyleOptionFrame opt(*optionFrame);
++
++    Q_ASSERT(Widget::d->canvas);
++
++    QStyle *style = Widget::d->canvas->itemView()->style();
++
++    Q_ASSERT(Widget::d->canvas->itemView()->viewport());
++    Q_ASSERT(style);
++
++    if (Widget::d->canvas->itemView() && Widget::d->canvas->itemView()->viewport() &&
++        optionFrame && style)
++    {
++        style->drawPrimitive(QStyle::PE_PanelLineEdit, &opt, painter);
++        style->drawPrimitive(QStyle::PE_FrameLineEdit, &opt, painter);
++        painter->drawText(style->subElementRect(QStyle::SE_LineEditContents, &opt), Qt::AlignLeft | Qt::AlignVCenter, d->text);
++    }
++}
++
++bool LineEdit::event(QEvent *event, QStyleOption *option, const QModelIndex &index)
++{
++    QAbstractItemView *viewport = canvas()->itemView();
++
++    switch (event->type())
++    {
++        case QEvent::MouseMove: {
++            QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
++
++            if (option->rect.contains(mouseEvent->pos()))
++            {
++                QCursor cursor = viewport->cursor();
++                cursor.setShape(Qt::IBeamCursor);
++                viewport->setCursor(cursor);
++            }
++
++            return false;
++        }
++
++        case QEvent::Leave: {
++            QCursor cursor = viewport->cursor();
++            cursor.setShape(Qt::ArrowCursor);
++            viewport->setCursor(cursor);
++
++            return false;
++        }
++
++        default:
++            return Widget::event(event, option, index);
++    }
++}
++
++
++}
+Index: kdeui/itemviews/kcategorizedsortfilterproxymodel.h
+===================================================================
+--- kdeui/itemviews/kcategorizedsortfilterproxymodel.h	(revisión: 737233)
++++ kdeui/itemviews/kcategorizedsortfilterproxymodel.h	(copia de trabajo)
+@@ -32,7 +32,30 @@ class QItemSelection;
+   * This class replaces the original QSortFilterProxyModel for the
+   * KCategorizedView class usage.
+   *
+-  * @author Rafael Fernández López
++  * The main importance of this class is that it is able to sort items in a
++  * different way than the common one (the way QSortFilterProxyModel does). If
++  * isCategorizedModel() is true, items will be sorted by categories. Otherwise,
++  * items as sorted as QSortFilterProxyModel does.
++  *
++  * When isCategorizedModel() is true what this class does for asking the
++  * category of each item is to ask the source model this way:
++  * sourceModel()->data(theAskedIndex, KCategorizedSortFilterProxyModel::CategoryRole);
++  *
++  * You will also need to reimplement two pure virtual methods in order to have a
++  * categorized view:
++  * - lessThanCategoryPurpose: sets the way items are sorted on a category. Usually
++  *                            this call forwards to lessThan() directly.
++  * - lessThanGeneralPurpose: sets the way categories are sorted in the view.
++  *
++  * Please take in count that lessThan methods are lessThan, not lessThanOrEqual,
++  * so if two indexes can be considered equal, you should return false.
++  *
++  * For this reason, if you want your items to be able to be categorized you need to:
++  * - Return the category for asked indexes with the role KCategorizedSortFilterProxyModel::CategoryRole.
++  * - Reimplement lessThanCategoryPurpose.
++  * - Reimplement lessThanGeneralPurpose.
++  *
++  * @author Rafael Fernández López <ereslibre@kde.org>
+   */
+ class KDEUI_EXPORT KCategorizedSortFilterProxyModel
+     : public QSortFilterProxyModel
+@@ -45,50 +68,208 @@ public:
+     enum AdditionalRoles {
+         // Note: use printf "0x%08X\n" $(($RANDOM*$RANDOM))
+         // to define additional roles.
+-        CategoryRole = 0x17CE990A
++        CategoryRole = 0x17CE990A ///< The category that the item is in
+     };
+ 
+     KCategorizedSortFilterProxyModel(QObject *parent = 0);
+     virtual ~KCategorizedSortFilterProxyModel();
+ 
++    /**
++      * Sets the source model from where the indexes will be mapped
++      *
++      * @param sourceModel the source model from where we want to map indexes
++      */
+     virtual void setSourceModel(QAbstractItemModel *sourceModel);
+ 
++    /**
++      * Actually sort by column @p column and order @p order
++      *
++      * @param column the column that will be taken for the sorting
++      * @param order the order of the sorting
++      */
+     virtual void sort(int column, Qt::SortOrder order = Qt::AscendingOrder);
+ 
++    /**
++      * Maps an index from the source model to the proxy model
++      *
++      * @param sourceIndex the index in the source model to be mapped to the proxy model
++      * @return the index @p sourceIndex mapped to the proxy model. An invalid index if @p sourceIndex has been filtered on the proxy model
++      */
+     virtual QModelIndex mapFromSource(const QModelIndex &sourceIndex) const;
++
++    /**
++      * Maps an index from proxy model to the source model
++      *
++      * @param proxyIndex the index in the proxy model to be mapped to the source model
++      * @return the index @p proxyIndex mapped to the source model
++      */
+     virtual QModelIndex mapToSource(const QModelIndex &proxyIndex) const;
++
++    /**
++      * Maps an entire selection from the source model to the proxy model
++      *
++      * @param sourceSelection the selection in the source model
++      * @return the selection @p sourceSelection mapped to the proxy model
++      */
+     virtual QItemSelection mapSelectionFromSource(const QItemSelection &sourceSelection) const;
++
++    /**
++      * Maps an entire selection from the proxy model to the source model
++      *
++      * @param proxySelection the selection in the proxy model
++      * @return the selection @p proxySelection mapped to the source model
++      */
+     virtual QItemSelection mapSelectionToSource(const QItemSelection &proxySelection) const;
+ 
++    /**
++      * @return the regular expression used for filter indexes
++      */
+     virtual QRegExp filterRegExp() const;
++
++    /**
++      * Sets the regular expression used for filtering
++      *
++      * @param regExp the regular expression to be used
++      */
+     virtual void setFilterRegExp(const QRegExp &regExp);
++
++    /**
++      * Sets the pattern used for filtering
++      *
++      * @param pattern the pattern to be used
++      */
+     virtual void setFilterRegExp(const QString &pattern);
+ 
++    /**
++      * @return the column used for filtering
++      */
+     virtual int filterKeyColumn() const;
++
++    /**
++      * Sets the column used for filtering
++      *
++      * @param column the column to be used
++      */
+     virtual void setFilterKeyColumn(int column);
+ 
++    /**
++      * @return whether the filter is case aware or not when filtering
++      */
+     virtual Qt::CaseSensitivity filterCaseSensitivity() const;
++
++    /**
++      * Sets the filter case sensitivity
++      *
++      * @param cs the case sensitivity to be used
++      */
+     virtual void setFilterCaseSensitivity(Qt::CaseSensitivity cs);
+ 
++    /**
++      * @return whether the filter is case aware or not when sorting
++      */
+     virtual Qt::CaseSensitivity sortCaseSensitivity() const;
++
++    /**
++      * Sets the sorting case sensitivity
++      *
++      * @param cs the case sensitivity to be used
++      */
+     virtual void setSortCaseSensitivity(Qt::CaseSensitivity cs);
+ 
++    /**
++      * @return whether the sorting is locale aware or not
++      */
+     virtual bool isSortLocaleAware() const;
++
++    /**
++      * Sets if the sorting is locale aware or not
++      *
++      * @param on if the sorting is locale aware or not
++      */
+     virtual void setSortLocaleAware(bool on);
+ 
++    /**
++      * @return whether the sorting/filtering is dynamic, that means that the model
++      *         reacts automatically (sorting/filtering) when the source model changes
++      */
+     virtual bool dynamicSortFilter() const;
++
++    /**
++      * Sets if the proxy model should sort/filter again when the source model suffer changes
++      *
++      * @param enable if the proxy model should sort/filter again when the source model suffer changes
++      */
+     virtual void setDynamicSortFilter(bool enable);
+ 
++    /**
++      * @return the role used for sorting purposes
++      */
+     virtual int sortRole() const;
++
++    /**
++      * Sets the role used for sorting purposes
++      *
++      * @param role role used for sorting purposes
++      */
+     virtual void setSortRole(int role);
+ 
++    /**
++      * @return the role used for filtering purposes
++      */
+     virtual int filterRole() const;
++
++    /**
++      * Sets the role used for filtering purposes
++      *
++      * @param role role used for filtering purposes
++      */
+     virtual void setFilterRole(int role);
+ 
++    /**
++      * Returns an index for the given @p row, @p column and @p parent. If no such
++      * combination of row, column or parent exists, an invalid index is returned
++      *
++      * @param row the row of the index
++      * @param column the column of the index
++      * @param parent the parent of the index
++      *
++      * @return a valid index if @p row, @p column and @p parent were correctly given.
++      *         An invalid index otherwise.
++      *
++      * @warning you can not use this returned index directly with the source model,
++      *          for that, please use mapToSource and mapFromSource methods
++      */
+     virtual QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const;
++
++    /**
++      * Asks to @p parent if it has any children or not
++      *
++      * @param parent the parent node to be asked for children
++      *
++      * @return whether @p parent has children or not
++      */
+     virtual bool hasChildren(const QModelIndex &parent = QModelIndex()) const;
+ 
++    /**
++      * Returns a variant for the given @p index and @p role
++      *
++      * @param index the index to be asked for information
++      * @param role the role we want to know about
++      *
++      * @return a valid variant if @p index and @p role are correctly given and are
++      *         valid data. An invalid variant otherwise
++      */
+     virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
++
++    /**
++      * Sets the data of index @p index on role @p role to value @p value
++      *
++      * @param index the index to be set information
++      * @param value the value we want to set to @p index at @p role
++      * @param role the role we want set information
++      *
++      * @return whether the operation finished successfully or not
++      */
+     virtual bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole);
+ 
+     virtual QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::EditRole) const;

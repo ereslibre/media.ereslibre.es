@@ -1,0 +1,28 @@
+Index: src/gui/itemviews/qlistview.cpp
+===================================================================
+--- src/gui/itemviews/qlistview.cpp	(revisión: 720762)
++++ src/gui/itemviews/qlistview.cpp	(copia de trabajo)
+@@ -924,10 +924,6 @@ void QListView::dropEvent(QDropEvent *ev
+ */
+ void QListView::startDrag(Qt::DropActions supportedActions)
+ {
+-    Q_D(QListView);
+-    if (d->viewMode == IconMode) // ### move to dynamic
+-        internalDrag(supportedActions);
+-    else
+         QAbstractItemView::startDrag(supportedActions);
+ }
+ 
+Index: src/gui/itemviews/qabstractitemview.cpp
+===================================================================
+--- src/gui/itemviews/qabstractitemview.cpp	(revisión: 720762)
++++ src/gui/itemviews/qabstractitemview.cpp	(copia de trabajo)
+@@ -3636,7 +3636,7 @@ QPixmap QAbstractItemViewPrivate::render
+     }
+     rect = rect.intersected(viewport->rect());
+     QPixmap pixmap(rect.size());
+-    pixmap.fill(q->palette().base().color());
++    pixmap.fill(Qt::transparent);
+     QPainter painter(&pixmap);
+     QStyleOptionViewItemV3 option = viewOptionsV3();
+     option.state |= QStyle::State_Selected;

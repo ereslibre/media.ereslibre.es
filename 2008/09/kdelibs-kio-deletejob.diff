@@ -1,0 +1,72 @@
+diff --cc khtml/rendering/render_form.cpp
+index ec22207,041e4e1..0000000
+--- a/khtml/rendering/render_form.cpp
++++ b/khtml/rendering/render_form.cpp
+diff --git a/kio/kio/deletejob.cpp b/kio/kio/deletejob.cpp
+index 111b911..4ae7912 100644
+--- a/kio/kio/deletejob.cpp
++++ b/kio/kio/deletejob.cpp
+@@ -26,7 +26,6 @@
+ #include "kdirwatch.h"
+ #include "kprotocolmanager.h"
+ #include "jobuidelegate.h"
+-#include "netaccess.h"
+ #include <kdirnotify.h>
+ #include <kuiserverjobtracker.h>
+ 
+@@ -393,11 +392,11 @@ void DeleteJobPrivate::currentSourceStated(bool isDir, bool isLink)
+             state = DELETEJOB_STATE_LISTING;
+             ListJob *newjob = KIO::listRecursive(url, KIO::HideProgressInfo);
+             newjob->setUnrestricted(true); // No KIOSK restrictions
++            Scheduler::scheduleJob(newjob);
+             QObject::connect(newjob, SIGNAL(entries(KIO::Job*, const KIO::UDSEntryList&)),
+                              q, SLOT(slotEntries(KIO::Job*,const KIO::UDSEntryList&)));
+-            // Force the list job to happen _right now_ and block the rest of stat jobs. This will
+-            // make this code to have a defined state. Otherwise we can hit bad castings.
+-            NetAccess::synchronousRun(newjob, 0);
++            q->addSubjob(newjob);
++            // Note that this listing job will happen in parallel with other stat jobs.
+         }
+     } else {
+         if (isLink) {
+@@ -421,26 +420,27 @@ void DeleteJob::slotResult( KJob *job )
+     {
+     case DELETEJOB_STATE_STATING:
+     {
++        StatJob *statJob = qobject_cast<StatJob*>(job)
++
+         // Was there an error while stating ?
+-        if (job->error() )
++        if ( job->error() && statJob )
+         {
+             // Probably : doesn't exist
+             Job::slotResult( job ); // will set the error and emit result(this)
+             return;
+         }
+ 
+-        const UDSEntry entry = static_cast<StatJob*>(job)->statResult();
+-        // Is it a file or a dir ?
+-        const bool isLink = entry.isLink();
+-        const bool isDir = entry.isDir();
+-        d->currentSourceStated(isDir, isLink);
+-
+-        removeSubjob( job );
+-
+-        ++d->m_currentStat;
+-        d->statNextSrc();
+-    }
+-        break;
++        if ( statJob ) {
++            const UDSEntry entry = statJob->statResult();
++            // Is it a file or a dir ?
++            const bool isLink = entry.isLink();
++            const bool isDir = entry.isDir();
++            d->currentSourceStated(isDir, isLink);
++            removeSubjob( job );
++            ++d->m_currentStat;
++            d->statNextSrc();
++        }
++    } // fall through
+     case DELETEJOB_STATE_LISTING:
+         if ( job->error() )
+         {

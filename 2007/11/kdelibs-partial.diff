@@ -1,0 +1,108 @@
+Index: kfile/kfilewidget.cpp
+===================================================================
+--- kfile/kfilewidget.cpp	(revisión: 741934)
++++ kfile/kfilewidget.cpp	(copia de trabajo)
+@@ -361,8 +361,10 @@ KFileWidget::KFileWidget( const KUrl& st
+     menu->addAction( coll->action( "short view" ));
+     coll->action( "detailed view" )->setShortcut( QKeySequence(Qt::Key_F7) );
+     menu->addAction( coll->action( "detailed view" ));
++    coll->action( "preview view" )->setShortcut( QKeySequence(Qt::Key_F8) );
++    menu->addAction( coll->action( "preview view" ));
+     menu->addSeparator();
+-    coll->action( "show hidden" )->setShortcut( QKeySequence(Qt::Key_F8) );
++    coll->action( "show hidden" )->setShortcut( QKeySequence(Qt::Key_F9) );
+     menu->addAction( coll->action( "show hidden" ));
+     menu->addAction( showSidebarAction );
+     menu->addAction( showBookmarksAction );
+Index: kfile/kdiroperator.cpp
+===================================================================
+--- kfile/kdiroperator.cpp	(revisión: 742016)
++++ kfile/kdiroperator.cpp	(copia de trabajo)
+@@ -1545,9 +1545,15 @@ void KDirOperator::setupActions()
+     detailedAction->setIcon(KIcon(QLatin1String("fileview-detailed")));
+     connect(detailedAction, SIGNAL(activated()), SLOT(_k_slotDetailedView()));
+ 
++    KToggleAction *previewViewAction = new KToggleAction(i18n("Preview View"), this);
++    d->actionCollection->addAction("preview view", previewViewAction);
++    previewViewAction->setIcon(KIcon(QLatin1String("fileview-icon")));
++    connect(previewViewAction, SIGNAL(activated()), SLOT(_k_slotDetailedView()));
++
+     QActionGroup* viewGroup = new QActionGroup(this);
+     shortAction->setActionGroup(viewGroup);
+     detailedAction->setActionGroup(viewGroup);
++    previewViewAction->setActionGroup(viewGroup);
+ 
+     KToggleAction *showHiddenAction = new KToggleAction(i18n("Show Hidden Files"), this);
+     d->actionCollection->addAction("show hidden", showHiddenAction);
+@@ -1569,6 +1575,7 @@ void KDirOperator::setupActions()
+     d->actionCollection->addAction("view menu", viewMenu);
+     viewMenu->addAction(shortAction);
+     viewMenu->addAction(detailedAction);
++    viewMenu->addAction(previewViewAction);
+     // TODO: QAbstractItemView does not offer an action collection. Provide
+     // an interface to add a custom action collection.
+ 
+@@ -1660,6 +1667,7 @@ void KDirOperator::updateViewActions()
+ 
+     d->actionCollection->action("short view")->setChecked(KFile::isSimpleView(fv));
+     d->actionCollection->action("detailed view")->setChecked(KFile::isDetailView(fv));
++    d->actionCollection->action("preview view")->setChecked(KFile::isDetailView(fv));
+ }
+ 
+ void KDirOperator::readConfig(const KConfigGroup& configGroup)
+@@ -1670,8 +1678,10 @@ void KDirOperator::readConfig(const KCon
+     QString viewStyle = configGroup.readEntry("View Style", "Simple");
+     if (viewStyle == QLatin1String("Detail")) {
+         d->defaultView |= KFile::Detail;
+-    } else {
++    } else if (viewStyle == QLatin1String("Simple")) {
+         d->defaultView |= KFile::Simple;
++    } else {
++        d->defaultView |= KFile::PreviewInternal;
+     }
+ 
+     //if (configGroup.readEntry(QLatin1String("Separate Directories"),
+@@ -1763,6 +1773,8 @@ void KDirOperator::writeConfig(KConfigGr
+         style = QLatin1String("Detail");
+     else if (KFile::isSimpleView(fv))
+         style = QLatin1String("Simple");
++    else
++        style = QLatin1String("Preview");
+     configGroup.writeEntry(QLatin1String("View Style"), style);
+ 
+ }
+Index: kio/kfile/kfile.h
+===================================================================
+--- kio/kfile/kfile.h	(revisión: 741934)
++++ kio/kfile/kfile.h	(copia de trabajo)
+@@ -58,6 +58,7 @@ public:
+         SeparateDirs    = 4,
+         PreviewContents = 8,
+         PreviewInfo     = 16,
++        PreviewInternal = 32,
+         FileViewMax     = 65536
+     };
+ 
+@@ -101,6 +102,8 @@ public:
+ 
+     static bool isPreviewInfo( const FileView& view );
+ 
++    static bool isPreviewInternal( const FileView& view );
++
+ private:
+     KFile(); // forbidden
+ };
+Index: kio/kfile/kfile.cpp
+===================================================================
+--- kio/kfile/kfile.cpp	(revisión: 741934)
++++ kio/kfile/kfile.cpp	(copia de trabajo)
+@@ -80,4 +80,9 @@ bool KFile::isPreviewInfo( const FileVie
+     return (view & PreviewInfo) == PreviewInfo;
+ }
+ 
++bool KFile::isPreviewInternal( const FileView& view )
++{
++    return (view & PreviewInternal) == PreviewInternal;
++}
++
+ #include "kfile.moc"

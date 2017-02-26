@@ -1,0 +1,39 @@
+diff --git a/kontact/src/mainwindow.cpp b/kontact/src/mainwindow.cpp
+index 65089d5..9cc0bdd 100644
+--- a/kontact/src/mainwindow.cpp
++++ b/kontact/src/mainwindow.cpp
+@@ -718,6 +718,8 @@ void MainWindow::selectPlugin( Kontact::Plugin *plugin )
+ 
+   QApplication::setOverrideCursor( QCursor( Qt::WaitCursor ) );
+ 
++  saveMainWindowSettings( KGlobal::config()->group( "MainWindow" ) );
++
+   KParts::Part *part = plugin->part();
+ 
+   if ( !part ) {
+@@ -837,6 +839,8 @@ void MainWindow::selectPlugin( Kontact::Plugin *plugin )
+     }
+   }
+ 
++  applyMainWindowSettings( KGlobal::config()->group( "MainWindow" ), true );
++
+   QApplication::restoreOverrideCursor();
+ }
+ 
+@@ -995,8 +999,6 @@ void MainWindow::configureShortcuts()
+ 
+ void MainWindow::configureToolbars()
+ {
+-  saveMainWindowSettings( KGlobal::config()->group( "MainWindow" ) );
+-
+   KEditToolBar edit( factory() );
+   connect( &edit, SIGNAL(newToolbarConfig()), this, SLOT(slotNewToolbarConfig()) );
+   edit.exec();
+@@ -1007,7 +1009,6 @@ void MainWindow::slotNewToolbarConfig()
+   if ( mCurrentPlugin && mCurrentPlugin->part() ) {
+     createGUI( mCurrentPlugin->part() );
+   }
+-  applyMainWindowSettings( KGlobal::config()->group( "MainWindow" ) );
+ }
+ 
+ void MainWindow::slotOpenUrl( const KUrl &url )

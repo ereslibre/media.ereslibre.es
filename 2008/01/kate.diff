@@ -1,0 +1,92 @@
+Index: kate/app/kateviewmanager.cpp
+===================================================================
+--- kate/app/kateviewmanager.cpp	(revisión: 758977)
++++ kate/app/kateviewmanager.cpp	(copia de trabajo)
+@@ -65,7 +65,6 @@ KateViewManager::KateViewManager (QWidge
+     , m_mainWindow(parent)
+     , m_blockViewCreationAndActivation (false)
+     , m_activeViewRunning (false)
+-    , m_pendingViewCreation(false)
+ {
+   // while init
+   m_init = true;
+@@ -420,12 +419,6 @@ void KateViewManager::reactivateActiveVi
+     m_activeStates[view] = false;
+     activateView(view);
+   }
+-  else if (m_pendingViewCreation)
+-  {
+-    m_pendingViewCreation = false;
+-    disconnect(m_pendingDocument, SIGNAL(documentNameChanged(Document *)), this, SLOT(slotPendingDocumentNameChanged()));
+-    createView(m_pendingDocument);
+-  }
+ }
+ 
+ void KateViewManager::activateView ( KTextEditor::View *view )
+@@ -535,12 +528,6 @@ void KateViewManager::closeViews(KTextEd
+   QTimer::singleShot(0, this, SIGNAL(viewChanged()));
+ }
+ 
+-void KateViewManager::slotPendingDocumentNameChanged()
+-{
+-  QString c = m_pendingDocument->documentName();
+-  setWindowTitle(KStringHandler::lsqueeze(c, 32));
+-}
+-
+ void KateViewManager::splitViewSpace( KateViewSpace* vs, // = 0
+     Qt::Orientation o )// = Qt::Horizontal
+ {
+Index: kate/app/kateviewmanager.h
+===================================================================
+--- kate/app/kateviewmanager.h	(revisión: 758977)
++++ kate/app/kateviewmanager.h	(copia de trabajo)
+@@ -150,8 +150,6 @@ class KateViewManager : public QSplitter
+ 
+   private Q_SLOTS:
+     void slotViewChanged();
+-    void reactivateActiveView();
+-    void slotPendingDocumentNameChanged();
+ 
+     void documentCreated (KTextEditor::Document *doc);
+     void documentDeleted (KTextEditor::Document *doc);
+@@ -189,13 +187,13 @@ class KateViewManager : public QSplitter
+ 
+     void slotCloseCurrentViewSpace();
+ 
++    void reactivateActiveView();
++
+   private:
+     KateMainWindow *m_mainWindow;
+     bool m_init;
+ 
+-    QToolButton *m_closeTabButton;
+     QAction *m_closeView;
+-    QAction *m_closeTab;
+     QAction *m_activateNextTab;
+     QAction *m_activatePrevTab;
+     QAction *goNext;
+@@ -209,9 +207,6 @@ class KateViewManager : public QSplitter
+ 
+     bool m_activeViewRunning;
+ 
+-    bool m_pendingViewCreation;
+-    QPointer<KTextEditor::Document> m_pendingDocument;
+-
+     int m_splitterIndex; // used during saving splitter config.
+ };
+ 
+Index: kate/app/katemainwindow.cpp
+===================================================================
+--- kate/app/katemainwindow.cpp	(revisión: 758977)
++++ kate/app/katemainwindow.cpp	(copia de trabajo)
+@@ -671,6 +671,10 @@ void KateMainWindow::slotConfigure()
+   dlg->exec();
+ 
+   delete dlg;
++
++  m_viewManager->reactivateActiveView(); // gui (toolbars...) needs to be updated, because
++                                         // of possible changes that the configure dialog
++                                         // could have done on it, specially for plugins.
+ }
+ 
+ KUrl KateMainWindow::activeDocumentUrl()

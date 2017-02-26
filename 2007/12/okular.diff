@@ -1,0 +1,22 @@
+Index: okular/ui/sidebar.cpp
+===================================================================
+--- okular/ui/sidebar.cpp	(revisión: 745769)
++++ okular/ui/sidebar.cpp	(copia de trabajo)
+@@ -104,7 +104,7 @@ void SidebarDelegate::paint( QPainter *p
+     bool disabled = false;
+     if ( !( option.state & QStyle::State_Enabled ) )
+     {
+-        backBrush = option.palette.brush( QPalette::Disabled, QPalette::Base );
++        backBrush = option.palette.brush( QPalette::Disabled, QPalette::Window );
+         foreColor = option.palette.color( QPalette::Disabled, QPalette::Text );
+         disabled = true;
+     }
+@@ -120,7 +120,7 @@ void SidebarDelegate::paint( QPainter *p
+     }
+     else /*if ( option.state & QStyle::State_Enabled )*/
+     {
+-        backBrush = option.palette.brush( QPalette::Base );
++        backBrush = option.palette.brush( QPalette::Window );
+         foreColor = option.palette.color( QPalette::Text );
+     }
+     painter->fillRect( option.rect, backBrush );

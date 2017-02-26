@@ -1,0 +1,44 @@
+diff --git a/apps/konqueror/src/konqmainwindow.cpp b/apps/konqueror/src/konqmainwindow.cpp
+index e76b016..287de7e 100644
+--- a/apps/konqueror/src/konqmainwindow.cpp
++++ b/apps/konqueror/src/konqmainwindow.cpp
+@@ -4824,10 +4824,8 @@ void KonqMainWindow::readProperties( const KConfigGroup& configGroup )
+ {
+     const QString xmluiFile = configGroup.readEntry("XMLUIFile","konqueror.rc");
+     setXMLFile(xmluiFile);
+-
+-    m_pViewManager->loadViewProfileFromGroup( configGroup, QString() /*no profile name*/ );
+-    // read window settings
+-    applyMainWindowSettings( configGroup, true );
++    KSharedConfigPtr config = KSharedConfig::openConfig(configGroup.config()->name());
++    m_pViewManager->loadViewProfileFromConfig( config, QString(), configGroup.readEntry("Profile", QString()) );
+ }
+ 
+ void KonqMainWindow::setInitialFrameName( const QString &name )
+diff --git a/apps/konqueror/src/konqviewmanager.cpp b/apps/konqueror/src/konqviewmanager.cpp
+index baf284f..1049588 100644
+--- a/apps/konqueror/src/konqviewmanager.cpp
++++ b/apps/konqueror/src/konqviewmanager.cpp
+@@ -834,6 +834,7 @@ void KonqViewManager::saveViewProfileToGroup(KConfigGroup & profileGroup, KonqFr
+ 
+     profileGroup.writeEntry( "FullScreen", m_pMainWindow->fullScreenMode());
+     profileGroup.writeEntry("XMLUIFile", m_pMainWindow->xmlFile());
++    profileGroup.writeEntry("Profile", m_currentProfile);
+ 
+     m_pMainWindow->saveMainWindowSettings(profileGroup);
+ }
+diff --git a/workspace/kwin/clients/CMakeLists.txt b/workspace/kwin/clients/CMakeLists.txt
+index c3eeba7..e0e91b0 100644
+--- a/workspace/kwin/clients/CMakeLists.txt
++++ b/workspace/kwin/clients/CMakeLists.txt
+@@ -5,8 +5,8 @@ add_subdirectory( kde2 )
+ add_subdirectory( keramik ) 
+ add_subdirectory( laptop ) 
+ add_subdirectory( modernsystem ) 
+-add_subdirectory( oxygen ) 
+-add_subdirectory( ozone ) 
++#add_subdirectory( oxygen ) 
++#add_subdirectory( ozone ) 
+ add_subdirectory( quartz ) 
+ add_subdirectory( redmond ) 
+ add_subdirectory( web ) 

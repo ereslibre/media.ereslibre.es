@@ -1,0 +1,450 @@
+Trabajando con Git
+==================
+
+    1. Git
+       ===
+
+        Git es un sistema de control de versiones distribuido. Esto significa que cada usuario tiene
+        una copia completa del árbol de trabajo localmente.
+
+    2. Estructura de los proyectos
+       ===========================
+
+        Usualmente tendremos una estructura uniforme para todos los proyectos. Supongamos un
+        proyecto llamado "Callejero" con tres contribuidores: Alice, Bob y Peter. La estructura
+        de manera esquemática será así:
+
+                                               |           |
+                                               | Callejero |                <Remoto>
+                                               |           |
+                                                    /|\
+                                                   / | \
+                                                  /  |  \
+                                                 /   |   \
+                                                /    |    \
+                                               /     |     \
+                                              /      |      \
+                                             /       |       \
+                                            /        |        \
+                                        |       | |       | |       |
+                                        | Alice | | Bob   | | Peter |       <Remoto>
+                                        |       | |       | |       |
+                                            |        |         |
+                                            |        |         |
+                                        |       | |       | |       |
+                                        | Alice | | Bob   | | Peter |       <Local>
+                                        | Local | | Local | | Local |
+                                        |       | |       | |       |
+
+          De esta forma, lo que tenemos es un repositorio "oficial" que es el llamado "Callejero",
+          del que toda persona interesada por el proyecto "Callejero" clonará para obtener la última
+          versión ESTABLE.
+
+          Además, cada contribuidor (Alice, Bob y Peter) tiene en el servidor un repositorio donde
+          trabajar.
+
+    3. Branches
+       ========
+
+        Git tiene un único branch al crear un repositorio: "master". Este es el branch por defecto
+        y asumido siempre existe. Es aquí donde irá la carga de trabajo principal, aunque se pueden
+        crear branches para otros objetivos, como por ejemplo arreglar un bug determinado o la
+        implementación de una nueva funcionalidad.
+
+        Un proyecto muy sencillo con un único contribuidor que únicamente haya utilizado el branch
+        "master" tiene el siguiente aspecto:
+
+                                        (master)    o My program is complete. I'm THE God
+                                                    |
+                                                    o Fixing bug #1: it does not work
+                                                    |
+                                                    o No idea why this works. But it does
+                                                    |
+                                                    o Initial commit of my super program
+
+        Aquí vemos una historia de 4 commits. El commit más antiguo es el que se encuentra abajo del
+        todo y la historia vemos que fluye linealmente hacia arriba, hasta el último commit, donde
+        el autor nos asegura ser Dios porque su programa está completo.
+
+        Sin embargo, podría ocurrir que nuestro Dios particular quisiera implementar una nueva
+        funcionalidad a partir del último commit, y para ello decide hacer un nuevo branch, al que
+        llama "myNewFeature". Ha añadido un nuevo commit a esta nueva rama, de tal modo que la
+        historia queda de la siguiente manera:
+
+                                  (myNewFeature)    o Not complete actually. Start myNewFeature implementation
+                                                    |
+                                        (master)    o My program is complete. I'm THE God
+                                                    |
+                                                    o Fixing bug #1: it does not work
+                                                    |
+                                                    o No idea why this works. But it does
+                                                    |
+                                                    o Initial commit of my super program
+
+        Aquí vemos como al haber creado un nuevo branch "myNewFeature" y haber realizado un nuevo
+        commit, esta rama se ha desacoplado de "master", y ahora está un commit por delante. Ahora
+        supongamos que ha encontrado un nuevo bug, y lo ha cerrado en "master", ya que es lo que más
+        sentido tiene, para no manchar (o añadir ruido) a la rama "myNewFeature". El árbol queda de
+        la siguiente manera:
+
+                                        (master)    o Fixing bug #2: phew, thought it was perfect
+                                                    |
+                                  (myNewFeature)    | o Not complete actually. Start myNewFeature implementation
+                                                    |/
+                                                    o My program is complete. I'm THE God
+                                                    |
+                                                    o Fixing bug #1: it does not work
+                                                    |
+                                                    o No idea why this works. But it does
+                                                    |
+                                                    o Initial commit of my super program
+
+       De esta forma vemos más claramente cómo "myNewFeature" está desacoplada de master. Ahora
+       "master" tiene un commit que "myNewFeature" no tiene, y al revés también. Supongamos que
+       para finalizar "myNewFeature" le añadimos un par de commits más:
+
+                                  (myNewFeature)    o myNewFeature is now finished. Yay !
+                                                    |
+                                                    o This fixes a small problem on myNewFeature
+                                                    |
+                                                    o Not complete actually. Start myNewFeature implementation
+                                                    |
+                                        (master)    | o Fixing bug #2: phew, thought it was perfect
+                                                    |/
+                                                    o My program is complete. I'm THE God
+                                                    |
+                                                    o Fixing bug #1: it does not work
+                                                    |
+                                                    o No idea why this works. But it does
+                                                    |
+                                                    o Initial commit of my super program
+
+        Ahora nuestro amigo quiere tener lo mejor de los dos mundos, "myNewFeature" y el arreglo
+        del bug #2. Ahora mismo tiene que elegir dependiendo del branch en el que esté. Por tanto
+        lo que va a realizar es una operación de merge, que unirá ambas ramas.
+
+                                        (master)    o Merged branch myNewFeature
+                                                    |\
+                                                    | \
+                                                    |  \
+                                  (myNewFeature)    o myNewFeature is now finished. Yay !
+                                                    |   |
+                                                    o This fixes a small problem on myNewFeature
+                                                    |   |
+                                                    o Not complete actually. Start myNewFeature implementation
+                                                    |   |
+                                                    |  /
+                                                    | o Fixing bug #2: phew, thought it was perfect
+                                                    |/
+                                                    o My program is complete. I'm THE God
+                                                    |
+                                                    o Fixing bug #1: it does not work
+                                                    |
+                                                    o No idea why this works. But it does
+                                                    |
+                                                    o Initial commit of my super program
+
+        Aquí vemos como en el grafo ahora la rama "master" incluye también el conjunto de commits
+        que antes únicamente estaban en la rama "myNewFeature". Es un buen momento para borrar la
+        rama, ya que ya no la necesitamos:
+
+                                        (master)    o Merged branch myNewFeature
+                                                    |\
+                                                    | \
+                                                    |  \
+                                                    o myNewFeature is now finished. Yay !
+                                                    |   |
+                                                    o This fixes a small problem on myNewFeature
+                                                    |   |
+                                                    o Not complete actually. Start myNewFeature implementation
+                                                    |   |
+                                                    |  /
+                                                    | o Fixing bug #2: phew, thought it was perfect
+                                                    |/
+                                                    o My program is complete. I'm THE God
+                                                    |
+                                                    o Fixing bug #1: it does not work
+                                                    |
+                                                    o No idea why this works. But it does
+                                                    |
+                                                    o Initial commit of my super program
+
+        Git es un sistema de control de versiones muy versátil, y hacer ramas es realmente rápido
+        y barato, así que es la manera más común de trabajar.
+
+        En nuestro caso (UFOCoders) siempre usaremos la misma organización: el repositorio "oficial"
+        de los proyectos únicamente contendrá un "master", para que si personas externas quieren
+        descargarse el proyecto les sea más sencillo utilizarlo y no tengan que pensar en qué branch
+        deberían estar para que las cosas funcionen. Por tanto, el "master" del repositorio "oficial"
+        de cada proyecto tiene que ser SIEMPRE ESTABLE.
+
+        Por otro lado, cada contribuidor al proyecto (Alice, Bob y Peter) tendrá su propio
+        repositorio personal en el servidor. Esto significa que en su repositorio personal podrán
+        añadir cuantas ramas quieran y hacer lo que quieran en "master" (aunque sean cambios
+        inestables).
+
+    4. Organización
+       ============
+
+        Supongamos que hemos trabajado en "master" en el proyecto "Callejero" y estamos contentos
+        con nuestros cambios. Son de calidad y además son estables, los hemos probado.
+
+        Para que estos cambios lleguen al repositorio "oficial" tendremos que tener en nuestro
+        repositorio un branch llamado "toUpstream" que es el branch en nuestro repositorio que
+        SIEMPRE debe de ser estable, al contrario que el resto de ramas que tengamos.
+
+        Por tanto, hago un merge de "master" en "toUpstream" para añadir los cambios a esta rama y
+        pido al jefe de proyecto que incluya los cambios de mi rama "toUpstream" en el repositorio
+        oficial.
+
+    5. El index de Git
+       ===============
+
+        Git tiene un staging-area (o área de montaje). La forma de trabajar con Git es la siguiente:
+
+            |                  |        |       |        |             |        |             |
+            | Copia de trabajo | =====> | Index | =====> | Repositorio | =====> | Repositorio |
+            |                  |        |       |        |   (Local)   |        |  (Remoto)   |
+
+    6. Los comandos
+       ============
+
+        Git es fundamentalmente un programa de consola, a pesar de tener herramientas gráficas. Una pequeña
+        referencia es la siguiente:
+
+            - git clone URL
+
+                Clona el repositorio de URL. Es la manera de comenzar a trabajar con cualquier proyecto.
+                Clonar significa bajarse toda la historia de un proyecto y tenerla disponible localmente
+                sin necesidad de conexión a internet.
+
+            - git add ARCHIVO-1 ARCHIVO-2 ... ARCHIVO-N
+
+                Sirve tanto para añadir archivos nuevos (no conocidos por Git antes) como para añadir
+                cambios de archivos ya conocidos al Index.
+
+                De esta forma, si hemos creado un nuevo archivo "nuevoarchivo.txt" podemos añadirlo al
+                repositorio haciendo `git add nuevoarchivo.txt'.
+
+                Si después de haber añadido este archivo, modificamos unas líneas y queremos añadirlas al
+                Index, haremos: `git add nuevoarchivo.txt'.
+
+            - git push origin BRANCH
+
+                Envía al servidor los cambios que hemos realizado localmente en el branch BRANCH y que
+                todavía no están subidos.
+
+            - git pull origin master
+
+                Recibe del servidor los cambios que otras personas hayan realizado en el repositorio y
+                hayan `pusheado'. Los cambios descargados se añadirán en el branch en el que nos
+                encontremos actualmente.
+
+            - git checkout REVISION
+
+                Una revisión en git tiene el siguiente aspecto: 55e77e22bc60415e202ed81ed44481c797015bd4.
+                Por tanto, si quisiéramos volver atrás en la historia del proyecto y ver el estado de un
+                archivo (por ejemplo) en dicha revisión, lo que haríamos sería ejecutar:
+                `git checkout 55e77e22bc60415e202ed81ed44481c797015bd4'.
+
+            - git checkout BRANCH
+
+                Si estamos trabajando con varios branches, `git checkout' es interesante para cambiar
+                entre ellas. Por ejemplo: teniendo dos ramas `master' y `toUpstream', podemos intercambiar
+                nuestra copia de trabajo ejecutando: `git checkout master' ó `git checkout toUpstream'.
+
+            - git checkout TAG
+
+                Un tag no es más que un punto de interés en la historia de un proyecto. Tags comunes podrían
+                ser "v1.0", "v1.1"... y se suelen establecer precisamente para esto: marcar versiones.
+
+                Si tenemos tags, checkout también puede actualizar nuestra copia de trabajo con el estado
+                en un determinado tag. Para ver cómo estaba el proyecto en la versión "v2.5" podríamos hacer
+                `git checkout v2.5'.
+
+            - git merge BRANCH
+
+                Añade a la rama en la que nos encontramos actualmente los cambios que se encuentran en
+                BRANCH y no en la rama actual.
+
+            - git diff
+
+                Muestra las diferencias en los archivos con la última revisión (de los cambios que todavía
+                no han sido añadidos al Index).
+
+            - git diff --cached
+
+                Muestra las diferencias en los archivos con la última revisión (de aquellos que han sido
+                añadidos al Index).
+
+    7. Trabajando en equipo
+       ====================
+
+        7.1. Contribuidor al proyecto (lo más común)
+             =======================================
+
+            - Lo primero es descargar el proyecto clonándolo:
+
+                $ git clone myserver.org:proyecto.git
+                  Cloning into proyecto...
+                  warning: You appear to have cloned an empty repository. 
+
+            - Ya que nuestro repositorio ahora mismo está vacío, tenemos que añadir los cambios que haya en
+              el repositorio "upstream" (u "oficial"):
+
+                $ git remote add upstream git://myserver.org/upstream/proyecto.git
+                $ git pull upstream master
+
+            - Una vez que ya tenemos localmente toda la historia del proyecto "upstream" hacemos `git push' a
+              nuestro repositorio personal remoto:
+
+                $ git push origin master
+
+                En este momento el repositorio "upstream" (u "oficial"), nuestro repositorio local y nuestro
+                repositorio remoto personal están sincronizados y contienen los mismos cambios.
+
+            NOTA: Por defecto, cuando clonamos un repositorio el branch por defecto en el que se establece es
+                  "master". Nosotros trabajamos básicamente con dos ramas: "master" y "toUpstream". En la rama
+                  "master" trabajamos incrementalmente y vamos introduciendo cambios inestables y en proceso
+                  de ser terminados. Una vez estemos contentos con nuestros cambios, haremos `merge' de estos
+                  cambios en el branch "toUpstream".
+
+            - Creamos la rama "toUpstream" que será la rama que utilizaremos para integración:
+
+                $ git branch toUpstream
+
+            - Trabajamos en el proyecto y cambiamos los archivos "index.php" y "system/global_exception.php".
+              Lo que hacemos ahora es añadir al Index los cambios que hemos hecho en dichos archivos:
+
+                $ git add index.php system/global_exception.php
+
+            - Una vez que hemos añadido al Index lo que queremos introducir en el siguiente commit,
+              efectuamos la operación de commit:
+
+                $ git commit
+
+                (Se nos abrirá un editor de texto para introducir un mensaje de commit, que debe explicar
+                 el objetivo de los cambios que hemos introducido).
+
+            - Por tanto, hemos creado un nuevo commit en la rama "master". Supongamos que todavía tenemos
+              que mejorar "index.php" para estar contentos con los cambios. Lo modificamos y hacemos de nuevo:
+
+                $ git add index.php
+                $ git commit
+
+            - Ya hemos terminado en el branch "master" con estos cambios y queremos que nuestro trabajo ahora
+              sea visible en el repositorio "upstream" (u "oficial"). Para ello, y por la manera en la que
+              hemos determinado la forma en la que trabajamos nos posicionamos en la rama "toUpstream":
+
+                $ git checkout toUpstream
+
+            - Y ahora añadimos los cambios de la rama "master" en la rama "toUpstream":
+
+                $ git merge master
+
+            - En este momento es cuando ya estamos preparados para subir los cambios en nuestra rama local
+              "toUpstream" a nuestro repositorio privado remoto:
+
+                $ git push origin toUpstream
+
+            - Avisamos al encargado del proyecto de que ya puede hacer `merge' de la rama "toUpstream" de
+              nuestro repositorio y volvemos a la rama "master" para continuar trabajando:
+
+                $ git checkout master
+
+            7.1.1. Manteniéndonos al día
+                   =====================
+
+                - Para actualizar nuestra copia de trabajo y continuar trabajando lo único que tenemos que
+                  hacer es ejecutar periódicamente el comando:
+
+                    $ git checkout master (nos aseguramos que estamos en la rama master)
+                    $ git pull upstream master
+
+                  De esta manera lo que hacemos es recibir los cambios que están en el repositorio "upstream"
+                  y hacer `merge' en nuestra rama local actual (que es "master").
+
+                - Continuamos trabajando haciendo `commit' en master y podemos ir subiendo nuestros cambios
+                  a nuestro repositorio remoto personal:
+
+                    $ git push origin master
+
+                  NOTA: Es recomendable ir subiendo periódicamente nuestros cambios en "master" a nuestro
+                        repositorio remoto personal porque entre otras cosas actúa a modo de backup.
+
+                - De nuevo cuando ya estemos contentos con nuestros cambios vamos a la rama "toUpstream" y
+                  hacemos `merge' de la rama "master":
+
+                    $ git checkout toUpstream
+                    $ git merge master
+                    $ git push origin toUpstream
+                    $ git checkout master
+
+                  Aquí se ve claramente cómo hemos ido a la rama "toUpstream", hemos añadido a dicha rama
+                  los cambios introducidos en la rama "master", hemos subido a nuestro repositorio remoto
+                  personal los cambios en la rama de integración "toUpstream" y hemos vuelto a la rama local
+                  "master" para continuar trabajando.
+
+        7.2. Encargado del proyecto
+             ======================
+
+                Lo ideal para un encargado del proyecto es tener dos copias del mismo proyecto, uno para
+                integración, que representa a "upstream" (o "repositorio oficial") y otro para su trabajo
+                personal. Hay otras técnicas pero por sencillez al comenzar se puede seguir con esta
+                filosofía.
+
+                - Clonamos el repositorio "upstream" (o "repositorio oficial"):
+
+                    $ git clone upstream@myserver.org:proyecto.git proyecto-upstream
+
+                - Clonamos el repositorio personal donde trabajaremos incrementalmente como si fuéramos un
+                  contribuidor más (ver 7.1):
+
+                    $ git clone myserver.org:proyecto.git
+
+                7.2.1. Versión "upstream" del proyecto
+                       ===============================
+
+                    Es fundamental entender que la versión "upstream" del proyecto (lo que hemos llamado al
+                    hacer clone "proyecto-upstream") sea SIEMPRE estable. En este repositorio lo único que
+                    haremos es incluir cambios de contribuidores al proyecto que nos han avisado de nuevos
+                    cambios estables para ser incluidos en la versión "upstream". Lo habitual suele ser añadir
+                    `remotes' para tener más a mano a los contribuidores comunes.
+
+                        $ git remote add myself git://myserver.org/ereslibre/proyecto.git
+                        $ git remote add alice git://myserver.org/alice/proyecto.git
+                        $ git remote add bob git://myserver.org/bob/proyecto.git
+
+                    Ahora es cuando Alice nos ha avisado de que hay cambios en su rama "toUpstream" que están
+                    listos para ser incluidos en la versión "oficial", por tanto haremos:
+
+                        $ git pull alice toUpstream
+
+                    Ya tenemos los cambios de Alice en nuestro repositorio local, y ahora lo único que tenemos
+                    que hacer es subir los cambios:
+
+                        $ git push origin master
+
+                    De la misma forma Bob también nos ha avisado de estos cambios:
+
+                        $ git pull bob toUpstream
+                        $ git push origin master
+
+                    NOTA: Es habitual tener que revisar los cambios antes de hacer pull de un repositorio.
+                          Supongamos que Alice nos ha pedido que hagamos pull de la rama "toUpstream" de su
+                          repositorio y antes de subirlo al repositorio oficial queremos revisar estos cambios:
+
+                            $ git fetch alice
+                            $ git log master..alice/toUpstream
+
+                            Así veremos los commits que se han realizado (leído: "muéstrame los commits que ha
+                            realizado Alice en su rama `toUpstream' y que no están en la rama `master'). Podríamos
+                            querer ver estos cambios a un nivel más aumentado, y ver qué cambios se introdujeron
+                            realmente:
+
+                                $ git log -p master..alice/toUpstream
+
+                7.2.2. Versión personal del proyecto
+                       =============================
+
+                    (Ver 7.1).

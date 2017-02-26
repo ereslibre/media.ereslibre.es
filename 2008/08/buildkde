@@ -1,0 +1,286 @@
+#!/bin/bash
+
+# Script written by Rafael Fernández López <ereslibre@kde.org>
+# You can redistribute this code under the terms of license GPL-v3 or later.
+# Version 0.1
+
+# Where files where be installed
+INSTALLDIR=~/kde
+
+# The directory that contains all modules
+# For example, if SOURCEDIR=/home/foo/bar, you should have:
+#    /home/foo/bar/qt-copy
+#    /home/foo/bar/kdesupport
+#    /home/foo/bar/kdelibs
+#    /home/foo/bar/kdebase
+#    and so on...
+SOURCEDIR=~/kdesvn/trunk/KDE
+
+# The SSH key you want to add when updating repositories. This is useful since
+# you won't be asked for your password for each module that is updated.
+SSHKEYTOADD=~/.ssh/id_dsa
+
+# Options passed to 'make' command.
+MAKEOPTS=-j3
+
+# Whether you want a silent build, or a full output
+SILENTBUILD=0
+
+# When qt-copy is configured, this parameters will be passed. You can find the
+# ideal values on file README.qt-copy, on your qt-copy source directory.
+CONFIGUREQTCOPYOPTS="-qt-gif -debug -fast -no-exceptions -no-separate-debug-info \
+                     -system-libpng -system-libjpeg -system-zlib \
+                     -dbus -webkit -no-phonon \
+                     -nomake examples -nomake demos -prefix $QTDIR"
+
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# !! internal part. do not touch this if you don't know what you are doing !!
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+BUILDDIR=$SOURCEDIR/../build
+GITINSTALLED=1
+
+ls $BUILDDIR &> /dev/null
+if [ $? -ne 0 ]; then
+    mkdir $BUILDDIR
+fi
+
+ls $INSTALLDIR &> /dev/null
+if [ $? -ne 0 ]; then
+    mkdir $INSTALLDIR
+fi
+
+# check if git is installed
+which git &> /dev/null
+if [ $? -ne 0 ]; then
+    GITINSTALLED=0
+fi
+
+# check if ssh-agent is installed. run it in that case (if it is not already running)
+which ssh-agent &> /dev/null
+if [ $? -ne 0 ]; then
+    echo "ssh-agent is not installed. You will be asked for your ssh password for each module"
+else
+    eval `ssh-agent` &> /dev/null
+    ssh-add $SSHKEYTOADD &> /dev/null
+fi
+
+if [ $GITINSTALLED -eq 1 ]; then
+    GITVERSION=`git --version | cut -c 13- | sed s/\\.//g`
+else
+    GITVERSION=0
+fi
+PREVDIRECTORY=`pwd`
+
+if [ $# -gt 0 ]; then
+    for i in `seq 1 $#`; do
+	LOCALSOURCEDIR=$SOURCEDIR/$1
+	MODULENAME=$1
+	cd $LOCALSOURCEDIR
+        ISGITREPOSITORY=`ls -1a | grep "^\.git$" | wc -l`
+
+	if [ $ISGITREPOSITORY -ne 1 ]; then
+	    ISSVNREPOSITORY=`ls -1a | grep "^\.svn$" | wc -l`
+	    if [ $ISSVNREPOSITORY -eq 1 ]; then
+		printf "Updating module: %s\tsvn repository\n" $MODULENAME
+		svn up &> /dev/null
+	    else
+		printf "%s\tnot a git or a svn repository\n" $LOCALSOURCEDIR
+		shift
+		continue
+	    fi
+	fi
+
+	if [ $ISGITREPOSITORY -eq 1 ]; then
+	    CURRENTBRANCH=`git branch | grep "*" | cut -c 3-`
+	    NUMBEROFBRANCHES=`git branch | wc -l`
+	    printf "Updating module: %s\tcurrent branch: %s (of %d)\n" $MODULENAME $CURRENTBRANCH $NUMBEROFBRANCHES
+	    DIRTYLOCALCOPY=`git diff HEAD | wc -l`
+	    GOBACKTOPREVIOUS=0
+	    
+	    # if we have a dirty local copy, git stash it
+	    if [ $DIRTYLOCALCOPY -gt 0 ]; then
+		git stash &> /dev/null
+	    fi
+
+	    if [ $CURRENTBRANCH != "master" ]; then
+		GOBACKTOPREVIOUS=1
+		echo "switching to master branch"
+		git checkout master &> /dev/null
+	    fi
+
+	    # update the local copy to the latest svn revision
+	    git svn rebase &> /dev/null
+
+	    # going back to the previous branch
+	    if [ $GOBACKTOPREVIOUS -eq 1 ]; then
+		echo "switching back to $CURRENTBRANCH branch"
+		git checkout $CURRENTBRANCH &> /dev/null
+	    fi
+
+	    # if we had a dirty local copy, git stash pop it
+	    if [ $DIRTYLOCALCOPY -gt 0 ]; then
+		if [[ $GITVERSION -ge 1550 ]]; then
+		    git stash pop &> /dev/null
+		else
+		    git stash apply &> /dev/null
+		    git stash clear &> /dev/null
+		fi
+	    fi
+	fi
+
+	ls Makefile &> /dev/null
+	if [ $? -eq 0 ]; then
+	    CONFIGURENEEDED=0
+	else
+	    CONFIGURENEEDED=1
+	fi
+
+        ls CMakeLists.txt &> /dev/null
+	if [ $? -eq 0 ]; then
+	    ISCMAKEBASED=1
+	else
+	    ISCMAKEBASED=0
+	    if [ $CONFIGURENEEDED -eq 1 ]; then
+		ls configure &> /dev/null
+		if [ $? -eq 0 ]; then
+		    if [ $MODULENAME == "qt-copy" ]; then
+			./configure $CONFIGUREQTCOPYOPTS
+		    else
+			./configure --prefix=$INSTALLDIR		    
+		    fi
+		else
+		    printf "no known build system found (tried with CMake and autotools). Skipping module %s..." $MODULENAME
+		    shift
+		    continue
+		fi
+	    fi
+	fi
+
+	if [ $ISCMAKEBASED -eq 1 ] && [ $CONFIGURENEEDED -eq 1 ]; then
+	    cd $BUILDDIR
+	    # we have updated all the repositories. build them
+	    ls $MODULENAME &> /dev/null
+	    if [ $? -ne 0 ]; then
+		mkdir $MODULENAME &> /dev/null
+	    fi
+	    cd $MODULENAME
+	    cmake -DCMAKE_INSTALL_PREFIX=$INSTALLDIR -DCMAKE_BUILD_TYPE=Debug $LOCALSOURCEDIR &> /dev/null
+	fi
+
+	printf "Building and installing module %s...\n" $MODULENAME
+	if [ $SILENTBUILD -eq 1 ]; then
+	    make $MAKEOPTS install &> /dev/null
+	else
+	    make $MAKEOPTS install
+	fi
+	shift
+    done
+else
+    for module in $SOURCEDIR/*; do
+	SOURCEDIRLENGTH=`echo $SOURCEDIR | wc -c`
+	let SOURCEDIRLENGTH=$SOURCEDIRLENGTH+1
+	MODULENAME=`echo $module | cut -c $SOURCEDIRLENGTH-`
+        LOCALSOURCEDIR=$module
+	cd $LOCALSOURCEDIR
+        ISGITREPOSITORY=`ls -1a | grep "^\.git$" | wc -l`
+
+	if [ $ISGITREPOSITORY -ne 1 ]; then
+	    ISSVNREPOSITORY=`ls -1a | grep "^\.svn$" | wc -l`
+	    if [ $ISSVNREPOSITORY -eq 1 ]; then
+		printf "Updating module: %s\tsvn repository\n" $MODULENAME
+		svn up &> /dev/null
+	    else
+		printf "%s\tnot a git or a svn repository\n" $LOCALSOURCEDIR
+		shift
+		continue
+	    fi
+	fi
+
+	if [ $ISGITREPOSITORY -eq 1 ]; then
+	    CURRENTBRANCH=`git branch | grep "*" | cut -c 3-`
+	    NUMBEROFBRANCHES=`git branch | wc -l`
+	    printf "Updating module: %s\tcurrent branch: %s (of %d)\n" $MODULENAME $CURRENTBRANCH $NUMBEROFBRANCHES
+	    DIRTYLOCALCOPY=`git diff HEAD | wc -l`
+	    GOBACKTOPREVIOUS=0
+	    
+	    # if we have a dirty local copy, git stash it
+	    if [ $DIRTYLOCALCOPY -gt 0 ]; then
+		git stash &> /dev/null
+	    fi
+
+	    if [ $CURRENTBRANCH != "master" ]; then
+		GOBACKTOPREVIOUS=1
+		echo "switching to master branch"
+		git checkout master &> /dev/null
+	    fi
+
+	    # update the local copy to the latest svn revision
+	    git svn rebase &> /dev/null
+
+	    # going back to the previous branch
+	    if [ $GOBACKTOPREVIOUS -eq 1 ]; then
+		echo "switching back to $CURRENTBRANCH branch"
+		git checkout $CURRENTBRANCH &> /dev/null
+	    fi
+
+	    # if we had a dirty local copy, git stash pop it
+	    if [ $DIRTYLOCALCOPY -gt 0 ]; then
+		if [[ $GITVERSION -ge 1550 ]]; then
+		    git stash pop &> /dev/null
+		else
+		    git stash apply &> /dev/null
+		    git stash clear &> /dev/null
+		fi
+	    fi
+	fi
+
+	ls Makefile &> /dev/null
+	if [ $? -eq 0 ]; then
+	    CONFIGURENEEDED=0
+	else
+	    CONFIGURENEEDED=1
+	fi
+
+        ls CMakeLists.txt &> /dev/null
+	if [ $? -eq 0 ]; then
+	    ISCMAKEBASED=1
+	else
+	    ISCMAKEBASED=0
+	    if [ $CONFIGURENEEDED -eq 1 ]; then
+		ls configure &> /dev/null
+		if [ $? -eq 0 ]; then
+		    if [ $MODULENAME == "qt-copy" ]; then
+			./configure $CONFIGUREQTCOPYOPTS
+		    else
+			./configure --prefix=$INSTALLDIR		    
+		    fi
+		else
+		    printf "no known build system found (tried with CMake and autotools). Skipping module %s..." $MODULENAME
+		    shift
+		    continue
+		fi
+	    fi
+	fi
+
+	if [ $ISCMAKEBASED -eq 1 ] && [ $CONFIGURENEEDED -eq 1 ]; then
+	    cd $BUILDDIR
+	    # we have updated all the repositories. build them
+	    ls $MODULENAME &> /dev/null
+	    if [ $? -ne 0 ]; then
+		mkdir $MODULENAME &> /dev/null
+	    fi
+	    cd $MODULENAME
+	    cmake -DCMAKE_INSTALL_PREFIX=$INSTALLDIR -DCMAKE_BUILD_TYPE=Debug $LOCALSOURCEDIR &> /dev/null
+	fi
+
+	printf "Building and installing module %s...\n" $MODULENAME
+	if [ $SILENTBUILD -eq 1 ]; then
+	    make $MAKEOPTS install &> /dev/null
+	else
+	    make $MAKEOPTS install
+	fi
+    done
+fi
+
+cd $PREVDIRECTORY

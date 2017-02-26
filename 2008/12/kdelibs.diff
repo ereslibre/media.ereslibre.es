@@ -1,0 +1,45 @@
+diff --git a/kdecore/text/kstringhandler.cpp b/kdecore/text/kstringhandler.cpp
+index 0df6ec4..99d3448 100644
+--- a/kdecore/text/kstringhandler.cpp
++++ b/kdecore/text/kstringhandler.cpp
+@@ -330,6 +330,40 @@ int KStringHandler::naturalCompare(const QString &_a, const QString &_b, Qt::Cas
+         return 0;
+     }
+ 
++    //BEGIN: try to avoid unneeded operations if we haven't got digits
++    {
++        bool digit = false;
++        QString::ConstIterator it = a.constBegin();
++        while (it != a.constEnd()) {
++            const QChar &c = *it;
++            if (c.isDigit()) {
++                digit = true;
++                break;
++            }
++            ++it;
++        }
++
++        if (!digit) {
++            return QString::localeAwareCompare(a, b);
++        }
++
++        digit = false;
++        it = b.constBegin();
++        while (it != b.constEnd()) {
++            const QChar &c = *it;
++            if (c.isDigit()) {
++                digit = true;
++                break;
++            }
++            ++it;
++        }
++
++        if (!digit) {
++            return QString::localeAwareCompare(a, b);
++        }
++    }
++    //END: try to avoid unneeded operations if we haven't got digits
++
+     const QChar* begSeqA = currA; // beginning of a new character sequence of a
+     const QChar* begSeqB = currB;
+ 

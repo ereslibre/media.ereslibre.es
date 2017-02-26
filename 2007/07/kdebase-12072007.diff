@@ -1,0 +1,776 @@
+Index: workspace/libs/plasma/corona.cpp
+===================================================================
+--- workspace/libs/plasma/corona.cpp	(revisión: 686667)
++++ workspace/libs/plasma/corona.cpp	(copia de trabajo)
+@@ -41,6 +41,8 @@
+ #include "phase.h"
+ #include "widgets/vboxlayout.h"
+ #include "widgets/icon.h"
++#include "widgets/extenderitem.h"
++#include "widgets/extender.h"
+ 
+ using namespace Plasma;
+ 
+@@ -115,6 +117,15 @@
+     d->engineExplorerAction = new QAction(i18n("Engine Explorer"), this);
+     connect(d->engineExplorerAction, SIGNAL(triggered(bool)), this, SLOT(launchExplorer()));
+     d->immutable = false;
++
++    ExtenderItem *item1 = new ExtenderItem();
++    ExtenderItem *item2 = new ExtenderItem();
++    Extender *extender = new Extender();
++
++    extender->addExtenderItem(item1);
++    extender->addExtenderItem(item2);
++
++    addItem(extender);
+ //    setContextMenuPolicy(Qt::CustomContextMenu);
+ }
+ 
+@@ -189,7 +200,9 @@
+ {
+     Applet* applet = Applet::loadApplet(name, 0, args);
+     if (applet) {
+-        addItem(applet);
++        Extender *extender = new Extender();
++        extender->addExtenderItem(applet);
++        addItem(extender);
+         //applet->constraintsUpdated();
+         d->applets << applet;
+         connect(applet, SIGNAL(destroyed(QObject*)),
+Index: workspace/libs/plasma/applet.h
+===================================================================
+--- workspace/libs/plasma/applet.h	(revisión: 686667)
++++ workspace/libs/plasma/applet.h	(copia de trabajo)
+@@ -27,6 +27,7 @@
+ #include <kgenericfactory.h>
+ 
+ #include <plasma/plasma.h>
++#include <plasma/widgets/extenderitem.h>
+ 
+ namespace Plasma
+ {
+@@ -38,7 +39,7 @@
+  *
+  *
+  */
+-class PLASMA_EXPORT Applet : public QObject, public QGraphicsItem
++class PLASMA_EXPORT Applet : public ExtenderItem
+ {
+     Q_OBJECT
+ 
+Index: workspace/libs/plasma/CMakeLists.txt
+===================================================================
+--- workspace/libs/plasma/CMakeLists.txt	(revisión: 686667)
++++ workspace/libs/plasma/CMakeLists.txt	(copia de trabajo)
+@@ -33,6 +33,8 @@
+     widgets/layout.cpp
+     widgets/layoutitem.cpp
+     widgets/vboxlayout.cpp
++    widgets/extenderitem.cpp
++    widgets/extender.cpp
+    )
+ 
+ set(plasmagik_HEADERS
+@@ -80,6 +82,8 @@
+     widgets/radiobutton.h
+     widgets/vboxlayout.h
+     widgets/widget.h
++    widgets/extenderitem.h
++    widgets/extender.h
+     DESTINATION ${INCLUDE_INSTALL_DIR}/plasma/widgets)
+ 
+ install(FILES
+Index: workspace/libs/plasma/widgets/extenderitem.h
+===================================================================
+--- workspace/libs/plasma/widgets/extenderitem.h	(revisión: 0)
++++ workspace/libs/plasma/widgets/extenderitem.h	(revisión: 0)
+@@ -0,0 +1,72 @@
++/*
++ *   Copyright (C) 2007 by Rafael Fernández López <ereslibre@gmail.com>
++ *
++ *   This program is free software; you can redistribute it and/or modify
++ *   it under the terms of the GNU Library General Public License version 2 as
++ *   published by the Free Software Foundation
++ *
++ *   This program is distributed in the hope that it will be useful,
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *   GNU General Public License for more details
++ *
++ *   You should have received a copy of the GNU Library General Public
++ *   License along with this program; if not, write to the
++ *   Free Software Foundation, Inc.,
++ *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
++ */
++
++#ifndef EXTENDERITEM_H
++#define EXTENDERITEM_H
++
++// Qt includes
++#include <QtCore/QObject>
++#include <QtGui/QGraphicsItem>
++
++// KDE includes
++#include <plasma/plasma_export.h>
++
++#include <plasma/dataengine.h>
++
++namespace Plasma
++{
++
++
++class PLASMA_EXPORT ExtenderItem : public QObject, public QGraphicsItem
++{
++    Q_OBJECT
++
++public:
++    ExtenderItem(QGraphicsItem *parent = 0);
++    ExtenderItem(QObject *parent);
++    virtual ~ExtenderItem();
++
++    // QGraphicsItem overridden virtual methods
++    virtual QRectF boundingRect() const;
++    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = 0);
++
++    void setLastPos(QPointF pos);
++    QPointF lastPos() const;
++
++public Q_SLOTS:
++    void updated(const QString&, const Plasma::DataEngine::Data &data);
++
++Q_SIGNALS:
++    void itemIsMoving(QPointF itemPosition, ExtenderItem *extenderItem);
++    void itemHasMoved(QPointF itemPosition, ExtenderItem *extenderitem);
++
++protected:
++    virtual QVariant itemChange(GraphicsItemChange change, const QVariant &value);
++    virtual void mousePressEvent(QGraphicsSceneMouseEvent *event);
++    virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent *event);
++
++private:
++    class Private;
++    Private *const d;
++};
++
++
++} // Plasma namespace
++
++
++#endif // EXTENDERITEM_H
+Index: workspace/libs/plasma/widgets/extender.cpp
+===================================================================
+--- workspace/libs/plasma/widgets/extender.cpp	(revisión: 0)
++++ workspace/libs/plasma/widgets/extender.cpp	(revisión: 0)
+@@ -0,0 +1,289 @@
++/*
++ *   Copyright (C) 2007 by Rafael Fernández López <ereslibre@gmail.com>
++ *
++ *   This program is free software; you can redistribute it and/or modify
++ *   it under the terms of the GNU Library General Public License version 2 as
++ *   published by the Free Software Foundation
++ *
++ *   This program is distributed in the hope that it will be useful,
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *   GNU General Public License for more details
++ *
++ *   You should have received a copy of the GNU Library General Public
++ *   License along with this program; if not, write to the
++ *   Free Software Foundation, Inc.,
++ *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
++ */
++
++// Header Includes
++#include "extender.h"
++
++// Qt includes
++#include <QtGui/QWidget>
++#include <QtGui/QApplication>
++#include <QtGui/QGraphicsScene>
++#include <QtGui/QStyleOptionButton>
++#include <QtGui/QGraphicsSceneMouseEvent>
++#include <QtGui/QPainter>
++
++// Plasma includes
++#include "extenderitem.h"
++
++namespace Plasma
++{
++
++
++/// Private section ==============================
++
++class Extender::Private
++{
++public:
++    Private();
++    ~Private();
++
++    void updateBoundingRect();
++
++    // Attributes
++    int itemSeparation;
++    int nextItemPosition;
++    QList<ExtenderItem*> extenderItemList;
++    ExtenderItem *itemBeingDraggedInto;
++    QPointF itemBeingDraggedIntoTopLeft;
++    QRectF boundingRect;
++    bool autoDestroy;
++};
++
++Extender::Private::Private()
++    : itemSeparation(10)
++    , nextItemPosition(10)
++    , itemBeingDraggedInto(0)
++    , boundingRect(0, 0, 300, itemSeparation)
++    , autoDestroy(false)
++{
++}
++
++Extender::Private::~Private()
++{
++}
++
++void Extender::Private::updateBoundingRect()
++{
++    QRectF boundRect(0, 0, 300, itemSeparation);
++    int position = itemSeparation;
++    bool counted = false;
++
++    foreach (ExtenderItem *extenderItem, extenderItemList)
++    {
++        if (itemBeingDraggedInto &&
++            (itemBeingDraggedInto->scenePos().y() <=
++             extenderItem->scenePos().y()) &&
++            !counted)
++        {
++            itemBeingDraggedIntoTopLeft = QPointF(0, position);
++            position += itemSeparation + itemBeingDraggedInto->boundingRect().height();
++            counted = true;
++        }
++
++        extenderItem->setPos(0, position);
++        extenderItem->setLastPos(QPointF(0, position));
++
++        position += itemSeparation + extenderItem->boundingRect().height();
++    }
++
++    if (itemBeingDraggedInto && !counted)
++    {
++        itemBeingDraggedIntoTopLeft = QPointF(0, position);
++        position += itemSeparation + itemBeingDraggedInto->boundingRect().height();
++    }
++
++    boundRect.setHeight(boundRect.height() + position - itemSeparation);
++
++    boundingRect = boundRect;
++}
++
++/// End Private section ==========================
++
++
++unsigned int Extender::zOrder = 0;
++
++Extender::Extender(QGraphicsItem *parent)
++    : QObject()
++    , QGraphicsItem(parent)
++    , d(new Private)
++{
++    setFlag(QGraphicsItem::ItemIsMovable);
++    setAcceptDrops(true);
++}
++
++Extender::~Extender()
++{
++     delete d;
++}
++
++Extender::Extender(bool autoDestroy, QGraphicsItem *parent)
++    : QObject()
++    , QGraphicsItem(parent)
++    , d(new Private)
++{
++    setFlag(QGraphicsItem::ItemIsMovable);
++    setAcceptDrops(true);
++    d->autoDestroy = autoDestroy;
++}
++
++QRectF Extender::boundingRect() const
++{
++    return d->boundingRect;
++}
++
++void Extender::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
++{
++    if (d->itemBeingDraggedInto)
++        painter->fillRect(option->rect, Qt::green);
++    else
++        painter->fillRect(option->rect, Qt::blue);
++
++    if (d->itemBeingDraggedInto)
++    {
++        painter->setOpacity(0.5);
++        QStyleOptionGraphicsItem otherOption(*option);
++        otherOption.state &= ~QStyle::State_MouseOver;
++        otherOption.state &= ~QStyle::State_Selected;
++        otherOption.rect.setTopLeft(d->itemBeingDraggedIntoTopLeft.toPoint());
++        otherOption.rect.setHeight(d->itemBeingDraggedInto->sceneBoundingRect().height());
++        otherOption.rect.setWidth(d->itemBeingDraggedInto->sceneBoundingRect().width());
++        otherOption.exposedRect = otherOption.rect;
++        d->itemBeingDraggedInto->paint(painter, &otherOption, widget);
++    }
++}
++
++int Extender::itemSeparation() const
++{
++    return d->itemSeparation;
++}
++
++void Extender::setItemSeparation(int itemSeparation)
++{
++    d->itemSeparation = itemSeparation;
++
++    d->updateBoundingRect();
++}
++
++void Extender::addExtenderItem(ExtenderItem *extenderItem)
++{
++    extenderItem->setFlag(QGraphicsItem::ItemIsMovable);
++    extenderItem->setParentItem(this);
++    extenderItem->setPos(0, d->nextItemPosition);
++    extenderItem->setLastPos(QPointF(0, d->nextItemPosition));
++    extenderItem->setZValue(nextZOrder());
++    d->nextItemPosition += extenderItem->sceneBoundingRect().height() + d->itemSeparation;
++    d->extenderItemList << extenderItem;
++
++    d->updateBoundingRect();
++
++    connect(extenderItem, SIGNAL(itemIsMoving(QPointF, ExtenderItem*)), this,
++            SLOT(itemIsMoving(QPointF, ExtenderItem*)));
++    connect(extenderItem, SIGNAL(itemHasMoved(QPointF, ExtenderItem*)), this,
++            SLOT(itemHasMoved(QPointF, ExtenderItem*)));
++}
++
++ExtenderItem *Extender::itemBeingDraggedInto() const
++{
++    return d->itemBeingDraggedInto;
++}
++
++void Extender::setItemBeingDraggedInto(ExtenderItem *extenderItem)
++{
++    d->itemBeingDraggedInto = extenderItem;
++
++    d->updateBoundingRect();
++}
++
++unsigned int Extender::nextZOrder()
++{
++    return zOrder++;
++}
++
++void Extender::updated(const QString&, const Plasma::DataEngine::Data &data)
++{
++    Q_UNUSED(data);
++}
++
++void Extender::itemIsMoving(QPointF itemPosition, ExtenderItem *extenderItem)
++{
++    Extender *extender;
++    foreach (QGraphicsItem *item, scene()->items())
++    {
++        // search for extender siblings
++        if ((item != this) &&
++            (extender = dynamic_cast<Extender*>(item)) &&
++            (extenderItem->sceneBoundingRect().intersects(extender->sceneBoundingRect())))
++        {
++            if (!extender->itemBeingDraggedInto())
++            {
++                extender->setItemBeingDraggedInto(extenderItem);
++            }
++
++            // FIXME: something more polite :)
++            extender->setItemBeingDraggedInto(extender->itemBeingDraggedInto());
++            extender->update();
++        }
++        else if ((item != this) &&
++                 (extender = dynamic_cast<Extender*>(item)) &&
++                 (extenderItem == extender->itemBeingDraggedInto()) &&
++                 !(extenderItem->sceneBoundingRect().intersects(extender->sceneBoundingRect())))
++        {
++            QRectF rect = extender->sceneBoundingRect();
++
++            extender->setItemBeingDraggedInto(0);
++            scene()->update(rect);
++        }
++    }
++}
++
++void Extender::itemHasMoved(QPointF itemPosition, ExtenderItem *extenderItem)
++{
++    if (!extenderItem->sceneBoundingRect().intersects(sceneBoundingRect()))
++    {
++        disconnect(extenderItem, SIGNAL(itemIsMoving(QPointF, ExtenderItem*)), this,
++                   SLOT(itemIsMoving(QPointF, ExtenderItem*)));
++        disconnect(extenderItem, SIGNAL(itemHasMoved(QPointF, ExtenderItem*)), this,
++                   SLOT(itemHasMoved(QPointF, ExtenderItem*)));
++
++        scene()->removeItem(extenderItem);
++        d->extenderItemList.removeAll(extenderItem);
++        Extender *extender = new Extender(true /* autoDestroy */);
++        extender->setPos(itemPosition);
++        extender->addExtenderItem(extenderItem);
++        scene()->addItem(extender);
++
++        if (!d->extenderItemList.count())
++        {
++            scene()->removeItem(this);
++
++            if (d->autoDestroy)
++            {
++                delete this;
++            }
++        }
++        else
++        {
++            update();
++            d->updateBoundingRect();
++        }
++    }
++    else
++    {
++        extenderItem->setPos(extenderItem->lastPos());
++    }
++}
++
++void Extender::mousePressEvent(QGraphicsSceneMouseEvent *event)
++{
++    setZValue(nextZOrder());
++}
++
++
++} // Plasma namespace
++
++#include "extender.moc"
+Index: workspace/libs/plasma/widgets/extender.h
+===================================================================
+--- workspace/libs/plasma/widgets/extender.h	(revisión: 0)
++++ workspace/libs/plasma/widgets/extender.h	(revisión: 0)
+@@ -0,0 +1,82 @@
++/*
++ *   Copyright (C) 2007 by Rafael Fernández López <ereslibre@gmail.com>
++ *
++ *   This program is free software; you can redistribute it and/or modify
++ *   it under the terms of the GNU Library General Public License version 2 as
++ *   published by the Free Software Foundation
++ *
++ *   This program is distributed in the hope that it will be useful,
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *   GNU General Public License for more details
++ *
++ *   You should have received a copy of the GNU Library General Public
++ *   License along with this program; if not, write to the
++ *   Free Software Foundation, Inc.,
++ *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
++ */
++
++#ifndef EXTENDER_H
++#define EXTENDER_H
++
++// Qt includes
++#include <QtCore/QObject>
++#include <QtGui/QGraphicsItem>
++
++// KDE includes
++#include <plasma/plasma_export.h>
++
++#include <plasma/dataengine.h>
++
++namespace Plasma
++{
++
++
++class ExtenderItem;
++
++class PLASMA_EXPORT Extender : public QObject, public QGraphicsItem
++{
++    Q_OBJECT
++
++public:
++    Extender(QGraphicsItem *parent = 0);
++    virtual ~Extender();
++
++protected:
++    Extender(bool autoDestroy, QGraphicsItem *parent = 0);
++
++public:
++    QRectF boundingRect() const;
++    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = 0);
++
++    int itemSeparation() const;
++    void setItemSeparation(int itemSeparation);
++
++    void addExtenderItem(ExtenderItem *extenderItem);
++
++    ExtenderItem *itemBeingDraggedInto() const;
++    void setItemBeingDraggedInto(ExtenderItem *extenderItem);
++
++    static unsigned int nextZOrder();
++
++public Q_SLOTS:
++    void updated(const QString&, const Plasma::DataEngine::Data &data);
++
++private Q_SLOTS:
++    void itemIsMoving(QPointF itemPosition, ExtenderItem *extenderItem);
++    void itemHasMoved(QPointF itemPosition, ExtenderItem *extenderItem);
++
++protected:
++    virtual void mousePressEvent(QGraphicsSceneMouseEvent *event);
++
++private:
++    static unsigned int zOrder;
++
++    class Private;
++    Private *const d;
++};
++
++
++} // Plasma namespace
++
++#endif // EXTENDER_H
+Index: workspace/libs/plasma/widgets/icon.cpp
+===================================================================
+--- workspace/libs/plasma/widgets/icon.cpp	(revisión: 686667)
++++ workspace/libs/plasma/widgets/icon.cpp	(copia de trabajo)
+@@ -20,6 +20,7 @@
+ 
+ #include <QPainter>
+ #include <QGraphicsSceneMouseEvent>
++#include <QStyleOptionGraphicsItem>
+ #include <QGraphicsView>
+ 
+ //#define PROVE_IT_CAN_BE_DONE
+@@ -160,6 +161,8 @@
+ 
+ void Icon::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
+ {
++    painter->translate(option->rect.topLeft());
++
+     Q_UNUSED(option)
+     Q_UNUSED(widget)
+     painter->save();
+Index: workspace/libs/plasma/widgets/extenderitem.cpp
+===================================================================
+--- workspace/libs/plasma/widgets/extenderitem.cpp	(revisión: 0)
++++ workspace/libs/plasma/widgets/extenderitem.cpp	(revisión: 0)
+@@ -0,0 +1,144 @@
++/*
++ *   Copyright (C) 2007 by Rafael Fernández López <ereslibre@gmail.com>
++ *
++ *   This program is free software; you can redistribute it and/or modify
++ *   it under the terms of the GNU Library General Public License version 2 as
++ *   published by the Free Software Foundation
++ *
++ *   This program is distributed in the hope that it will be useful,
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *   GNU General Public License for more details
++ *
++ *   You should have received a copy of the GNU Library General Public
++ *   License along with this program; if not, write to the
++ *   Free Software Foundation, Inc.,
++ *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
++ */
++
++// Header Includes
++#include "extenderitem.h"
++
++// Qt includes
++#include <QtGui/QWidget>
++#include <QtGui/QApplication>
++#include <QtGui/QGraphicsScene>
++#include <QtGui/QStyleOptionButton>
++#include <QtGui/QGraphicsSceneMouseEvent>
++#include <QtGui/QPainter>
++
++#include "extender.h"
++
++namespace Plasma
++{
++
++
++/// Private section ==============================
++
++class ExtenderItem::Private
++{
++public:
++    Private();
++    ~Private();
++
++    // Attributes
++    QPointF lastPosition;
++};
++
++ExtenderItem::Private::Private()
++    : lastPosition(0, 0)
++{
++}
++
++ExtenderItem::Private::~Private()
++{
++}
++
++/// End Private section ==========================
++
++
++ExtenderItem::ExtenderItem(QGraphicsItem *parent)
++    : QObject()
++    , QGraphicsItem(parent)
++    , d(new Private)
++{
++}
++
++ExtenderItem::ExtenderItem(QObject *parent)
++    : QObject(parent)
++    , QGraphicsItem()
++    , d(new Private)
++{
++}
++
++ExtenderItem::~ExtenderItem()
++{
++    delete d;
++}
++
++QRectF ExtenderItem::boundingRect() const
++{
++    return QRect(0, 0, 300, 100);
++}
++
++void ExtenderItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
++{
++    painter->fillRect(option->rect, Qt::red);
++    painter->translate(option->rect.topLeft());
++    painter->drawText(30, 30, "Hey I'm a fake plasmoid !!!!");
++}
++
++void ExtenderItem::setLastPos(QPointF pos)
++{
++    d->lastPosition = pos;
++}
++
++QPointF ExtenderItem::lastPos() const
++{
++    return d->lastPosition;
++}
++
++void ExtenderItem::updated(const QString&, const Plasma::DataEngine::Data &data)
++{
++    Q_UNUSED(data);
++}
++
++QVariant ExtenderItem::itemChange(GraphicsItemChange change, const QVariant &value)
++{
++    if (scene())
++    {
++        switch (change)
++        {
++            case QGraphicsItem::ItemPositionChange:
++            {
++                QPointF retPoint = QGraphicsItem::itemChange(change, value).toPointF();
++
++                emit itemIsMoving(retPoint, this);
++
++                return retPoint;
++            }
++            default:
++                break;
++        }
++    }
++
++    return QGraphicsItem::itemChange(change, value);
++}
++
++void ExtenderItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
++{
++    int nextZOrder = Extender::nextZOrder();
++
++    parentItem()->setZValue(nextZOrder);
++    setZValue(nextZOrder);
++}
++
++void ExtenderItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
++{
++    emit itemHasMoved(sceneBoundingRect().topLeft(), this);
++}
++
++
++} // Plasma namespace
++
++#include "extenderitem.moc"
+Index: workspace/libs/plasma/applet.cpp
+===================================================================
+--- workspace/libs/plasma/applet.cpp	(revisión: 686667)
++++ workspace/libs/plasma/applet.cpp	(copia de trabajo)
+@@ -85,16 +85,14 @@
+ Applet::Applet(QGraphicsItem *parent,
+                const QString& serviceID,
+                int appletId)
+-        : QObject(0),
+-          QGraphicsItem(parent),
++        : ExtenderItem(parent),
+           d(new Private(KService::serviceByStorageId(serviceID), appletId))
+ {
+     init();
+ }
+ 
+ Applet::Applet(QObject* parent, const QStringList& args)
+-    : QObject(parent),
+-      QGraphicsItem(0),
++    : ExtenderItem(parent),
+       d(new Private(KService::serviceByStorageId(args[0]), args[1].toInt()))
+ {
+     init();
+Index: workspace/plasma/applets/url/url.cpp
+===================================================================
+--- workspace/plasma/applets/url/url.cpp	(revisión: 686667)
++++ workspace/plasma/applets/url/url.cpp	(copia de trabajo)
+@@ -89,6 +89,11 @@
+     m_icon->setIcon(KMimeType::iconNameForUrl(url));
+ }
+ 
++void Url::paintInterface(QPainter *p, const QStyleOptionGraphicsItem *option, QWidget *widget)
++{
++    m_icon->paint(p, option, widget);
++}
++
+ void Url::openUrl()
+ {
+     KUrl url = m_icon->url();
+Index: workspace/plasma/applets/url/url.h
+===================================================================
+--- workspace/plasma/applets/url/url.h	(revisión: 686667)
++++ workspace/plasma/applets/url/url.h	(copia de trabajo)
+@@ -43,6 +43,8 @@
+         void constraintsUpdated();
+         void setUrl(const KUrl& url);
+ 
++        void paintInterface(QPainter *p, const QStyleOptionGraphicsItem *option, QWidget *widget);
++
+     public slots:
+         void propertiesDialog();
+         void openUrl();
+Index: workspace/plasma/applets/clock/clock.cpp
+===================================================================
+--- workspace/plasma/applets/clock/clock.cpp	(revisión: 686667)
++++ workspace/plasma/applets/clock/clock.cpp	(copia de trabajo)
+@@ -182,6 +182,8 @@
+ 
+ void Clock::paintInterface(QPainter *p, const QStyleOptionGraphicsItem *option, QWidget *widget)
+ {
++    p->translate(option->rect.topLeft());
++
+     QRectF tempRect(0, 0, 0, 0);
+     QRectF boundRect = boundingRect();
+ 

@@ -1,0 +1,246 @@
+diff --git a/khtml/khtmlview.cpp b/khtml/khtmlview.cpp
+index e740796..40edec9 100644
+--- a/khtml/khtmlview.cpp
++++ b/khtml/khtmlview.cpp
+@@ -750,7 +750,11 @@ void KHTMLView::scrollBy(int x, int y)
+ 
+ QPoint KHTMLView::contentsToViewport(const QPoint& p) const
+ {
+-    return QPoint(p.x()-contentsX(), p.y()-contentsY());
++    int x = p.x();
++    int y = p.y();
++    int w, h = 0;
++    applyTransforms(x, y, w, h);
++    return QPoint(x, y);
+ }
+ 
+ void KHTMLView::contentsToViewport(int x, int y, int& cx, int& cy) const
+@@ -763,7 +767,10 @@ void KHTMLView::contentsToViewport(int x, int y, int& cx, int& cy) const
+ 
+ QPoint KHTMLView::viewportToContents(const QPoint& p) const
+ {
+-    return QPoint(p.x()+contentsX(), p.y()+contentsY());
++    int x = p.x();
++    int y = p.y();
++    revertTransforms(x, y);
++    return QPoint(x, y);
+ }
+ 
+ void KHTMLView::viewportToContents(int x, int y, int& cx, int& cy) const
+@@ -780,7 +787,7 @@ void KHTMLView::updateContents(int x, int y, int w, int h)
+     if (m_kwp->isRedirected()) {
+         QPoint off = m_kwp->absolutePos();
+         KHTMLView* pview = m_part->parentPart()->view();
+-        pview->updateContents(x+off.x(), y+off.y(), w, h);
++        pview->updateContents(x, y, w, h);
+     } else
+         widget()->update(x, y, w, h);
+ }
+@@ -796,7 +803,7 @@ void KHTMLView::repaintContents(int x, int y, int w, int h)
+     if (m_kwp->isRedirected()) {
+         QPoint off = m_kwp->absolutePos();
+         KHTMLView* pview = m_part->parentPart()->view();
+-        pview->repaintContents(x+off.x(), y+off.y(), w, h);
++        pview->repaintContents(x, y, w, h);
+     } else
+         widget()->repaint(x, y, w, h);
+ }
+@@ -883,7 +890,7 @@ void KHTMLView::paintEvent( QPaintEvent *e )
+         r.setHeight(r.height()*100/d->zoomLevel);
+         r.adjust(-1,-1,1,1);
+     }
+-    p.setClipRect(r);
++//     p.setClipRect(r);
+ 
+     int ex = r.x();
+     int ey = r.y();
+@@ -2107,8 +2114,11 @@ bool  KHTMLView::viewportEvent ( QEvent * e )
+         return false;
+       case QEvent::Paint: {
+           QRect r = static_cast<QPaintEvent*>(e)->rect();
+-          r.setX(r.x() +contentsX());
+-          r.setY(r.y() +contentsY());
++          int x = r.x();
++          int y = r.y();
++          revertTransforms(x, y);
++          r.setX(x);
++          r.setY(y);
+           QPaintEvent pe(r);
+           paintEvent(&pe);
+           return true;
+@@ -3174,7 +3184,7 @@ void KHTMLView::print(bool quick)
+         // the whole thing.
+         int pageWidth = printer.width();
+         int pageHeight = printer.height();
+-        p->setClipRect(0,0, pageWidth, pageHeight);
++//         p->setClipRect(0,0, pageWidth, pageHeight);
+ 
+         pageHeight -= headerHeight;
+ 
+@@ -3221,7 +3231,7 @@ void KHTMLView::print(bool quick)
+         while(top < root->docHeight()) {
+             if(top > 0) printer.newPage();
+             p->save();
+-            p->setClipRect(0, 0, pageWidth, headerHeight);
++//             p->setClipRect(0, 0, pageWidth, headerHeight);
+             if (printHeader)
+             {
+                 int dy = p->fontMetrics().lineSpacing();
+@@ -3307,7 +3317,7 @@ void KHTMLView::paint(QPainter *p, const QRect &rc, int yOff, bool *more)
+     bool vte = p->viewTransformEnabled();
+     bool wme = p->worldMatrixEnabled();
+ 
+-    p->setClipRect(rc);
++//     p->setClipRect(rc);
+     p->translate(rc.left(), rc.top());
+     double scale = ((double) rc.width()/(double) root->docWidth());
+     int height = (int) ((double) rc.height() / scale);
+@@ -3356,7 +3366,7 @@ void KHTMLView::render(QPainter* p, const QRect& r, const QPoint& off)
+     bool vte = p->viewTransformEnabled();
+     bool wme = p->worldMatrixEnabled();
+ 
+-    p->setClipRect(clip);
++//     p->setClipRect(clip);
+     QRect rect = r.translated(contentsX(),contentsY());
+     p->translate(off.x()-contentsX(), off.y()-contentsY());
+ 
+diff --git a/khtml/khtmlview.h b/khtml/khtmlview.h
+index ac9044a..7dbdfb9 100644
+--- a/khtml/khtmlview.h
++++ b/khtml/khtmlview.h
+@@ -108,6 +108,7 @@ class KHTML_EXPORT KHTMLView : public QScrollArea, public khtml::KHTMLWidget
+     friend class khtml::RenderWidget;
+     friend class khtml::RenderLayer;
+     friend class khtml::RenderBox;
++    friend class khtml::KHTMLWidgetPrivate;
+     friend class khtml::CSSStyleSelector;
+     friend class khtml::LineEditWidget;
+     friend class KJS::WindowFunc;
+diff --git a/khtml/rendering/render_box.cpp b/khtml/rendering/render_box.cpp
+index 1e1faab..322081d 100644
+--- a/khtml/rendering/render_box.cpp
++++ b/khtml/rendering/render_box.cpp
+@@ -517,7 +517,7 @@ void RenderBox::paintBackgroundExtended(QPainter *p, const QColor &c, const Back
+         int width = w - bleft - bright - (includePadding ? pleft + pright : 0);
+         int height = h - btop - bbottom - (includePadding ? ptop + pbottom : 0);
+         p->save();
+-        p->setClipRect(QRect(x, y, width, height));
++//         p->setClipRect(QRect(x, y, width, height));
+     }
+ 
+     CachedImage* bg = bgLayer->backgroundImage();
+@@ -2385,12 +2385,15 @@ bool RenderBox::handleEvent(const DOM::EventImpl& e)
+         absx += borderLeft()+paddingLeft();
+         absy += borderTop()+paddingTop();
+ 
+-        QPoint p(me.clientX() - absx + canvas()->view()->contentsX(),
+-                 me.clientY() - absy + canvas()->view()->contentsY());
++        KHTMLView* v = document()->view();
++
++        int x = me.clientX() - absx;
++        int y = me.clientY() - absy;
++        v->revertTransforms(x, y);
++        QPoint p(x, y);
+ 
+         QWheelEvent we(p, -me.detail()*40, buttons, state, orient);
+         KHTMLAssert(layer());
+-        KHTMLView* v = document()->view();
+         if ( ((orient == Qt::Vertical && (v->contentsHeight() > v->visibleHeight()))  ||
+               (orient == Qt::Horizontal && (v->contentsWidth() > v->visibleWidth()))) &&
+                v->isScrollingFromMouseWheel() ) {
+diff --git a/khtml/rendering/render_canvas.cpp b/khtml/rendering/render_canvas.cpp
+index 5baaa5d..6642078 100644
+--- a/khtml/rendering/render_canvas.cpp
++++ b/khtml/rendering/render_canvas.cpp
+@@ -383,8 +383,7 @@ void RenderCanvas::paint(PaintInfo& paintInfo, int _tx, int _ty)
+ #ifdef BOX_DEBUG
+     if (m_view)
+     {
+-        _tx += m_view->contentsX();
+-        _ty += m_view->contentsY();
++        m_view->revertTransforms(_tx, _ty);
+     }
+ 
+     outlineBox(p, _tx, _ty);
+@@ -403,14 +402,13 @@ void RenderCanvas::paintBoxDecorations(PaintInfo& paintInfo, int /*_tx*/, int /*
+ void RenderCanvas::repaintRectangle(int x, int y, int w, int h, Priority p, bool f)
+ {
+     if (m_staticMode) return;
+-//    kDebug( 6040 ) << "updating views contents (" << x << "/" << y << ") (" << w << "/" << h << ")";
++   kDebug( 6040 ) << "updating views contents (" << x << "/" << y << ") (" << w << "/" << h << ")";
+ 
+     if (f && m_pagedMode) {
+         y += m_pageTop;
+     } else
+     if ( f && m_view ) {
+-        x += m_view->contentsX();
+-        y += m_view->contentsY();
++        m_view->revertTransforms(x, y);
+     }
+ 
+     QRect vr = viewRect();
+diff --git a/khtml/rendering/render_layer.cpp b/khtml/rendering/render_layer.cpp
+index 54115a6..edd29c5 100644
+--- a/khtml/rendering/render_layer.cpp
++++ b/khtml/rendering/render_layer.cpp
+@@ -1138,14 +1138,7 @@ bool RenderLayer::nodeAtPoint(RenderObject::NodeInfo& info, int x, int y)
+ 
+     int stx = m_x;
+     int sty = m_y;
+-
+-#ifdef __GNUC__
+-#warning HACK
+-#endif
+-    if (renderer()->isCanvas()) {
+-        stx += static_cast<RenderCanvas*>(renderer())->view()->contentsX();
+-        sty += static_cast<RenderCanvas*>(renderer())->view()->contentsY();
+-    }
++    static_cast<RenderCanvas*>(renderer())->view()->revertTransforms(stx, sty);
+ 
+     QRect damageRect(stx,sty, width(), height());
+     RenderLayer* insideLayer = nodeAtPointForLayer(this, info, x, y, damageRect);
+diff --git a/khtml/rendering/render_line.cpp b/khtml/rendering/render_line.cpp
+index c67bcf8..9ee8869 100644
+--- a/khtml/rendering/render_line.cpp
++++ b/khtml/rendering/render_line.cpp
+@@ -867,7 +867,7 @@ void InlineFlowBox::paintOneBackground(QPainter* p, const QColor& c, const Backg
+         for (InlineRunBox* curr = this; curr; curr = curr->nextLineBox())
+             totalWidth += curr->width();
+         p->save();
+-        p->setClipRect(QRect(_tx, _ty, width(), height()));
++//         p->setClipRect(QRect(_tx, _ty, width(), height()));
+         object()->paintBackgroundExtended(p, c, bgLayer, clipr, startX, _ty,
+                                           totalWidth, h, borderLeft(), borderRight(), paddingLeft(), paddingRight(),
+                                           object()->borderTop(), object()->borderBottom(), object()->paddingTop(), object()->paddingBottom());
+diff --git a/khtml/rendering/render_replaced.cpp b/khtml/rendering/render_replaced.cpp
+index d73f578..8253138 100644
+--- a/khtml/rendering/render_replaced.cpp
++++ b/khtml/rendering/render_replaced.cpp
+@@ -1009,8 +1009,10 @@ bool RenderWidget::handleEvent(const DOM::EventImpl& ev)
+         absx += borderLeft()+paddingLeft();
+         absy += borderTop()+paddingTop();
+ 
+-        QPoint p(me.clientX() - absx + m_view->contentsX(),
+-                 me.clientY() - absy + m_view->contentsY());
++        int x = me.clientX() - absx;
++        int y = me.clientY() - absy;
++        view()->revertTransforms(x, y);
++        QPoint p(x, y);
+ 
+         QWidget* target = 0;
+         target = m_widget->childAt(p);
+@@ -1227,8 +1229,12 @@ KHTMLView* KHTMLWidgetPrivate::rootViewPos(QPoint& pos)
+     KHTMLView* last = 0;
+     while (v) {
+         last = v;
+-        pos.setX( pos.x() - v->contentsX() );
+-        pos.setY( pos.y() - v->contentsY() );
++        int x = pos.x();
++        int y = pos.y();
++        int w, h = 0;
++        v->applyTransforms( x, y, w, h );
++        pos.setX( x );
++        pos.setY( y );
+         KHTMLWidget*kw = dynamic_cast<KHTMLWidget*>(v);
+         if (!kw || !kw->m_kwp->isRedirected()) 
+             break;

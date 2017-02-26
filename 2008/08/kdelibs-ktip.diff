@@ -1,0 +1,73 @@
+diff --git a/kdeui/widgets/kmainwindow.cpp b/kdeui/widgets/kmainwindow.cpp
+index cdeb091..d99ee65 100644
+--- a/kdeui/widgets/kmainwindow.cpp
++++ b/kdeui/widgets/kmainwindow.cpp
+@@ -44,6 +44,9 @@
+ #include <QtGui/QSessionManager>
+ #include <QtGui/QStyle>
+ #include <QtGui/QWidget>
++#include <QtGui/QLabel>
++#include <QtGui/QPainter>
++#include <QtGui/QToolButton>
+ 
+ #include <kaction.h>
+ #include <kapplication.h>
+@@ -206,6 +209,37 @@ public:
+     }
+ };
+ 
++class KTipWidget
++    : public QWidget
++{
++public:
++    KTipWidget(QWidget *parent = 0)
++        : QWidget(parent, Qt::ToolTip)
++    {
++        QHBoxLayout *layout = new QHBoxLayout;
++        QLabel *tipText = new QLabel(this);
++        QLabel *tipIcon = new QLabel(this);
++        QToolButton *closeTips = new QToolButton(this);
++        closeTips->setAutoRaise(true);
++        closeTips->setIcon(KIcon("dialog-close"));
++        KIcon icon("system-help");
++        QPixmap pm = icon.pixmap(KIconLoader::SizeSmallMedium, KIconLoader::SizeSmallMedium);
++        layout->addWidget(tipIcon),
++        layout->addWidget(tipText);
++        layout->addStretch();
++        layout->addWidget(closeTips);
++        tipIcon->setPixmap(pm);
++        tipText->setText("You can copy text by hitting Ctrl + C");
++        setLayout(layout);
++
++        setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
++    }
++
++    ~KTipWidget()
++    {
++    }
++};
++
+ K_GLOBAL_STATIC(KMWSessionManager, ksm)
+ K_GLOBAL_STATIC(QList<KMainWindow*>, sMemberList)
+ static bool being_first = true;
+@@ -375,6 +409,20 @@ void KMainWindowPrivate::polish(KMainWindow *q)
+                                        QDBusConnection::ExportNonScriptableSlots |
+                                        QDBusConnection::ExportNonScriptableProperties |
+                                        QDBusConnection::ExportAdaptors);
++
++    // Show tips
++    if ( q->centralWidget() ) {
++        QVBoxLayout *mainLayout = new QVBoxLayout;
++        mainLayout->setSpacing( 0 );
++        QWidget *mainWidget = new QWidget( q );
++        mainWidget->setLayout( mainLayout );
++        mainLayout->addWidget( q->centralWidget() );
++        mainLayout->addWidget( new KTipWidget( q ) );
++        q->setCentralWidget( mainWidget );
++        if ( q->statusBar() ) {
++            q->setStatusBar( q->statusBar() ); // make the status bar being the last widget added
++        }
++    }
+ }
+ 
+ void KMainWindow::parseGeometry(bool parsewidth)

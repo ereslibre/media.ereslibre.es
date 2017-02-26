@@ -1,0 +1,114 @@
+Index: kdeui/jobs/kwidgetjobtracker.cpp
+===================================================================
+--- kdeui/jobs/kwidgetjobtracker.cpp	(revisión: 742601)
++++ kdeui/jobs/kwidgetjobtracker.cpp	(copia de trabajo)
+@@ -23,7 +23,7 @@
+ #include "kwidgetjobtracker_p.h"
+ 
+ #include <QProcess>
+-#include <QTime>
++#include <QTimer>
+ #include <QLabel>
+ #include <QCheckBox>
+ #include <QProgressBar>
+@@ -41,9 +41,25 @@
+ #include <klocale.h>
+ #include <kwindowsystem.h>
+ 
++void KWidgetJobTracker::Private::_k_slotShowProgressWidget()
++{
++    if (!progressWidgetsToBeShown.count()) {
++        return;
++    }
++
++    KJob *job = progressWidgetsToBeShown.dequeue();
++
++    // If the job has been unregistered before reaching this point, widget will
++    // return 0, so there is no need to care about that.
++    QWidget *widget = tracker->widget(job);
++
++    if (widget) {
++        widget->show();
++    }
++}
+ 
+ KWidgetJobTracker::KWidgetJobTracker(QWidget *parent)
+-    : KAbstractWidgetJobTracker(parent), d(new Private(parent))
++    : KAbstractWidgetJobTracker(parent), d(new Private(parent, this))
+ {
+ }
+ 
+@@ -70,9 +86,10 @@ void KWidgetJobTracker::registerJob(KJob
+     }
+ 
+     Private::ProgressWidget *vi = new Private::ProgressWidget(job, this, d->parent);
+-    vi->show();
+-
+     d->progressWidget.insert(job, vi);
++    d->progressWidgetsToBeShown.enqueue(job);
++
++    QTimer::singleShot(500, this, SLOT(_k_slotShowProgressWidget()));
+ }
+ 
+ void KWidgetJobTracker::unregisterJob(KJob *job)
+Index: kdeui/jobs/kwidgetjobtracker.h
+===================================================================
+--- kdeui/jobs/kwidgetjobtracker.h	(revisión: 742601)
++++ kdeui/jobs/kwidgetjobtracker.h	(copia de trabajo)
+@@ -89,6 +89,8 @@ protected Q_SLOTS:
+  private:
+     class Private;
+     Private *const d;
++
++    Q_PRIVATE_SLOT(d, void _k_slotShowProgressWidget())
+ };
+ 
+ #endif
+Index: kdeui/jobs/kwidgetjobtracker_p.h
+===================================================================
+--- kdeui/jobs/kwidgetjobtracker_p.h	(revisión: 742601)
++++ kdeui/jobs/kwidgetjobtracker_p.h	(copia de trabajo)
+@@ -24,6 +24,7 @@
+ #include <QWidget>
+ #include <QMap>
+ #include <QTime>
++#include <QQueue>
+ 
+ #include <kdebug.h>
+ #include <kurl.h>
+@@ -38,16 +39,23 @@ class QProgressBar;
+ class KWidgetJobTracker::Private
+ {
+ public:
+-    Private(QWidget *parent)
+-        : parent(parent) { }
++    Private(QWidget *parent, KWidgetJobTracker *tracker)
++        : parent(parent)
++        , tracker(tracker)
++    {
++    }
+ 
+     ~Private() {
+     }
+ 
++    void _k_slotShowProgressWidget();
++
+     class ProgressWidget;
+ 
+     QWidget *parent;
++    KWidgetJobTracker *tracker;
+     QMap<KJob*, ProgressWidget*> progressWidget;
++    QQueue<KJob*> progressWidgetsToBeShown;
+ };
+ 
+ 
+@@ -71,6 +79,9 @@ public:
+ 
+     ~ProgressWidget()
+     {
++        if (q->d->progressWidget.contains(job)) {
++            q->d->progressWidget.remove(job);
++        }
+     }
+ 
+     KWidgetJobTracker *const q;

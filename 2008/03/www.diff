@@ -1,0 +1,13 @@
+Index: sites/kopete/team.php
+===================================================================
+--- sites/kopete/team.php	(revisión: 785267)
++++ sites/kopete/team.php	(copia de trabajo)
+@@ -34,7 +34,7 @@
+ 	
+ <div class="table_box"><img align="right" class="picture" src="pics/dev_pics/johann_ol.png" alt="Picture of Johann Ollivier-Lapeyre" title="Picture of Johann Ollivier-Lapeyre" width="80" height="90"/><div class="punch"><img src="pics/flags/france.png" alt="France" title="France" width="32" height="22"/></div><div class="plaintext"><div class="name">Johann Ollivier-Lapeyre</div><b>Project Role</b>: Artist, Artwork Maintainer<br/><b>Email</b>:<a href="mailto:johann.ollivierlapeyre@_NO_SPAM_gmail.com">johann.ollivierlapeyre at gmail.com</a><br/><b>IRC:</b>: Johann</div></div><br/><br/>
+ 
+-<div class="table_box"><img align="right" class="picture" src="pics/dev_pics/ereslibre.jpg" alt="Picture of Rafael Fern&aacute;ndez L&oacute;pez" title="Picture of Rafael Fern&aacute;ndez L&oacute;pez" width="65" height="87"/><div class="punch"><img src="pics/flags/spain.png" alt="Spain" title="Spain" width="32" height="20"/></div><div class="plaintext"><div class="name">Rafael Fern&aacute;ndez L&oacute;pez</div><b>Project Role</b>: Developer<br/><b>Email</b>:<a href="mailto:ereslibre@_NO_SPAM_gmail.com">ereslibre at gmail.com</a><br/><b>IRC:</b>: ereslibre</div></div><br/><br/>
++<div class="table_box"><img align="right" class="picture" src="pics/dev_pics/ereslibre.jpg" alt="Picture of Rafael Fern&aacute;ndez L&oacute;pez" title="Picture of Rafael Fern&aacute;ndez L&oacute;pez" width="65" height="87"/><div class="punch"><img src="pics/flags/spain.png" alt="Spain" title="Spain" width="32" height="20"/></div><div class="plaintext"><div class="name">Rafael Fern&aacute;ndez L&oacute;pez</div><b>Project Role</b>: Developer<br/><b>Email</b>:<a href="mailto:ereslibre@_NO_SPAM_kde.org">ereslibre at kde.org</a><br/><b>IRC:</b>: ereslibre</div></div><br/><br/>
+ 
+ <div class="table_box"><img align="right" class="picture" src="pics/dev_pics/boiko.jpg" alt="Picture of Gustavo Pichorim Boiko" title="Picture of Gustavo Pichorim Boiko" width="68" height="82"/><div class="punch"><img src="pics/flags/brazil.png" alt="Brazil" title="Brazil" width="32" height="22"/></div><div class="plaintext"><div class="name">Gustavo Pichorim Boiko</div><b>Project Role</b>: Developer<br/><b>Email</b>:<a href="mailto:gustavo.boiko@_NO_SPAM_kdemail.net">gustavo.boiko at kdemail.net</a><br/><b>IRC</b>: boiko</div></div><br/><br/>
+ 

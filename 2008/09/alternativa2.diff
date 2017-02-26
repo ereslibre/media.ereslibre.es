@@ -1,0 +1,261 @@
+diff --git a/kdeui/itemviews/kwidgetitemdelegate.cpp b/kdeui/itemviews/kwidgetitemdelegate.cpp
+index e3de7ca..7c3833e 100644
+--- a/kdeui/itemviews/kwidgetitemdelegate.cpp
++++ b/kdeui/itemviews/kwidgetitemdelegate.cpp
+@@ -48,9 +48,9 @@ Q_DECLARE_METATYPE(QList<QEvent::Type>)
+   @internal
+ */
+ //@cond PRIVATE
+-KWidgetItemDelegatePrivate::KWidgetItemDelegatePrivate(KWidgetItemDelegate *q, QObject *parent)
+-    : QObject(parent)
+-    , itemView(0)
++KWidgetItemDelegatePrivate::KWidgetItemDelegatePrivate(KWidgetItemDelegate *q, QAbstractItemView *itemView)
++    : QObject(0)
++    , itemView(itemView)
+     , hoveredIndex(QPersistentModelIndex())
+     , lastHoveredIndex(QPersistentModelIndex())
+     , hoveredWidget(0)
+@@ -59,7 +59,7 @@ KWidgetItemDelegatePrivate::KWidgetItemDelegatePrivate(KWidgetItemDelegate *q, Q
+     , buttonPressedWidget(0)
+     , currentIndex(QPersistentModelIndex())
+     , selectionModel(0)
+-    , widgetPool(new KWidgetItemDelegatePool(q))
++    , widgetPool(new KWidgetItemDelegatePool(q, itemView))
+     , q(q)
+ {
+ }
+@@ -197,15 +197,13 @@ void KWidgetItemDelegatePrivate::slotSelectionModelDestroyed()
+ 
+ KWidgetItemDelegate::KWidgetItemDelegate(QAbstractItemView *itemView, QObject *parent)
+     : QAbstractItemDelegate(parent)
+-    , d(new KWidgetItemDelegatePrivate(this))
++    , d(new KWidgetItemDelegatePrivate(this, itemView))
+ {
+     Q_ASSERT(itemView);
+ 
+     itemView->setMouseTracking(true);
+     itemView->viewport()->setAttribute(Qt::WA_Hover);
+ 
+-    d->itemView = itemView;
+-
+     itemView->viewport()->installEventFilter(d); // mouse events
+     itemView->installEventFilter(d);             // keyboard events
+ 
+@@ -257,6 +255,7 @@ void KWidgetItemDelegate::paintWidgets(QPainter *painter, const QStyleOptionView
+ 
+     // Now that all widgets have been set up we can ask for their positions, sizes
+     // and for them being rendered.
++    d->widgetPool->setLockPainting(true);
+     foreach (QWidget *widget, widgetList) {
+         if (!widget->isVisibleTo(widget->parentWidget())) continue;
+ 
+@@ -271,6 +270,7 @@ void KWidgetItemDelegate::paintWidgets(QPainter *painter, const QStyleOptionView
+                        QWidget::DrawChildren);
+         painter->drawPixmap(widgetPos + option.rect.topLeft(), pixmap);
+     }
++    d->widgetPool->setLockPainting(false);
+ }
+ 
+ //@cond PRIVATE
+@@ -304,11 +304,11 @@ bool KWidgetItemDelegatePrivate::eventFilter(QObject *watched, QEvent *event)
+ 
+     switch (event->type()) {
+         case QEvent::Paint:
+-        case QEvent::Timer:
+         case QEvent::UpdateRequest:
++        case QEvent::Timer:
+         case QEvent::Destroy:
+         case QEvent::MetaCall:
+-            return false;
++            return QObject::eventFilter(watched, event);
+         case QEvent::Leave:
+         case QEvent::Enter:
+         case QEvent::MouseMove: {
+@@ -432,7 +432,11 @@ bool KWidgetItemDelegatePrivate::eventFilter(QObject *watched, QEvent *event)
+             break;
+     }
+ 
+-    return filterEvent || eventReply;
++    if (filterEvent || eventReply) {
++        return true;
++    }
++
++    return QObject::eventFilter(watched, event);
+ }
+ //@endcond
+ 
+diff --git a/kdeui/itemviews/kwidgetitemdelegate.h b/kdeui/itemviews/kwidgetitemdelegate.h
+index 5f5e0be..f6b4148 100644
+--- a/kdeui/itemviews/kwidgetitemdelegate.h
++++ b/kdeui/itemviews/kwidgetitemdelegate.h
+@@ -142,6 +142,7 @@ private:
+     //@cond PRIVATE
+     friend class KWidgetItemDelegatePool;
+     friend class KWidgetItemDelegatePrivate;
++    friend class FakeParent;
+     KWidgetItemDelegatePrivate *const d;
+     //@endcond
+ };
+diff --git a/kdeui/itemviews/kwidgetitemdelegate_p.h b/kdeui/itemviews/kwidgetitemdelegate_p.h
+index 428b753..a0872b6 100644
+--- a/kdeui/itemviews/kwidgetitemdelegate_p.h
++++ b/kdeui/itemviews/kwidgetitemdelegate_p.h
+@@ -37,7 +37,7 @@ class KWidgetItemDelegatePrivate : public QObject
+     Q_OBJECT
+ 
+ public:
+-    explicit KWidgetItemDelegatePrivate(KWidgetItemDelegate *q, QObject *parent = 0);
++    explicit KWidgetItemDelegatePrivate(KWidgetItemDelegate *q, QAbstractItemView *itemView);
+     ~KWidgetItemDelegatePrivate();
+ 
+     void analyzeInternalMouseEvents(const QStyleOptionViewItem &option, QMouseEvent *mouseEvent);
+diff --git a/kdeui/itemviews/kwidgetitemdelegatepool.cpp b/kdeui/itemviews/kwidgetitemdelegatepool.cpp
+index 064e342..2eab8de 100644
+--- a/kdeui/itemviews/kwidgetitemdelegatepool.cpp
++++ b/kdeui/itemviews/kwidgetitemdelegatepool.cpp
+@@ -34,30 +34,60 @@
+ #include <QtGui/QAbstractItemView>
+ 
+ #include "kwidgetitemdelegate.h"
++#include "kwidgetitemdelegate_p.h"
+ 
+ #define POOL_USAGE 0
+ 
+ /**
++ @internal
++*/
++//@cond PRIVATE
++class FakeParent
++    : public QWidget
++{
++public:
++    FakeParent(KWidgetItemDelegate *delegate, KWidgetItemDelegatePoolPrivate *poolPrivate, QAbstractItemView *itemView);
++
++    virtual bool event(QEvent *event)
++    {
++        event->accept();
++        return true;
++    }
++
++    virtual bool eventFilter(QObject *watched, QEvent *event);
++
++private:
++    KWidgetItemDelegate *m_delegate;
++    KWidgetItemDelegatePoolPrivate *m_poolPrivate;
++};
++
++/**
+   Private class that helps to provide binary compatibility between releases.
+   @internal
+ */
+-//@cond PRIVATE
+ class KWidgetItemDelegatePoolPrivate
+ {
+ public:
+-    KWidgetItemDelegatePoolPrivate(KWidgetItemDelegate *d)
+-        : delegate(d), fakeParent(new QWidget()) { }
++    KWidgetItemDelegatePoolPrivate(KWidgetItemDelegate *d, QAbstractItemView *itemView)
++        : delegate(d)
++        , itemView(itemView)
++        , fakeParent(new FakeParent(d, this, itemView))
++        , lockPainting(false)
++    {
++    }
+ 
+     KWidgetItemDelegate *delegate;
+-    QWidget *fakeParent;
++    QAbstractItemView *itemView;
++    FakeParent *fakeParent;
+ 
+     QList<QList<QWidget*> > allocatedWidgets;
+     QList<QList<QWidget*> > unusedWidgets;
+     QHash<QPersistentModelIndex, QList<QWidget*> > usedWidgets;
++    bool lockPainting;
+ };
+ 
+-KWidgetItemDelegatePool::KWidgetItemDelegatePool(KWidgetItemDelegate *delegate)
+-    : d(new KWidgetItemDelegatePoolPrivate(delegate))
++KWidgetItemDelegatePool::KWidgetItemDelegatePool(KWidgetItemDelegate *delegate, QAbstractItemView *itemView)
++    : d(new KWidgetItemDelegatePoolPrivate(delegate, itemView))
+ {
+ }
+ 
+@@ -84,6 +114,10 @@ QList<QWidget*> KWidgetItemDelegatePool::findWidgets(const QPersistentModelIndex
+ 
+         foreach (QWidget *widget, result) {
+             widget->setParent(d->fakeParent);
++            // We need to install the event filter for the paint events. They are not forwarded
++            // to the fake parent because it is not visible, so we have to manually install the
++            // event filter.
++            widget->installEventFilter(d->fakeParent);
+             widget->setVisible(true);
+         }
+     }
+@@ -92,4 +126,30 @@ QList<QWidget*> KWidgetItemDelegatePool::findWidgets(const QPersistentModelIndex
+ 
+     return result;
+ }
++
++void KWidgetItemDelegatePool::setLockPainting(bool lockPainting)
++{
++    d->lockPainting = lockPainting;
++}
++
++FakeParent::FakeParent(KWidgetItemDelegate *delegate, KWidgetItemDelegatePoolPrivate *poolPrivate, QAbstractItemView *itemView)
++    : QWidget(itemView)
++    , m_delegate(delegate)
++    , m_poolPrivate(poolPrivate)
++{
++}
++
++bool FakeParent::eventFilter(QObject *watched, QEvent *event)
++{
++    switch (event->type()) {
++        case QEvent::Paint:
++            if (!m_poolPrivate->lockPainting) {
++                m_delegate->d->itemView->viewport()->update();
++            }
++            break;
++        default:
++            break;
++    }
++    return QWidget::eventFilter(watched, event);
++}
+ //@endcond
+diff --git a/kdeui/itemviews/kwidgetitemdelegatepool_p.h b/kdeui/itemviews/kwidgetitemdelegatepool_p.h
+index 411c5a0..1c4cc28 100644
+--- a/kdeui/itemviews/kwidgetitemdelegatepool_p.h
++++ b/kdeui/itemviews/kwidgetitemdelegatepool_p.h
+@@ -26,6 +26,7 @@
+ 
+ class QWidget;
+ class QStyleOptionViewItem;
++class QAbstractItemView;
+ class KWidgetItemDelegate;
+ class KWidgetItemDelegatePoolPrivate;
+ 
+@@ -47,7 +48,7 @@ public:
+       * @param delegate the ItemDelegate for this pool.
+       */
+ 
+-    KWidgetItemDelegatePool(KWidgetItemDelegate *delegate);
++    KWidgetItemDelegatePool(KWidgetItemDelegate *delegate, QAbstractItemView *itemView);
+ 
+     /**
+       * Destroys an ItemDelegatePool.
+@@ -63,6 +64,15 @@ public:
+       */
+     QList<QWidget*> findWidgets(const QPersistentModelIndex &index, const QStyleOptionViewItem &option);
+ 
++    /**
++      * Locks the painting, so when a child needs to be repainted because of the delegate wanted it
++      * we don't schedule another update() event, what results on taking too much CPU. This way we
++      * don't enter into an infinite recursion (well, the GUI is not blocked, but it is scheduling
++      * an update for every loop event).
++      * @internal
++      */
++    void setLockPainting(bool lockPainting);
++
+ private:
+     KWidgetItemDelegatePoolPrivate *const d;
+ };

@@ -1,0 +1,335 @@
+
+
+
+
+
+/*
+     FILE ARCHIVED ON 18:29:42 Jun 29, 2012 AND RETRIEVED FROM THE
+     INTERNET ARCHIVE ON 17:25:26 Jan 17, 2014.
+     JAVASCRIPT APPENDED BY WAYBACK MACHINE, COPYRIGHT INTERNET ARCHIVE.
+
+     ALL OTHER CONTENT MAY ALSO BE PROTECTED BY COPYRIGHT (17 U.S.C.
+     SECTION 108(a)(3)).
+*/
+/*
+Design by Free CSS Templates
+http://www.freecsstemplates.org
+Released for free under a Creative Commons Attribution 2.5 License
+
+Modifications by Rafael Fernández López <ereslibre kde org>
+*/
+
+* {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+    text-align: justify;
+	background: #FFFFFF url(/web/20120629182942/http://media.ereslibre.es/2008/11/lo/proyecto/images/img01.jpg) repeat-x;
+	font-family: "Lucida Grande", Arial, Helvetica, sans-serif;
+	font-size: 13px;
+	color: #7F7772;
+}
+
+h1, h2, h3 {
+	font-family: "Lucida Grande", Georgia, Times, serif;
+	font-weight: bold;
+	color: #333333;
+}
+
+h1 {
+	font-size: 197%;
+}
+
+h2 {
+	font-size: 152%;
+    margin-top: 30px;
+    margin-bottom: 15px;
+}
+
+h3 {
+	font-size: 100%;
+	font-weight: bold;
+}
+
+p, ul, ol {
+	margin-bottom: 15px;
+	line-height: 1.6em;
+}
+
+ul, ol {
+	margin-left: 2em;
+}
+
+blockquote {
+	margin-left: 1em;
+	padding-left: 1em;
+	background: url(/web/20120629182942/http://media.ereslibre.es/2008/11/lo/proyecto/images/img09.gif) repeat-y;
+	font-style: italic;
+}
+
+a:link {
+	color: #0AAAFD;
+}
+
+a:hover, a:active {
+	text-decoration: none;
+	color: #FF6700;
+}
+
+a:visited {
+	color: #7F7772;
+}
+
+img {
+	border: none;
+}
+
+img.left {
+	float: left;
+	margin: 0 20px 0 0;
+}
+
+img.right {
+	float: right;
+	margin: 0 0 0 20px;
+}
+
+/* Menu */
+
+#menu {
+	width: 770px;
+	height: 105px;
+	margin: 0 auto;
+}
+
+#menu ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+#menu li {
+	display: block;
+	float: left;
+	width: 122px;
+	height: 65px;
+	padding: 40px 0 0 0;
+}
+
+#menu a {
+	display: block;
+	width: 122px;
+	height: 32px;
+	padding: 13px 0 0 0;
+	background: url(/web/20120629182942/http://media.ereslibre.es/2008/11/lo/proyecto/images/img02.jpg) no-repeat;
+	text-align: center;
+	text-transform: uppercase;
+	text-decoration: none;
+	font-weight: bold;
+	color: #FFFFFF;
+}
+
+#menu a:hover {
+	background-image: url(/web/20120629182942/http://media.ereslibre.es/2008/11/lo/proyecto/images/img03.jpg);
+}
+
+#menu .active {
+	padding-top: 35px;
+}
+
+#menu .active a {
+	height: 37px;
+	padding-top: 16px;
+	background-image: url(/web/20120629182942/http://media.ereslibre.es/2008/11/lo/proyecto/images/img04.jpg);
+	color: #327EBE;
+}
+
+#menu .active a:hover {
+	background-image: url(/web/20120629182942/http://media.ereslibre.es/2008/11/lo/proyecto/images/img04.jpg);
+}
+
+/* Header */
+
+#header {
+	width: 770px;
+	height: 160px;
+	margin: 0 auto;
+}
+
+/* Logo */
+
+#logo {
+	float: left;
+	width: 250px;
+	height: 160px;
+	background: url(/web/20120629182942/http://media.ereslibre.es/2008/11/lo/proyecto/images/img05.jpg) no-repeat;
+}
+
+#logo h1, #logo h2 {
+	text-align: center;
+}
+
+#logo h1 {
+	padding-top: 90px;
+	background: url(/web/20120629182942/http://media.ereslibre.es/2008/11/lo/proyecto/images/img07.jpg) no-repeat center center;
+	letter-spacing: 8px;
+	font-size: 197%;
+}
+
+#logo h2 {
+	letter-spacing: 2px;
+	font-size: 85%;
+}
+
+#logo a {
+	text-transform: uppercase;
+	text-decoration: none;
+	color: #FFFFFF;
+}
+
+/* Banner */
+
+#banner {
+	float: right;
+	width: 520px;
+	height: 160px;
+	background: url(/web/20120629182942/http://media.ereslibre.es/2008/11/lo/proyecto/images/img06.jpg) no-repeat;
+}
+
+#banner a {
+	float: right;
+	padding: 120px 20px 0 0;
+	text-decoration: none;
+	text-align: right;
+	font-size: 136%;
+	font-style: italic;
+	color: #FFFFFF;
+}
+
+/* Page */
+
+#page {
+	width: 90%;
+	margin: 0 auto;
+	padding: 20px 0 0 0;
+}
+
+/* Content */
+
+#content {
+	float: center;
+	width: 100%;
+}
+
+.objetoVirtual {
+	margin-bottom: 20px;
+}
+
+.objetoVirtual .nombreObjeto {
+	padding: 0 20px 0px 0px;
+}
+
+.objetoVirtual .texto {
+    text-align: justify;
+    padding: 20px 20px 0px 50px;
+}
+
+.cajaNaranja {
+    padding: 0px 0px 0px 50px;
+}
+
+.cajaNaranja .titulo {
+	height: 32px;
+	margin: 0;
+	padding: 8px 0 0 20px;
+	background: url(/web/20120629182942/http://media.ereslibre.es/2008/11/lo/proyecto/images/img08.jpg) no-repeat;
+	letter-spacing: -1px;
+	color: #FF3300;
+}
+
+.cajaNaranja .texto {
+	padding: 20px;
+	border: 1px solid #FF8D17;
+    text-align: justify;
+}
+
+/* Footer */
+
+#footer {
+	clear: both;
+	padding: 15px 0;
+	background: #D1D1D1;
+	border-top: 5px solid #999999;
+	text-align: center;
+}
+
+#footer p {
+	margin: 0;
+	color: #999999;
+}
+
+#footer a {
+	color: #999999;
+}
+
+#footer a:hover {
+	color: #FFFFFF;
+}
+
+/* table */
+
+#mytable {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    border-collapse: collapse;
+}
+
+th {
+    font: bold 11px "Trebuchet MS", Verdana, Arial, Helvetica, sans-serif;
+    color: #4f6b72;
+    border-right: 1px solid #C1DAD7;
+    border-bottom: 1px solid #C1DAD7;
+    border-top: 1px solid #C1DAD7;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-align: left;
+    padding: 6px 6px 6px 12px;
+    background: #CAE8EA url(/web/20120629182942/http://media.ereslibre.es/2008/11/lo/proyecto/images/bg_header.jpg) repeat-x;
+}
+
+th.nobg {
+    border-top: 0;
+    border-left: 0;
+    border-right: 1px solid #C1DAD7;
+    background: none;
+}
+
+th.spec {       
+        border-left: 1px solid #C1DAD7;
+        border-top: 0;
+        font: bold 10px "Trebuchet MS", Verdana, Arial, Helvetica,
+        sans-serif;
+}
+
+th.specalt {
+        border-left: 1px solid #C1DAD7;
+        border-top: 0;
+        font: bold 10px "Trebuchet MS", Verdana, Arial, Helvetica,
+        sans-serif;
+        color: #B4AA9D;
+}
+
+tr:nth-child(even) {
+    background: #fff;
+}
+
+tr:nth-child(odd) {
+    background: #f5fafa;
+}
+
+td {
+        padding: 6px 6px 6px 12px;
+}

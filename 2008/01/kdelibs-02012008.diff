@@ -1,0 +1,139 @@
+Index: kparts/browserrun.h
+===================================================================
+--- kparts/browserrun.h	(revisión: 755475)
++++ kparts/browserrun.h	(copia de trabajo)
+@@ -19,6 +19,8 @@
+ #ifndef kparts_browserrun_h
+ #define kparts_browserrun_h
+ 
++#include <kdecore_export.h>
++
+ #include <krun.h>
+ #include <kservice.h>
+ #include <kparts/browserextension.h>
+Index: kparts/browserrun.cpp
+===================================================================
+--- kparts/browserrun.cpp	(revisión: 755475)
++++ kparts/browserrun.cpp	(copia de trabajo)
+@@ -220,11 +220,11 @@
+     QString mimeType( _mimeType );
+     Q_ASSERT( !hasFinished() ); // only come here if the mimetype couldn't be embedded
+     // Support for saving remote files.
++
+     if ( mimeType != "inode/directory" && // dirs can't be saved
+-         !KRun::url().isLocalFile() )
++         !KRun::url().isLocalFile() &&
++         !isTextExecutable(mimeType) )
+     {
+-        if ( isTextExecutable(mimeType) )
+-            mimeType = QLatin1String("text/plain"); // view, don't execute
+         kDebug(1000) << "BrowserRun: ask for saving";
+         KService::Ptr offer = KMimeTypeTrader::self()->preferredService(mimeType, "Application");
+         // ... -> ask whether to save
+@@ -263,15 +263,15 @@
+                 KIO::Job *job = KIO::file_copy( KRun::url(), destURL, 0600, KIO::Overwrite );
+                 job->ui()->setWindow(d->m_window);
+                 connect( job, SIGNAL(result(KJob *)),
+-                         this, SLOT(slotCopyToTempFileResult(KJob *)) );
++                        this, SLOT(slotCopyToTempFileResult(KJob *)) );
+                 return Delayed; // We'll continue after the job has finished
+             }
+         }
+     }
+ 
+     // Check if running is allowed
+-    if ( !d->m_bTrustedSource && // ... and untrusted source...
+-         !allowExecution( mimeType, KRun::url() ) ) // ...and the user said no (for executables etc.)
++    if ( d->m_bTrustedSource ||
++         allowExecution( mimeType, KRun::url() ) )
+     {
+         setFinished( true );
+         return Handled;
+Index: kded/kbuildservicegroupfactory.cpp
+===================================================================
+--- kded/kbuildservicegroupfactory.cpp	(revisión: 755475)
++++ kded/kbuildservicegroupfactory.cpp	(copia de trabajo)
+@@ -33,7 +33,8 @@
+   KServiceGroupFactory()
+ {
+    m_resourceList = new KSycocaResourceList;
+-//   m_resourceList->add( "apps", "*.directory" );
++   m_resourceList->add( "apps", "*.directory" );
++   m_resourceList->add( "services", "*.directory" );
+ }
+ 
+ // return all service types for this factory
+Index: kio/kio/kdesktopfileactions.cpp
+===================================================================
+--- kio/kio/kdesktopfileactions.cpp	(revisión: 755475)
++++ kio/kio/kdesktopfileactions.cpp	(copia de trabajo)
+@@ -57,12 +57,21 @@
+ 
+     if ( cfg.hasDeviceType() )
+         return runFSDevice( u, cfg );
+-    else if ( cfg.hasApplicationType() )
++    else if ( cfg.hasApplicationType() ||
++              (cfg.hasServiceType() &&
++               cfg.desktopGroup().hasKey("Exec") ) )
+         return runApplication( u, u.path() );
+     else if ( cfg.hasLinkType() )
+         return runLink( u, cfg );
+ 
+-    QString tmp = i18n("The desktop entry of type\n%1\nis unknown.",  cfg.readType() );
++    QString tmp;
++
++    if ( cfg.hasServiceType() )
++        tmp = i18n( "The desktop entry file %1 is not going to be executed "
++                    "because it has no executable information.", u.path() );
++    else
++        tmp = i18n( "The desktop entry of type\n%1\nis unknown.",  cfg.readType() );
++
+     KMessageBoxWrapper::error( 0, tmp);
+ 
+     return false;
+Index: kio/kio/kdirmodel.cpp
+===================================================================
+--- kio/kio/kdirmodel.cpp	(revisión: 755475)
++++ kio/kio/kdirmodel.cpp	(copia de trabajo)
+@@ -293,7 +293,7 @@
+ 
+     //kDebug(7008) << "dir=" << dir;
+ 
+-    const QPair<int, KDirModelNode*> result = nodeForUrl(dir); // O(n*m)
++    const QPair<int, KDirModelNode*> result = nodeForUrl(dir, true); // O(n*m)
+     Q_ASSERT(result.second); // Are you calling KDirLister::openUrl(url,true,false)? Please use expandToUrl() instead.
+     Q_ASSERT(isDir(result.second));
+     KDirModelDirNode* dirNode = static_cast<KDirModelDirNode *>(result.second);
+Index: kdecore/config/kdesktopfile.cpp
+===================================================================
+--- kdecore/config/kdesktopfile.cpp	(revisión: 755475)
++++ kdecore/config/kdesktopfile.cpp	(copia de trabajo)
+@@ -251,6 +251,11 @@
+   return readType() == QLatin1String("Application");
+ }
+ 
++bool KDesktopFile::hasServiceType() const
++{
++  return readType() == QLatin1String("Service");
++}
++
+ bool KDesktopFile::hasMimeTypeType() const
+ {
+   return readType() == QLatin1String("MimeType");
+Index: kdecore/config/kdesktopfile.h
+===================================================================
+--- kdecore/config/kdesktopfile.h	(revisión: 755475)
++++ kdecore/config/kdesktopfile.h	(copia de trabajo)
+@@ -171,6 +171,12 @@
+   bool hasApplicationType() const;
+ 
+   /**
++   * Checks whether there is an entry "Type=Service".
++   * @return true if there is a "Type=Service" entry
++   */
++  bool hasServiceType() const;
++
++  /**
+    * Checks whether there is an entry "Type=MimeType".
+    * @return true if there is a "Type=MimeType" entry
+    */

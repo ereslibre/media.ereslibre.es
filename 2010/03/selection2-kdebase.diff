@@ -1,0 +1,324 @@
+Index: apps/dolphin/src/dolphincategorydrawer.cpp
+===================================================================
+--- apps/dolphin/src/dolphincategorydrawer.cpp	(revisión: 1100094)
++++ apps/dolphin/src/dolphincategorydrawer.cpp	(copia de trabajo)
+@@ -33,17 +33,25 @@
+ #endif
+ 
+ #include <kiconloader.h>
++#include <kiconeffect.h>
+ #include <kcategorizedsortfilterproxymodel.h>
+ #include <qimageblitz.h>
+ #include <kuser.h>
++#include <kcategorizedview.h>
+ 
+ #include "dolphinview.h"
+ #include "dolphinmodel.h"
+ 
+ #define HORIZONTAL_HINT 3
+ 
+-DolphinCategoryDrawer::DolphinCategoryDrawer()
+-        : KCategoryDrawer()
++DolphinCategoryDrawer::DolphinCategoryDrawer(KCategorizedView *view)
++        : KCategoryDrawerV3(view)
++        , selectAll(KIconLoader::global()->loadIcon("list-add", KIconLoader::Desktop, 16))
++        , selectAllHovered(KIconLoader::global()->iconEffect()->apply(selectAll, KIconLoader::Desktop, KIconLoader::ActiveState))
++        , selectAllDisabled(KIconLoader::global()->iconEffect()->apply(selectAll, KIconLoader::Desktop, KIconLoader::DisabledState))
++        , unselectAll(KIconLoader::global()->loadIcon("list-remove", KIconLoader::Desktop, 16))
++        , unselectAllHovered(KIconLoader::global()->iconEffect()->apply(unselectAll, KIconLoader::Desktop, KIconLoader::ActiveState))
++        , unselectAllDisabled(KIconLoader::global()->iconEffect()->apply(unselectAll, KIconLoader::Desktop, KIconLoader::DisabledState))
+ {
+ }
+ 
+@@ -51,12 +59,38 @@
+ {
+ }
+ 
++bool DolphinCategoryDrawer::allCategorySelected(const QString &category) const
++{
++    const QModelIndexList list = view()->block(category);
++    foreach (const QModelIndex &index, list) {
++        if (!view()->selectionModel()->isSelected(index)) {
++            return false;
++        }
++    }
++    return true;
++}
++
++bool DolphinCategoryDrawer::someCategorySelected(const QString &category) const
++{
++    const QModelIndexList list = view()->block(category);
++    foreach (const QModelIndex &index, list) {
++        if (view()->selectionModel()->isSelected(index)) {
++            return true;
++        }
++    }
++    return false;
++}
++
+ void DolphinCategoryDrawer::drawCategory(const QModelIndex &index, int sortRole,
+                                          const QStyleOption &option, QPainter *painter) const
+ {
+     Q_UNUSED(sortRole);
+     painter->setRenderHint(QPainter::Antialiasing);
+ 
++    if (!index.isValid()) {
++        return;
++    }
++
+     const QString category = index.model()->data(index, KCategorizedSortFilterProxyModel::CategoryDisplayRole).toString();
+     const QRect optRect = option.rect;
+     QFont font(QApplication::font());
+@@ -127,10 +161,43 @@
+     }
+     //END: right vertical line
+ 
++    const int iconSize = KIconLoader::global()->currentSize(KIconLoader::Small);
++
++    //BEGIN: select/unselect all
++    {
++        if (this->category == category) {
++            QRect iconAllRect(option.rect);
++            iconAllRect.setTop(iconAllRect.top() + 4);
++            iconAllRect.setLeft(iconAllRect.right() - 16 - 7);
++            iconAllRect.setSize(QSize(iconSize, iconSize));
++            if (!allCategorySelected(category)) {
++                if (iconAllRect.contains(pos)) {
++                    painter->drawPixmap(iconAllRect, selectAllHovered);
++                } else {
++                    painter->drawPixmap(iconAllRect, selectAll);
++                }
++            } else {
++                painter->drawPixmap(iconAllRect, selectAllDisabled);
++            }
++            QRect iconNoneRect(option.rect);
++            iconNoneRect.setTop(iconNoneRect.top() + 4);
++            iconNoneRect.setLeft(iconNoneRect.right() - 16 * 2 - 7 * 2);
++            iconNoneRect.setSize(QSize(iconSize, iconSize));
++            if (someCategorySelected(category)) {
++                if (iconNoneRect.contains(pos)) {
++                    painter->drawPixmap(iconNoneRect, unselectAllHovered);
++                } else {
++                    painter->drawPixmap(iconNoneRect, unselectAll);
++                }
++            } else {
++                painter->drawPixmap(iconNoneRect, unselectAllDisabled);
++            }
++        }
++    }
++    //END: select/unselect all
++
+     //BEGIN: category information
+     {
+-        const int iconSize = KIconLoader::global()->currentSize(KIconLoader::Small);
+-
+         bool paintIcon;
+         QPixmap icon;
+         switch (index.column()) {
+@@ -195,7 +262,10 @@
+ int DolphinCategoryDrawer::categoryHeight(const QModelIndex &index, const QStyleOption &option) const
+ {
+     int iconSize = KIconLoader::global()->currentSize(KIconLoader::Small);
+-    int heightWithoutIcon = option.fontMetrics.height() + (iconSize / 4) * 2 + 1; /* 1 pixel-width gradient */
++    QFont font(QApplication::font());
++    font.setBold(true);
++    const QFontMetrics fontMetrics = QFontMetrics(font);
++    int heightWithoutIcon = fontMetrics.height() + (iconSize / 4) * 2 + 1; /* 1 pixel-width gradient */
+     bool paintIcon;
+ 
+     switch (index.column()) {
+@@ -214,3 +284,55 @@
+ 
+     return heightWithoutIcon + 5;
+ }
++
++void DolphinCategoryDrawer::mouseButtonPressed(const QModelIndex &index, const QRect &blockRect, QMouseEvent *event)
++{
++    event->ignore();
++}
++
++void DolphinCategoryDrawer::mouseButtonReleased(const QModelIndex &index, const QRect &blockRect, QMouseEvent *event)
++{
++    if (!index.isValid()) {
++        event->ignore();
++        return;
++    }
++    const QString category = index.model()->data(index, KCategorizedSortFilterProxyModel::CategoryDisplayRole).toString();
++    int iconSize = KIconLoader::global()->currentSize(KIconLoader::Small);
++    if (this->category == category) {
++        QRect iconAllRect(blockRect);
++        iconAllRect.setTop(iconAllRect.top() + 4);
++        iconAllRect.setLeft(iconAllRect.right() - 16 - 7);
++        iconAllRect.setSize(QSize(iconSize, iconSize));
++        if (iconAllRect.contains(pos)) {
++            event->accept();
++            emit actionRequested(SelectAll, index);
++            return;
++        }
++        QRect iconNoneRect(blockRect);
++        iconNoneRect.setTop(iconNoneRect.top() + 4);
++        iconNoneRect.setLeft(iconNoneRect.right() - 16 * 2 - 7 * 2);
++        iconNoneRect.setSize(QSize(iconSize, iconSize));
++        if (iconNoneRect.contains(pos)) {
++            event->accept();
++            emit actionRequested(UnselectAll, index);
++            return;
++        }
++    }
++    event->ignore();
++}
++
++void DolphinCategoryDrawer::mouseMoved(const QModelIndex &index, const QRect &blockRect, QMouseEvent *event)
++{
++    event->ignore();
++    if (!index.isValid()) {
++        return;
++    }
++    pos = event->pos();
++    category = index.model()->data(index, KCategorizedSortFilterProxyModel::CategoryDisplayRole).toString();
++}
++
++void DolphinCategoryDrawer::mouseLeft(const QModelIndex &index, const QRect &blockRect)
++{
++    pos = QPoint();
++    category = QString();
++}
+Index: apps/dolphin/src/dolphincategorydrawer.h
+===================================================================
+--- apps/dolphin/src/dolphincategorydrawer.h	(revisión: 1100094)
++++ apps/dolphin/src/dolphincategorydrawer.h	(copia de trabajo)
+@@ -28,17 +28,55 @@
+ #include <libdolphin_export.h>
+ 
+ class LIBDOLPHINPRIVATE_EXPORT DolphinCategoryDrawer
+-    : public KCategoryDrawer
++    : public KCategoryDrawerV3
+ {
+ public:
+-    DolphinCategoryDrawer();
++    enum Action {
++        SelectAll = 0,
++        UnselectAll
++    };
+ 
++    DolphinCategoryDrawer(KCategorizedView *view);
++
+     virtual ~DolphinCategoryDrawer();
+ 
++    bool allCategorySelected(const QString &category) const;
++    
++    bool someCategorySelected(const QString &category) const;
++
+     virtual void drawCategory(const QModelIndex &index, int sortRole,
+                               const QStyleOption &option, QPainter *painter) const;
+ 
+     virtual int categoryHeight(const QModelIndex &index, const QStyleOption &option) const;
++
++    /**
++      * @warning You explicitly have to determine whether the event has been accepted or not. You
++      *          have to call event->accept() or event->ignore() at all possible case branches in
++      *          your code.
++      */
++    virtual void mouseButtonPressed(const QModelIndex &index, const QRect &blockRect, QMouseEvent *event);
++
++    /**
++      * @warning You explicitly have to determine whether the event has been accepted or not. You
++      *          have to call event->accept() or event->ignore() at all possible case branches in
++      *          your code.
++      */
++    virtual void mouseButtonReleased(const QModelIndex &index, const QRect &blockRect, QMouseEvent *event);
++
++    virtual void mouseMoved(const QModelIndex &index, const QRect &blockRect, QMouseEvent *event);
++
++    virtual void mouseLeft(const QModelIndex &index,const QRect &blockRect);
++
++private:
++    QPixmap selectAll;
++    QPixmap selectAllHovered;
++    QPixmap selectAllDisabled;
++    QPixmap unselectAll;
++    QPixmap unselectAllHovered;
++    QPixmap unselectAllDisabled;
++
++    QPoint pos;
++    QString category;
+ };
+ 
+ #endif // DOLPHINCATEGORYDRAWER_H
+Index: apps/dolphin/src/dolphiniconsview.cpp
+===================================================================
+--- apps/dolphin/src/dolphiniconsview.cpp	(revisión: 1100094)
++++ apps/dolphin/src/dolphiniconsview.cpp	(copia de trabajo)
+@@ -43,7 +43,7 @@
+                                    DolphinSortFilterProxyModel* proxyModel) :
+     KCategorizedView(parent),
+     m_controller(controller),
+-    m_categoryDrawer(0),
++    m_categoryDrawer(new DolphinCategoryDrawer(this)),
+     m_extensionsFactory(0),
+     m_font(),
+     m_decorationSize(),
+@@ -113,7 +113,7 @@
+         m_displayAlignment = Qt::AlignLeft | Qt::AlignVCenter;
+     }
+ 
+-    m_categoryDrawer = new DolphinCategoryDrawer();
++    connect(m_categoryDrawer, SIGNAL(actionRequested(int,QModelIndex)), this, SLOT(categoryDrawerActionRequested(int,QModelIndex)));
+     setCategoryDrawer(m_categoryDrawer);
+ 
+     setFocus();
+@@ -127,8 +127,6 @@
+ 
+ DolphinIconsView::~DolphinIconsView()
+ {
+-    delete m_categoryDrawer;
+-    m_categoryDrawer = 0;
+ }
+ 
+ void DolphinIconsView::dataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight)
+@@ -424,6 +422,33 @@
+     }
+ }
+ 
++void DolphinIconsView::categoryDrawerActionRequested(int action, const QModelIndex &index)
++{
++    const QSortFilterProxyModel *model = dynamic_cast<const QSortFilterProxyModel*>(index.model());
++    const QModelIndex topLeft = model->index(index.row(), modelColumn());
++    QModelIndex bottomRight = topLeft;
++    const QString category = model->data(index, KCategorizedSortFilterProxyModel::CategoryDisplayRole).toString();
++    QModelIndex current = topLeft;
++    while (true) {
++        current = model->index(current.row() + 1, modelColumn());
++        const QString curCategory = model->data(model->index(current.row(), index.column()), KCategorizedSortFilterProxyModel::CategoryDisplayRole).toString();
++        if (!current.isValid() || category != curCategory) {
++            break;
++        }
++        bottomRight = current;
++    }
++    switch (action) {
++        case DolphinCategoryDrawer::SelectAll:
++            selectionModel()->select(QItemSelection(topLeft, bottomRight), QItemSelectionModel::Select);
++            break;
++        case DolphinCategoryDrawer::UnselectAll:
++            selectionModel()->select(QItemSelection(topLeft, bottomRight), QItemSelectionModel::Deselect);
++            break;
++        default:
++            break;
++    }
++}
++
+ void DolphinIconsView::updateGridSize(bool showPreview, int additionalInfoCount)
+ {
+     const IconsModeSettings* settings = DolphinSettings::instance().iconsModeSettings();
+Index: apps/dolphin/src/dolphiniconsview.h
+===================================================================
+--- apps/dolphin/src/dolphiniconsview.h	(revisión: 1100094)
++++ apps/dolphin/src/dolphiniconsview.h	(copia de trabajo)
+@@ -78,6 +78,7 @@
+     void setZoomLevel(int level);
+     void requestActivation();
+     void slotGlobalSettingsChanged(int category);
++    void categoryDrawerActionRequested(int action, const QModelIndex &index);
+ 
+ private:
+     /**

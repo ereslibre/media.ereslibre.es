@@ -1,0 +1,2100 @@
+Index: kfile/kdirsortfilterproxymodel.h
+===================================================================
+--- kfile/kdirsortfilterproxymodel.h	(revisión: 708700)
++++ kfile/kdirsortfilterproxymodel.h	(copia de trabajo)
+@@ -23,7 +23,8 @@
+ #ifndef KDIRSORTFILTERPROXYMODEL_H
+ #define KDIRSORTFILTERPROXYMODEL_H
+ 
+-#include <QtGui/QSortFilterProxyModel>
++#include <kcategorizedsortfilterproxymodel.h>
++
+ #include <kfile_export.h>
+ //#include <kio/kio_export.h>
+ 
+@@ -45,7 +46,8 @@
+  *
+  * @author Dominic Battre, Martin Pool and Peter Penz
+  */
+-class KFILE_EXPORT /*KIO_EXPORT*/ KDirSortFilterProxyModel : public QSortFilterProxyModel
++class KFILE_EXPORT /*KIO_EXPORT*/ KDirSortFilterProxyModel
++    : public KCategorizedSortFilterProxyModel
+ {
+     Q_OBJECT
+ 
+@@ -75,6 +77,12 @@
+      */
+     virtual bool lessThan(const QModelIndex& left,
+                           const QModelIndex& right) const;
++
++    virtual bool lessThanCategoryPurpose(const QModelIndex &left,
++                                         const QModelIndex &right) const;
++
++    virtual bool lessThanGeneralPurpose(const QModelIndex &left,
++                                        const QModelIndex &right) const;
+ };
+ 
+ 
+Index: kfile/kdirsortfilterproxymodel.cpp
+===================================================================
+--- kfile/kdirsortfilterproxymodel.cpp	(revisión: 708700)
++++ kfile/kdirsortfilterproxymodel.cpp	(copia de trabajo)
+@@ -31,7 +31,7 @@
+ // in the form of a separate subclass
+ 
+ KDirSortFilterProxyModel::KDirSortFilterProxyModel(QObject* parent)
+-    : QSortFilterProxyModel(parent)
++    : KCategorizedSortFilterProxyModel(parent)
+ {
+     setDynamicSortFilter(true);
+ 
+@@ -288,7 +288,17 @@
+ 
+     // We have set a SortRole and trust the ProxyModel to do
+     // the right thing for now.
+-    return QSortFilterProxyModel::lessThan(left, right);
++    return KCategorizedSortFilterProxyModel::lessThan(left, right);
+ }
+ 
++bool KDirSortFilterProxyModel::lessThanCategoryPurpose(const QModelIndex &left,
++                                                       const QModelIndex &right) const
++{
++    return lessThan(left, right);
++}
+ 
++bool KDirSortFilterProxyModel::lessThanGeneralPurpose(const QModelIndex &left,
++                                                      const QModelIndex &right) const
++{
++    return lessThan(left, right);
++}
+Index: kio/kio/global.cpp
+===================================================================
+--- kio/kio/global.cpp	(revisión: 708700)
++++ kio/kio/global.cpp	(copia de trabajo)
+@@ -30,7 +30,7 @@
+ #include <kprotocolmanager.h>
+ #include <kde_file.h>
+ #include <kmimetype.h>
+-#include <kuiserverjobtracker.h>
++#include <kwidgetjobtracker.h>
+ 
+ #include <QtCore/QByteArray>
+ #include <QtCore/QDate>
+@@ -47,7 +47,7 @@
+ #include <unistd.h>
+ #include <stdio.h>
+ 
+-K_GLOBAL_STATIC(KUiServerJobTracker, globalJobTracker)
++K_GLOBAL_STATIC(KWidgetJobTracker, globalJobTracker)
+ 
+ // If someone wants the SI-standard prefixes kB/MB/GB/TB, I would recommend
+ // a hidden kconfig option and getting the code from #57240 into the same
+Index: kdeui/CMakeLists.txt
+===================================================================
+--- kdeui/CMakeLists.txt	(revisión: 708700)
++++ kdeui/CMakeLists.txt	(copia de trabajo)
+@@ -102,6 +102,7 @@
+  itemviews/klistwidgetsearchline.cpp
+  itemviews/ktreewidgetsearchline.cpp
+  itemviews/kextendableitemdelegate.cpp
++ itemviews/kcategorizedsortfilterproxymodel.cpp
+  jobs/kdialogjobuidelegate.cpp
+  jobs/kabstractwidgetjobtracker.cpp
+  jobs/kwidgetjobtracker.cpp
+@@ -356,6 +357,7 @@
+  itemviews/klistwidget.h
+  itemviews/klistwidgetsearchline.h
+  itemviews/ktreewidgetsearchline.h
++ itemviews/kcategorizedsortfilterproxymodel.h
+  jobs/kdialogjobuidelegate.h
+  jobs/kabstractwidgetjobtracker.h
+  jobs/kwidgetjobtracker.h
+Index: kdeui/dialogs/aboutkde.png
+===================================================================
+No se puede mostrar: el archivo está marcado como binario.
+svn:mime-type = image/png
+Index: kdeui/jobs/kwidgetjobtracker.cpp
+===================================================================
+--- kdeui/jobs/kwidgetjobtracker.cpp	(revisión: 708700)
++++ kdeui/jobs/kwidgetjobtracker.cpp	(copia de trabajo)
+@@ -114,6 +114,24 @@
+     return d->widget;
+ }
+ 
++void KWidgetJobTracker::registerJob(KJob *job)
++{
++    // When we register the job, we want to show the widget
++    d->widget->show();
++
++    KAbstractWidgetJobTracker::registerJob(job);
++}
++
++
++void KWidgetJobTracker::unregisterJob(KJob *job)
++{
++    // When we try to unregister the job, the widget is useless
++    d->widget->close();
++
++    KAbstractWidgetJobTracker::unregisterJob(job);
++}
++
++
+ bool KWidgetJobTracker::keepOpen() const
+ {
+     return d->keepOpenChecked;
+Index: kdeui/jobs/kwidgetjobtracker.h
+===================================================================
+--- kdeui/jobs/kwidgetjobtracker.h	(revisión: 708700)
++++ kdeui/jobs/kwidgetjobtracker.h	(copia de trabajo)
+@@ -51,6 +51,21 @@
+      */
+     virtual QWidget *widget();
+ 
++    /**
++     * Register a new job in this tracker.
++     *
++     * @param job the job to register
++     */
++    virtual void registerJob(KJob *job);
++
++    /**
++     * Unregister a job from this tracker.
++     *
++     * @param job the job to unregister
++     */
++    virtual void unregisterJob(KJob *job);
++
++
+     bool keepOpen() const;
+ 
+ protected Q_SLOTS:
+Index: kdeui/itemviews/kcategorizedsortfilterproxymodel.h
+===================================================================
+--- kdeui/itemviews/kcategorizedsortfilterproxymodel.h	(revisión: 0)
++++ kdeui/itemviews/kcategorizedsortfilterproxymodel.h	(revisión: 0)
+@@ -0,0 +1,161 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@gmail.com>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  *
++  * ATTENTION: This code is based on the class QSortFilterProxyModel created
++  *            by Trolltech ASA.
++  */
++
++#ifndef KCATEGORIZEDSORTFILTERPROXYMODEL_H
++#define KCATEGORIZEDSORTFILTERPROXYMODEL_H
++
++#include <QtGui/QSortFilterProxyModel>
++
++#include <kdeui_export.h>
++
++class QItemSelection;
++
++/**
++  * This class replaces the original QSortFilterProxyModel for the
++  * KCategorizedView class usage.
++  *
++  * @author Rafael Fernández López
++  */
++class KDEUI_EXPORT KCategorizedSortFilterProxyModel
++    : public QSortFilterProxyModel
++{
++    Q_OBJECT
++
++    friend class LessThan;
++
++public:
++    enum AdditionalRoles {
++        CategoryRole = 32
++    };
++
++    KCategorizedSortFilterProxyModel(QObject *parent = 0);
++    virtual ~KCategorizedSortFilterProxyModel();
++
++    virtual void setSourceModel(QAbstractItemModel *sourceModel);
++
++    virtual void sort(int column, Qt::SortOrder order = Qt::AscendingOrder);
++
++    virtual QModelIndex mapFromSource(const QModelIndex &sourceIndex) const;
++    virtual QModelIndex mapToSource(const QModelIndex &proxyIndex) const;
++    virtual QItemSelection mapSelectionFromSource(const QItemSelection &sourceSelection) const;
++    virtual QItemSelection mapSelectionToSource(const QItemSelection &proxySelection) const;
++
++#if 0
++    virtual QRegExp filterRegExp() const;
++    virtual void setFilterRegExp(const QRegExp &regExp);
++
++    virtual int filterKeyColumn() const;
++    virtual void setFilterKeyColumn(int column);
++
++    virtual Qt::CaseSensitivity filterCaseSensitivity() const;
++    virtual void setFilterCaseSensitivity(Qt::CaseSensitivity cs);
++
++    virtual Qt::CaseSensitivity sortCaseSensitivity() const;
++    virtual void setSortCaseSensitivity(Qt::CaseSensitivity cs);
++
++    virtual bool isSortLocaleAware() const;
++    virtual void setSortLocaleAware(bool on);
++
++    virtual bool dynamicSortFilter() const;
++    virtual void setDynamicSortFilter(bool enable);
++
++    virtual int sortRole() const;
++    virtual void setSortRole(int role);
++
++    virtual int filterRole() const;
++    virtual void setFilterRole(int role);
++#endif
++
++    virtual QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const;
++    virtual bool hasChildren(const QModelIndex &parent = QModelIndex()) const;
++
++    virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
++    virtual bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole);
++
++    virtual QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::EditRole) const;
++    virtual bool setHeaderData(int section, Qt::Orientation orientation, const QVariant &value, int role = Qt::EditRole);
++
++    virtual QModelIndex buddy(const QModelIndex &index) const;
++    virtual Qt::ItemFlags flags(const QModelIndex &index) const;
++#if 0
++    virtual QMap<int, QVariant> itemData(const QModelIndex &index) const;
++    virtual bool setItemData(const QModelIndex &index, const QMap<int, QVariant> &roles);
++#endif
++    virtual QModelIndexList match(const QModelIndex &start, int role, const QVariant &value, int hits = 1, Qt::MatchFlags flags = Qt::MatchFlags(Qt::MatchStartsWith | Qt::MatchWrap)) const;
++    virtual QModelIndex parent(const QModelIndex &index) const;
++    virtual QSize span(const QModelIndex &index) const;
++
++    virtual QStringList mimeTypes() const;
++    virtual QMimeData *mimeData(const QModelIndexList &indexes) const;
++    virtual bool dropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent);
++    virtual Qt::DropActions supportedDropActions() const;
++
++    virtual int rowCount(const QModelIndex &parent = QModelIndex()) const;
++    virtual int columnCount(const QModelIndex &parent = QModelIndex()) const;
++    virtual bool insertRows(int row, int count, const QModelIndex &parent = QModelIndex());
++    virtual bool insertColumns(int column, int count, const QModelIndex &parent = QModelIndex());
++    virtual bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex());
++    virtual bool removeColumns(int column, int count, const QModelIndex &parent = QModelIndex());
++    virtual void fetchMore(const QModelIndex &parent);
++    virtual bool canFetchMore(const QModelIndex &parent) const;
++
++    int sortColumn() const;
++    Qt::SortOrder sortOrder() const;
++
++    bool isCategorizedModel() const;
++    void setCategorizedModel(bool categorizedModel);
++
++public Q_SLOTS:
++#if 0
++    void setFilterRegExp(const QString &pattern);
++    void setFilterWildcard(const QString &pattern);
++    void setFilterFixedString(const QString &pattern);
++#endif
++    void clear();
++    void invalidate();
++
++protected:
++    virtual bool lessThanGeneralPurpose(const QModelIndex &left, const QModelIndex &right) const = 0;
++    virtual bool lessThanCategoryPurpose(const QModelIndex &left, const QModelIndex &right) const = 0;
++
++private Q_SLOTS:
++    void sourceDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight);
++    void sourceHeaderDataChanged(Qt::Orientation orientation, int first, int last);
++    void sourceRowsAboutToBeInserted(const QModelIndex &parent, int start, int end);
++    void sourceRowsInserted(const QModelIndex &parent, int start, int end);
++    void sourceColumnsAboutToBeInserted(const QModelIndex &parent, int start, int end);
++    void sourceColumnsInserted(const QModelIndex &parent, int start, int end);
++    void sourceRowsAboutToBeRemoved(const QModelIndex &parent, int start, int end);
++    void sourceRowsRemoved(const QModelIndex &parent, int start, int end);
++    void sourceColumnsAboutToBeRemoved(const QModelIndex &parent, int start, int end);
++    void sourceColumnsRemoved(const QModelIndex &parent, int start, int end);
++    void sourceLayoutAboutToBeChanged();
++    void sourceLayoutChanged();
++    void sourceReset();
++
++private:
++    class Private;
++    Private *d;
++};
++
++#endif // KCATEGORIZEDSORTFILTERPROXYMODEL_H
+Index: kdeui/itemviews/kcategorizedsortfilterproxymodel.cpp
+===================================================================
+--- kdeui/itemviews/kcategorizedsortfilterproxymodel.cpp	(revisión: 0)
++++ kdeui/itemviews/kcategorizedsortfilterproxymodel.cpp	(revisión: 0)
+@@ -0,0 +1,1759 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@gmail.com>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  *
++  * ATTENTION: This code is based on the class QSortFilterProxyModel created
++  *            by Trolltech ASA.
++  */
++
++#include "kcategorizedsortfilterproxymodel.h"
++
++#include <limits.h>
++
++#include <QItemSelection>
++#include <QStringList>
++#include <QSize>
++
++#include <kdebug.h>
++#include <kglobal.h>
++
++/**
++  * @internal
++  * @short This class will be called when sorting
++  */
++class LessThan
++{
++public:
++    enum Purpose
++    {
++        GeneralPurpose = 0,
++        CategoryPurpose
++    };
++
++    inline LessThan(const QModelIndex &parent,
++                    const QAbstractItemModel *sourceModel,
++                    const KCategorizedSortFilterProxyModel *proxyModel,
++                    Purpose purpose)
++        : parent(parent)
++        , sourceModel(sourceModel)
++        , proxyModel(proxyModel)
++        , purpose(purpose)
++    {
++    }
++
++    inline bool operator()(int leftRow,
++                           int rightRow) const
++    {
++        QModelIndex leftIndex = sourceModel->index(leftRow, proxyModel->sortColumn(), parent);
++        QModelIndex rightIndex = sourceModel->index(rightRow, proxyModel->sortColumn(), parent);
++
++        if (purpose == GeneralPurpose)
++        {
++            return proxyModel->sortOrder() == Qt::AscendingOrder ?
++                   proxyModel->lessThanGeneralPurpose(leftIndex, rightIndex) :
++                   !proxyModel->lessThanGeneralPurpose(leftIndex, rightIndex);
++        }
++
++        return proxyModel->sortOrder() == Qt::AscendingOrder ?
++               proxyModel->lessThanCategoryPurpose(leftIndex, rightIndex) :
++               !proxyModel->lessThanCategoryPurpose(leftIndex, rightIndex);
++    }
++
++private:
++    const QModelIndex parent;
++    const QAbstractItemModel *sourceModel;
++    const KCategorizedSortFilterProxyModel *proxyModel;
++    const Purpose purpose;
++};
++
++
++// =============================================================================
++
++/**
++  * @short This is an empty model for keeping safety on the KCategorizedSortFilterProxyModel
++  *        class. When an instance is created of the KCategorizedSortFilterProxyModel class
++  *        a KEmptyItemModel static object is set as source model, so the source model
++  *        pointer is never 0
++  *
++  * @internal
++  */
++class KEmptyItemModel
++    : public QAbstractItemModel
++{
++public:
++    explicit KEmptyItemModel(QObject *parent = 0)
++        : QAbstractItemModel(parent)
++    {
++    }
++
++    QModelIndex index(int, int, const QModelIndex &) const
++    {
++        return QModelIndex();
++    }
++
++    QModelIndex parent(const QModelIndex &) const
++    {
++        return QModelIndex();
++    }
++
++    int rowCount(const QModelIndex &) const
++    {
++        return 0;
++    }
++
++    int columnCount(const QModelIndex &) const
++    {
++        return 0;
++    }
++
++    bool hasChildren(const QModelIndex &) const
++    {
++        return false;
++    }
++
++    QVariant data(const QModelIndex &, int) const
++    {
++        return QVariant();
++    }
++};
++
++/**
++  * @internal
++  */
++K_GLOBAL_STATIC(KEmptyItemModel, dummyModel) ///< Declaration of the static object
++
++/**
++  * @internal
++  */
++class KCategorizedSortFilterProxyModel::Private
++{
++public:
++    Private(KCategorizedSortFilterProxyModel *parent)
++        : p(parent)
++        , sortColumn(0)
++        , sortOrder(Qt::AscendingOrder)
++        , categorizedModel(false)
++    {
++    }
++
++    ~Private()
++    {
++    }
++
++    QAbstractItemModel *staticEmptyModel()
++    {
++        return dummyModel;
++    }
++
++    class InternalInformation;
++
++    // Methods
++
++    void sourceItemsInserted(const QModelIndex &sourceParent, int start, int end, Qt::Orientation orientation);
++
++    QMap<QModelIndex, InternalInformation*>::const_iterator createInternalInformation(const QModelIndex &sourceParent) const;
++    void removeInternalInformation(const QModelIndex &sourceParent);
++    void updateChildrenMapping(const QModelIndex &sourceParent, InternalInformation *parentInfo, Qt::Orientation orientation, int start, int end, int itemCount, bool remove);
++    void buildSourceToProxyMapping(const QVector<int> &proxyToSource, QVector<int> &sourceToProxy) const;
++    void sortSourceRows(QVector<int> &sourceRows, const QModelIndex &sourceParent) const;
++    void insertSourceItems(QVector<int> &sourceToProxy, QVector<int> &proxyToSource, const QVector<int> &sourceItems, const QModelIndex &sourceParent, Qt::Orientation orientation, bool emitSignal = true);
++    void removeSourceItems(QVector<int> &sourceToProxy, QVector<int> &proxyToSource, const QVector<int> &sourceItems, const QModelIndex &sourceParent, Qt::Orientation orientation, bool emitSignal = true);
++    void proxyItemRange(const QVector<int> &sourceToProxy, const QVector<int> &sourceItems, int &proxyLow, int &proxyHigh) const;
++    QVector<QPair<int, int > > proxyIntervalsForSourceItems(const QVector<int> &sourceToProxy, const QVector<int> &sourceItems) const;
++    void removeProxyInterval(QVector<int> &sourceToProxy, QVector<int> &proxyToSource, int proxyStart, int proxyEnd, const QModelIndex &proxyParent, Qt::Orientation orientation, bool emitSignal = true);
++
++    QVector<QPair<int, QVector<int > > > proxyIntervalsForSourceItemsToAdd(const QVector<int> &proxyToSource, const QVector<int> &sourceItems, const QModelIndex &sourceParent, Qt::Orientation orientation) const;
++    QMap<QModelIndex, InternalInformation*>::const_iterator indexToIterator(const QModelIndex &proxyIndex) const;
++
++    QModelIndex sourceToProxy(const QModelIndex &sourceIndex) const;
++    QModelIndex proxyToSource(const QModelIndex &proxyIndex) const;
++
++    bool indexValid(const QModelIndex &index) const;
++
++    // Attributes
++
++    int sortColumn;
++    Qt::SortOrder sortOrder;
++    bool categorizedModel;
++
++    QStringList categories;
++    QHash<QString, QModelIndexList> categoriesIndexes;
++    mutable QMap<QModelIndex, InternalInformation*> sourceIndexMap;
++
++    KCategorizedSortFilterProxyModel *p;
++};
++
++
++// =============================================================================
++
++
++/**
++  * @internal
++  * @short We will have an instance of this class on every QModelIndex generated
++  *        by the proxy model, accessed through the internalPointer() method
++  */
++class KCategorizedSortFilterProxyModel::Private::InternalInformation
++{
++public:
++    InternalInformation()
++    {
++    }
++
++    ~InternalInformation()
++    {
++    }
++
++    QMap<QModelIndex, InternalInformation*>::const_iterator mapIterator;
++    QVector<QModelIndex> mappedChildren;
++    QVector<int> sourceRows;
++    QVector<int> proxyRows;
++    QVector<int> sourceColumns;
++    QVector<int> proxyColumns;
++};
++
++
++// =============================================================================
++
++
++KCategorizedSortFilterProxyModel::KCategorizedSortFilterProxyModel(QObject *parent)
++    : QSortFilterProxyModel(parent)
++    , d(new Private(this))
++{
++    // For keeping safety, when we create the KCategorizedSortFilterProxyModel
++    // object we set an empty model as the source model
++
++    setSourceModel(dummyModel);
++}
++
++KCategorizedSortFilterProxyModel::~KCategorizedSortFilterProxyModel()
++{
++    delete d;
++}
++
++void KCategorizedSortFilterProxyModel::setSourceModel(QAbstractItemModel *sourceModel)
++{
++    d->sortColumn = -1;
++    d->sortOrder = Qt::AscendingOrder;
++
++    d->categories.clear();
++    d->categoriesIndexes.clear();
++
++#if 0
++    disconnect(this->sourceModel(), SIGNAL(dataChanged(QModelIndex,QModelIndex)),
++               this, SLOT(sourceDataChanged(QModelIndex,QModelIndex)));
++
++    disconnect(this->sourceModel(), SIGNAL(headerDataChanged(Qt::Orientation,int,int)),
++               this, SLOT(sourceHeaderDataChanged(Qt::Orientation,int,int)));
++
++    disconnect(this->sourceModel(), SIGNAL(rowsAboutToBeInserted(QModelIndex,int,int)),
++               this, SLOT(sourceRowsAboutToBeInserted(QModelIndex,int,int)));
++
++    disconnect(this->sourceModel(), SIGNAL(rowsInserted(QModelIndex,int,int)),
++               this, SLOT(sourceRowsInserted(QModelIndex,int,int)));
++
++    disconnect(this->sourceModel(), SIGNAL(columnsAboutToBeInserted(QModelIndex,int,int)),
++               this, SLOT(sourceColumnsAboutToBeInserted(QModelIndex,int,int)));
++
++    disconnect(this->sourceModel(), SIGNAL(columnsInserted(QModelIndex,int,int)),
++               this, SLOT(sourceColumnsInserted(QModelIndex,int,int)));
++
++    disconnect(this->sourceModel(), SIGNAL(rowsAboutToBeRemoved(QModelIndex,int,int)),
++               this, SLOT(sourceRowsAboutToBeRemoved(QModelIndex,int,int)));
++
++    disconnect(this->sourceModel(), SIGNAL(rowsRemoved(QModelIndex,int,int)),
++               this, SLOT(sourceRowsRemoved(QModelIndex,int,int)));
++
++    disconnect(this->sourceModel(), SIGNAL(columnsAboutToBeRemoved(QModelIndex,int,int)),
++               this, SLOT(sourceColumnsAboutToBeRemoved(QModelIndex,int,int)));
++
++    disconnect(this->sourceModel(), SIGNAL(columnsRemoved(QModelIndex,int,int)),
++               this, SLOT(sourceColumnsRemoved(QModelIndex,int,int)));
++
++    disconnect(this->sourceModel(), SIGNAL(layoutAboutToBeChanged()),
++               this, SLOT(sourceLayoutAboutToBeChanged()));
++
++    disconnect(this->sourceModel(), SIGNAL(layoutChanged()),
++               this, SLOT(sourceLayoutChanged()));
++
++    disconnect(this->sourceModel(), SIGNAL(modelReset()), this, SLOT(sourceReset()));
++#endif
++    QAbstractProxyModel::setSourceModel(sourceModel);
++#if 0
++    connect(sourceModel, SIGNAL(dataChanged(QModelIndex,QModelIndex)),
++            this, SLOT(sourceDataChanged(QModelIndex,QModelIndex)));
++
++    connect(sourceModel, SIGNAL(headerDataChanged(Qt::Orientation,int,int)),
++            this, SLOT(sourceHeaderDataChanged(Qt::Orientation,int,int)));
++
++    connect(sourceModel, SIGNAL(rowsAboutToBeInserted(QModelIndex,int,int)),
++            this, SLOT(sourceRowsAboutToBeInserted(QModelIndex,int,int)));
++
++    connect(sourceModel, SIGNAL(rowsInserted(QModelIndex,int,int)),
++            this, SLOT(sourceRowsInserted(QModelIndex,int,int)));
++
++    connect(sourceModel, SIGNAL(columnsAboutToBeInserted(QModelIndex,int,int)),
++            this, SLOT(sourceColumnsAboutToBeInserted(QModelIndex,int,int)));
++
++    connect(sourceModel, SIGNAL(columnsInserted(QModelIndex,int,int)),
++            this, SLOT(sourceColumnsInserted(QModelIndex,int,int)));
++
++    connect(sourceModel, SIGNAL(rowsAboutToBeRemoved(QModelIndex,int,int)),
++            this, SLOT(sourceRowsAboutToBeRemoved(QModelIndex,int,int)));
++
++    connect(sourceModel, SIGNAL(rowsRemoved(QModelIndex,int,int)),
++            this, SLOT(sourceRowsRemoved(QModelIndex,int,int)));
++
++    connect(sourceModel, SIGNAL(columnsAboutToBeRemoved(QModelIndex,int,int)),
++            this, SLOT(sourceColumnsAboutToBeRemoved(QModelIndex,int,int)));
++
++    connect(sourceModel, SIGNAL(columnsRemoved(QModelIndex,int,int)),
++            this, SLOT(sourceColumnsRemoved(QModelIndex,int,int)));
++
++    connect(sourceModel, SIGNAL(layoutAboutToBeChanged()),
++            this, SLOT(sourceLayoutAboutToBeChanged()));
++
++    connect(sourceModel, SIGNAL(layoutChanged()),
++            this, SLOT(sourceLayoutChanged()));
++
++    connect(sourceModel, SIGNAL(modelReset()), this, SLOT(sourceReset()));
++#endif
++    reset();
++}
++
++void KCategorizedSortFilterProxyModel::sort(int column, Qt::SortOrder order)
++{
++    d->sortColumn = column;
++    d->sortOrder = order;
++
++
++#if 0
++    Q_Q(QSortFilterProxyModel);
++    emit q->layoutAboutToBeChanged();
++    QModelIndexList source_indexes = store_persistent_indexes();
++    IndexMap::const_iterator it = source_index_mapping.constBegin();
++    for (; it != source_index_mapping.constEnd(); ++it) {
++        QModelIndex source_parent = it.key();
++        Mapping *m = it.value();
++        sort_source_rows(m->source_rows, source_parent);
++        build_source_to_proxy_mapping(m->source_rows, m->proxy_rows);
++    }
++    update_persistent_indexes(source_indexes);
++    emit q->layoutChanged();
++#endif
++
++    emit layoutAboutToBeChanged();
++
++
++    emit layoutChanged();
++
++
++#if 0
++    // Clear all the previous information
++    d->categories.clear();
++    d->categoriesIndexes.clear();
++    d->mappedRowsFromSource.clear();
++    d->mappedRowsToSource.clear();
++    d->mappedInternalPointersFromSource.clear();
++    d->mappedInternalPointersToSource.clear();
++
++    if (!sourceModel() || !sourceModel()->rowCount())
++        return;
++
++    // Add all elements mapped to the source model
++    QModelIndexList sourceModelIndexList;
++    QModelIndexList sourceModelIndexSortedList;
++    for (int k = 0; k < sourceModel()->rowCount(); k++)
++    {
++        sourceModelIndexList << sourceModel()->index(k, column);
++        sourceModelIndexSortedList << sourceModel()->index(k, column);
++    }
++
++    // Sort them with the general purpose lessThan method
++    LessThan generalLessThan(QModelIndex(), // TODO: is this right ?
++                             sourceModel(),
++                             this,
++                             LessThan::GeneralPurpose);
++
++    qStableSort(sourceModelIndexSortedList.begin(), sourceModelIndexSortedList.end(),
++                generalLessThan);
++
++    // Explore categories
++    QString prevCategory = sourceModel()->data(sourceModelIndexSortedList.at(0), CategoryRole).toString();
++    QString lastCategory = prevCategory;
++    QModelIndexList modelIndexList;
++    foreach (const QModelIndex &index, sourceModelIndexSortedList)
++    {
++        lastCategory = sourceModel()->data(index, CategoryRole).toString();
++
++        if (prevCategory != lastCategory)
++        {
++            d->categoriesIndexes.insert(prevCategory, modelIndexList);
++            d->categories << prevCategory;
++            modelIndexList.clear();
++        }
++
++        modelIndexList << index;
++        prevCategory = lastCategory;
++    }
++
++    d->categoriesIndexes.insert(prevCategory, modelIndexList);
++    d->categories << prevCategory;
++
++    // Sort items locally in their respective categories with the category
++    // purpose lessThan
++    LessThan categoryLessThan(QModelIndex(), // TODO: is this right ?
++                              sourceModel(),
++                              this,
++                              LessThan::CategoryPurpose);
++
++    foreach (const QString &key, d->categories)
++    {
++        QModelIndexList &indexList = d->categoriesIndexes[key];
++
++        qStableSort(indexList.begin(), indexList.end(), categoryLessThan);
++    }
++
++    int k = 0;
++    QModelIndex sourceIndex;
++    foreach (const QString &key, d->categories)
++    {
++        foreach (const QModelIndex &index, d->categoriesIndexes[key])
++        {
++            sourceIndex = sourceModel()->index(k, column);
++            d->mappedRowsFromSource.insert(k, index.row());
++            d->mappedRowsToSource.insert(index.row(), k);
++#warning INSEGURO, SOBRE LOS VALORES DE LAS CLAVES
++            d->mappedInternalPointersFromSource.insert(k, index.internalPointer());
++            d->mappedInternalPointersToSource.insert(index.row(), index.internalPointer());
++
++            kDebug(4650) << "ORDEN: " << index.model()->data(index.model()->index(index.row(), 0), Qt::DisplayRole).toString() << endl;
++
++            k++;
++        }
++    }
++#endif
++}
++
++QModelIndex KCategorizedSortFilterProxyModel::mapFromSource(const QModelIndex &sourceIndex) const
++{
++    return d->sourceToProxy(sourceIndex);
++}
++
++QModelIndex KCategorizedSortFilterProxyModel::mapToSource(const QModelIndex &proxyIndex) const
++{
++    return d->proxyToSource(proxyIndex);
++}
++
++QItemSelection KCategorizedSortFilterProxyModel::mapSelectionToSource(const QItemSelection &proxySelection) const
++{
++    return QSortFilterProxyModel::mapSelectionToSource(proxySelection);
++}
++
++QItemSelection KCategorizedSortFilterProxyModel::mapSelectionFromSource(const QItemSelection &sourceSelection) const
++{
++    return QSortFilterProxyModel::mapSelectionFromSource(sourceSelection);
++}
++
++#if 0
++QRegExp KCategorizedSortFilterProxyModel::filterRegExp() const
++{
++}
++
++void KCategorizedSortFilterProxyModel::setFilterRegExp(const QRegExp &regExp)
++{
++}
++
++int KCategorizedSortFilterProxyModel::filterKeyColumn() const
++{
++}
++
++void KCategorizedSortFilterProxyModel::setFilterKeyColumn(int column)
++{
++}
++
++Qt::CaseSensitivity KCategorizedSortFilterProxyModel::filterCaseSensitivity() const
++{
++}
++
++void KCategorizedSortFilterProxyModel::setFilterCaseSensitivity(Qt::CaseSensitivity cs)
++{
++}
++
++Qt::CaseSensitivity KCategorizedSortFilterProxyModel::sortCaseSensitivity() const
++{
++}
++
++void KCategorizedSortFilterProxyModel::setSortCaseSensitivity(Qt::CaseSensitivity cs)
++{
++}
++
++bool KCategorizedSortFilterProxyModel::isSortLocaleAware() const
++{
++}
++
++void KCategorizedSortFilterProxyModel::setSortLocaleAware(bool on)
++{
++}
++
++bool KCategorizedSortFilterProxyModel::dynamicSortFilter() const
++{
++}
++
++void KCategorizedSortFilterProxyModel::setDynamicSortFilter(bool enable)
++{
++}
++
++int KCategorizedSortFilterProxyModel::sortRole() const
++{
++}
++
++void KCategorizedSortFilterProxyModel::setSortRole(int role)
++{
++}
++
++int KCategorizedSortFilterProxyModel::filterRole() const
++{
++}
++
++void KCategorizedSortFilterProxyModel::setFilterRole(int role)
++{
++}
++#endif
++
++QModelIndex KCategorizedSortFilterProxyModel::index(int row, int column, const QModelIndex &parent) const
++{
++    if (row < 0 || column < 0)
++    {
++        return QModelIndex();
++    }
++
++    QModelIndex sourceParent = d->proxyToSource(parent);
++    QMap<QModelIndex, Private::InternalInformation*>::const_iterator it = d->createInternalInformation(sourceParent);
++    if (it.value()->sourceRows.count() <= row || it.value()->sourceColumns.count() <= column)
++    {
++        return QModelIndex();
++    }
++
++    return createIndex(row, column, *it);
++}
++
++bool KCategorizedSortFilterProxyModel::hasChildren(const QModelIndex &parent) const
++{
++    QModelIndex sourceParent = d->proxyToSource(parent);
++
++    if (parent.isValid() && !sourceParent.isValid())
++    {
++        return true;
++    }
++
++    if (!sourceModel()->hasChildren(sourceParent))
++    {
++        return false;
++    }
++
++    Private::InternalInformation *info = d->createInternalInformation(sourceParent).value();
++
++    return info->sourceRows.count() && info->sourceColumns.count();
++}
++
++QVariant KCategorizedSortFilterProxyModel::data(const QModelIndex &index, int role) const
++{
++    QModelIndex sourceIndex = d->proxyToSource(index);
++
++    if (index.isValid() && !sourceIndex.isValid())
++    {
++        return QVariant();
++    }
++
++    return sourceModel()->data(sourceIndex, role);
++}
++
++bool KCategorizedSortFilterProxyModel::setData(const QModelIndex &index, const QVariant &value, int role)
++{
++    QModelIndex sourceIndex = d->proxyToSource(index);
++
++    if (index.isValid() && !sourceIndex.isValid())
++    {
++        return false;
++    }
++
++    return sourceModel()->setData(sourceIndex, value, role);
++}
++
++QVariant KCategorizedSortFilterProxyModel::headerData(int section, Qt::Orientation orientation, int role) const
++{
++    QMap<QModelIndex, Private::InternalInformation*>::const_iterator it = d->createInternalInformation(QModelIndex());
++    int sourceSection;
++
++    if (section < 0)
++    {
++        return QVariant();
++    }
++
++    if (orientation == Qt::Vertical)
++    {
++        if (section >= it.value()->sourceRows.count())
++        {
++            return QVariant();
++        }
++
++        sourceSection = it.value()->sourceRows.at(section);
++    }
++    else
++    {
++        if (section >= it.value()->sourceColumns.count())
++        {
++            return QVariant();
++        }
++
++        sourceSection = it.value()->sourceColumns.at(section);
++    }
++
++    return sourceModel()->headerData(sourceSection, orientation, role);
++}
++
++bool KCategorizedSortFilterProxyModel::setHeaderData(int section, Qt::Orientation orientation, const QVariant &value, int role)
++{
++    QMap<QModelIndex, Private::InternalInformation*>::const_iterator it = d->createInternalInformation(QModelIndex());
++    int sourceSection;
++
++    if (section < 0)
++    {
++        return false;
++    }
++
++    if (orientation == Qt::Vertical)
++    {
++        if (section >= it.value()->sourceRows.count())
++        {
++            return false;
++        }
++
++        sourceSection = it.value()->sourceRows.at(section);
++    }
++    else
++    {
++        if (section >= it.value()->sourceColumns.count())
++        {
++            return false;
++        }
++
++        sourceSection = it.value()->sourceColumns.at(section);
++    }
++
++    return sourceModel()->setHeaderData(sourceSection, orientation, value, role);
++}
++
++QModelIndex KCategorizedSortFilterProxyModel::buddy(const QModelIndex &index) const
++{
++    if (!d->indexValid(index))
++    {
++        return QModelIndex();
++    }
++
++    QModelIndex sourceIndex = d->proxyToSource(index);
++    QModelIndex sourceBuddy = sourceModel()->buddy(sourceIndex);
++
++    if (sourceIndex == sourceBuddy)
++    {
++        return index;
++    }
++
++    return d->sourceToProxy(sourceBuddy);
++}
++
++Qt::ItemFlags KCategorizedSortFilterProxyModel::flags(const QModelIndex &index) const
++{
++    QModelIndex sourceIndex;
++
++    if (d->indexValid(index))
++    {
++        sourceIndex = d->proxyToSource(index);
++    }
++
++    return sourceModel()->flags(sourceIndex);
++}
++
++#if 0
++QMap<int, QVariant> KCategorizedSortFilterProxyModel::itemData(const QModelIndex &index) const
++{
++}
++
++bool KCategorizedSortFilterProxyModel::setItemData(const QModelIndex &index, const QMap<int, QVariant> &roles)
++{
++}
++#endif
++
++QModelIndexList KCategorizedSortFilterProxyModel::match(const QModelIndex &start, int role, const QVariant &value, int hits, Qt::MatchFlags flags) const
++{
++    return QSortFilterProxyModel::match(start, role, value, hits, flags);
++}
++
++QModelIndex KCategorizedSortFilterProxyModel::parent(const QModelIndex &index) const
++{
++    if (!d->indexValid(index))
++    {
++        return QModelIndex();
++    }
++
++    QMap<QModelIndex, Private::InternalInformation*>::const_iterator it = d->indexToIterator(index);
++
++    QModelIndex sourceParent = it.key();
++    QModelIndex proxyParent = d->sourceToProxy(sourceParent);
++
++    return proxyParent;
++}
++
++QSize KCategorizedSortFilterProxyModel::span(const QModelIndex &index) const
++{
++    QModelIndex sourceIndex = d->proxyToSource(index);
++
++    if (index.isValid() && !sourceIndex.isValid())
++    {
++        return QSize();
++    }
++
++    return sourceModel()->span(sourceIndex);
++}
++
++QStringList KCategorizedSortFilterProxyModel::mimeTypes() const
++{
++    return sourceModel()->mimeTypes();
++}
++
++QMimeData *KCategorizedSortFilterProxyModel::mimeData(const QModelIndexList &indexes) const
++{
++    QModelIndexList sourceIndexes;
++
++    for (int i = 0; i < indexes.count(); i++)
++    {
++        sourceIndexes << d->proxyToSource(indexes.at(i));
++    }
++
++    return sourceModel()->mimeData(sourceIndexes);
++}
++
++bool KCategorizedSortFilterProxyModel::dropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent)
++{
++    if ((row == -1) && (column == -1))
++    {
++        return sourceModel()->dropMimeData(data, action, -1, -1, d->proxyToSource(parent));
++    }
++
++    QModelIndex proxyIndex = index(row, column, parent);
++    QModelIndex sourceIndex = d->proxyToSource(proxyIndex);
++
++    return sourceModel()->dropMimeData(data, action, sourceIndex.row(), sourceIndex.column(), sourceIndex.parent());
++}
++
++Qt::DropActions KCategorizedSortFilterProxyModel::supportedDropActions() const
++{
++    return sourceModel()->supportedDropActions();
++}
++
++int KCategorizedSortFilterProxyModel::rowCount(const QModelIndex &parent) const
++{
++    QModelIndex sourceParent = d->proxyToSource(parent);
++
++    if (parent.isValid() && !sourceParent.isValid())
++    {
++        return 0;
++    }
++
++    QMap<QModelIndex, Private::InternalInformation*>::const_iterator it = d->createInternalInformation(sourceParent);
++
++    return it.value()->sourceRows.count();
++}
++
++int KCategorizedSortFilterProxyModel::columnCount(const QModelIndex &parent) const
++{
++    QModelIndex sourceParent = d->proxyToSource(parent);
++
++    if (parent.isValid() && !sourceParent.isValid())
++    {
++        return 0;
++    }
++
++    QMap<QModelIndex, Private::InternalInformation*>::const_iterator it = d->createInternalInformation(sourceParent);
++
++    return it.value()->sourceColumns.count();
++}
++
++bool KCategorizedSortFilterProxyModel::insertRows(int row, int count, const QModelIndex &parent)
++{
++    if (row < 0 || count <= 0)
++    {
++        return false;
++    }
++
++    QModelIndex sourceParent = d->proxyToSource(parent);
++
++    if (parent.isValid() && !sourceParent.isValid())
++    {
++        return false;
++    }
++
++    Private::InternalInformation *info = d->createInternalInformation(sourceParent).value();
++
++    if (row > info->sourceRows.count())
++    {
++        return false;
++    }
++
++    int sourceRow = (row >= info->sourceRows.count() ? info->sourceRows.count()
++                                                     : info->sourceRows.at(row));
++
++    return sourceModel()->insertRows(sourceRow, count, sourceParent);
++}
++
++bool KCategorizedSortFilterProxyModel::insertColumns(int column, int count, const QModelIndex &parent)
++{
++    if (column < 0 || count <= 0)
++    {
++        return false;
++    }
++
++    QModelIndex sourceParent = d->proxyToSource(parent);
++
++    if (parent.isValid() && !sourceParent.isValid())
++    {
++        return false;
++    }
++
++    Private::InternalInformation *info = d->createInternalInformation(sourceParent).value();
++
++    if (column > info->sourceColumns.count())
++    {
++        return false;
++    }
++
++    int sourceColumn = (column >= info->sourceColumns.count() ? info->sourceColumns.count()
++                                                              : info->sourceColumns.at(column));
++
++    return sourceModel()->insertColumns(sourceColumn, count, sourceParent);
++}
++
++bool KCategorizedSortFilterProxyModel::removeRows(int row, int count, const QModelIndex &parent)
++{
++}
++
++bool KCategorizedSortFilterProxyModel::removeColumns(int column, int count, const QModelIndex &parent)
++{
++}
++
++void KCategorizedSortFilterProxyModel::fetchMore(const QModelIndex &parent)
++{
++    QModelIndex sourceParent;
++
++    if (d->indexValid(parent))
++    {
++        sourceParent = d->proxyToSource(parent);
++    }
++
++    sourceModel()->fetchMore(sourceParent);
++}
++
++bool KCategorizedSortFilterProxyModel::canFetchMore(const QModelIndex &parent) const
++{
++    QModelIndex sourceParent;
++
++    if (d->indexValid(parent))
++    {
++        sourceParent = d->proxyToSource(parent);
++    }
++
++    return sourceModel()->canFetchMore(sourceParent);
++}
++
++int KCategorizedSortFilterProxyModel::sortColumn() const
++{
++}
++
++Qt::SortOrder KCategorizedSortFilterProxyModel::sortOrder() const
++{
++}
++
++bool KCategorizedSortFilterProxyModel::isCategorizedModel() const
++{
++    return d->categorizedModel;
++}
++
++void KCategorizedSortFilterProxyModel::setCategorizedModel(bool categorizedModel)
++{
++    d->categorizedModel = categorizedModel;
++}
++
++#if 0
++void KCategorizedSortFilterProxyModel::setFilterRegExp(const QString &pattern)
++{
++}
++
++void KCategorizedSortFilterProxyModel::setFilterWildcard(const QString &pattern)
++{
++}
++
++void KCategorizedSortFilterProxyModel::setFilterFixedString(const QString &pattern)
++{
++}
++#endif
++
++void KCategorizedSortFilterProxyModel::clear()
++{
++    emit layoutAboutToBeChanged();
++#if 0
++    // store the persistent indexes
++    QModelIndexList source_indexes = store_persistent_indexes();
++#endif
++
++    qDeleteAll(d->sourceIndexMap);
++    d->sourceIndexMap.clear();
++
++#if 0
++    // update the persistent indexes
++    update_persistent_indexes(source_indexes);
++#endif
++    emit layoutChanged();
++}
++
++void KCategorizedSortFilterProxyModel::invalidate()
++{
++    emit layoutAboutToBeChanged();
++
++    qDeleteAll(d->sourceIndexMap);
++    d->sourceIndexMap.clear();
++
++    emit layoutChanged();
++}
++
++void KCategorizedSortFilterProxyModel::sourceDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight)
++{
++    if (!topLeft.isValid() || !bottomRight.isValid())
++    {
++        return;
++    }
++
++    QModelIndex sourceParent = topLeft.parent();
++    QMap<QModelIndex, Private::InternalInformation*>::const_iterator it = d->createInternalInformation(sourceParent);
++
++    if (it == d->sourceIndexMap.constEnd())
++    {
++        // This index is not mapped
++        return;
++    }
++
++    Private::InternalInformation *info = it.value();
++
++    QVector<int> sourceRowsRemove;
++    QVector<int> sourceRowsInsert;
++    QVector<int> sourceRowsChange;
++    QVector<int> sourceRowsResort;
++
++    int end = qMin(bottomRight.row(), info->proxyRows.count() - 1);
++
++    for (int sourceRow = topLeft.row(); sourceRow <= end; sourceRow++)
++    {
++        if (dynamicSortFilter())
++        {
++            if (info->proxyRows.at(sourceRow) != -1)
++            {
++                if (!filterAcceptsRow(sourceRow, sourceParent))
++                {
++                    // This source row didn't pass the filter, remove it
++                    sourceRowsRemove << sourceRow;
++                }
++                else if (sortColumn() >= topLeft.column() &&
++                         sortColumn() <= bottomRight.column())
++                {
++                    // This source row has changed in a way that may affect sorted order
++                    sourceRowsResort << sourceRow;
++                }
++                else
++                {
++                    // This source row has changed, not affected filtering nor sorting
++                    sourceRowsChange << sourceRow;
++                }
++            }
++            else
++            {
++                if (filterAcceptsRow(sourceRow, sourceParent))
++                {
++                    sourceRowsInsert << sourceRow;
++                }
++            }
++        }
++        else
++        {
++            if (info->proxyRows.at(sourceRow) != -1)
++            {
++                sourceRowsChange << sourceRow;
++            }
++        }
++    }
++
++    if (!sourceRowsRemove.isEmpty())
++    {
++        d->removeSourceItems(info->proxyRows, info->sourceRows,
++                             sourceRowsRemove, sourceParent, Qt::Vertical);
++    }
++
++    if (!sourceRowsResort.isEmpty())
++    {
++        emit layoutAboutToBeChanged();
++
++#if 0
++        QModelIndexList sourceIndexes = store_persistent_indexes();
++#endif
++
++        d->removeSourceItems(info->proxyRows, info->sourceRows,
++                             sourceRowsResort, sourceParent, Qt::Vertical, false);
++
++        d->sortSourceRows(sourceRowsResort, sourceParent);
++
++        d->insertSourceItems(info->proxyRows, info->sourceRows,
++                             sourceRowsResort, sourceParent, Qt::Vertical, false);
++
++#if 0
++        update_persistent_indexes(sourceIndexes);
++#endif
++
++        emit layoutChanged();
++
++        // We want to emit dataChanged for the rows too
++        sourceRowsChange += sourceRowsResort;
++    }
++
++    if (!sourceRowsChange.isEmpty())
++    {
++        int proxyStartRow;
++        int proxyEndRow;
++
++        d->proxyItemRange(info->proxyRows, sourceRowsChange, proxyStartRow, proxyEndRow);
++
++        // FIXME: Find the proxy column range too
++        if (proxyEndRow >= 0)
++        {
++            QModelIndex proxyTopLeft = createIndex(proxyStartRow, info->proxyColumns.at(topLeft.column()), *it);
++            QModelIndex proxyBottomRight = createIndex(proxyEndRow, info->proxyColumns.at(bottomRight.column()), *it);
++
++            emit dataChanged(proxyTopLeft, proxyBottomRight);
++        }
++    }
++
++    if (!sourceRowsInsert.isEmpty())
++    {
++        d->sortSourceRows(sourceRowsInsert, sourceParent);
++        d->insertSourceItems(info->proxyRows, info->sourceRows,
++                             sourceRowsInsert, sourceParent, Qt::Vertical);
++    }
++}
++
++void KCategorizedSortFilterProxyModel::sourceHeaderDataChanged(Qt::Orientation orientation, int first, int last)
++{
++    kDebug() << k_funcinfo << endl;
++}
++
++void KCategorizedSortFilterProxyModel::sourceRowsAboutToBeInserted(const QModelIndex &parent, int start, int end)
++{
++    kDebug() << k_funcinfo << endl;
++}
++
++void KCategorizedSortFilterProxyModel::sourceRowsInserted(const QModelIndex &parent, int start, int end)
++{
++    kDebug() << k_funcinfo << endl;
++
++    d->sourceItemsInserted(parent, start, end, Qt::Vertical);
++}
++
++void KCategorizedSortFilterProxyModel::sourceColumnsAboutToBeInserted(const QModelIndex &parent, int start, int end)
++{
++    kDebug() << k_funcinfo << endl;
++}
++
++void KCategorizedSortFilterProxyModel::sourceColumnsInserted(const QModelIndex &parent, int start, int end)
++{
++    kDebug() << k_funcinfo << endl;
++}
++
++void KCategorizedSortFilterProxyModel::sourceRowsAboutToBeRemoved(const QModelIndex &parent, int start, int end)
++{
++    kDebug() << k_funcinfo << endl;
++}
++
++void KCategorizedSortFilterProxyModel::sourceRowsRemoved(const QModelIndex &parent, int start, int end)
++{
++    kDebug() << k_funcinfo << endl;
++}
++
++void KCategorizedSortFilterProxyModel::sourceColumnsAboutToBeRemoved(const QModelIndex &parent, int start, int end)
++{
++    kDebug() << k_funcinfo << endl;
++}
++
++void KCategorizedSortFilterProxyModel::sourceColumnsRemoved(const QModelIndex &parent, int start, int end)
++{
++    kDebug() << k_funcinfo << endl;
++}
++
++void KCategorizedSortFilterProxyModel::sourceLayoutAboutToBeChanged()
++{
++    kDebug() << k_funcinfo << endl;
++}
++
++void KCategorizedSortFilterProxyModel::sourceLayoutChanged()
++{
++    kDebug() << k_funcinfo << endl;
++}
++
++void KCategorizedSortFilterProxyModel::sourceReset()
++{
++    kDebug() << k_funcinfo << endl;
++}
++
++
++// =============================================================================
++
++
++void KCategorizedSortFilterProxyModel::Private::sourceItemsInserted(const QModelIndex &sourceParent,
++                                                                    int start,
++                                                                    int end,
++                                                                    Qt::Orientation orientation)
++{
++    // If we have invalid indexes, return
++    if ((start < 0) || (end < 0))
++        return;
++
++    // Search the parent on the source indexes map
++    QMap<QModelIndex, InternalInformation*>::const_iterator it = sourceIndexMap.constFind(sourceParent);
++
++    // If the parent wasn't found on the map, create the mapping for it
++    if (it == sourceIndexMap.constEnd())
++    {
++        if (sourceParent.isValid())
++        {
++            QModelIndex sourceGrandParent = sourceParent.parent();
++            it = sourceIndexMap.constFind(sourceGrandParent);
++
++            // If we don't have mapping for the grand parent, return
++            if (it == sourceIndexMap.constEnd())
++            {
++                return;
++            }
++
++            InternalInformation *grandParentInfo = it.value();
++
++            // NOTE: This shouldn't check the orientation and ask for sourceParent
++            //       row or column depending on that ?
++
++            // If the parent is filtered, return
++            if (grandParentInfo->proxyRows.at(sourceParent.row()) == -1)
++            {
++                return;
++            }
++
++            // !NOTE
++        }
++
++        // Create the internal information
++        it = createInternalInformation(sourceParent);
++        InternalInformation *info = it.value();
++
++        QModelIndex proxyParent = sourceToProxy(sourceParent);
++
++        // NOTE: This shouldn't check the orientation and emit rows or columns
++        //       signals depending on that ?
++
++        // Emit row signals
++        if (info->sourceRows.count() > 0)
++        {
++            emit p->beginInsertRows(proxyParent, 0, info->sourceRows.count() - 1);
++            emit p->endInsertRows();
++        }
++
++        // Emit column signals
++        if (info->sourceColumns.count() > 0)
++        {
++            emit p->beginInsertColumns(proxyParent, 0, info->sourceColumns.count() - 1);
++            emit p->endInsertColumns();
++        }
++
++        // !NOTE
++
++        return;
++    }
++
++    // Source parent was found, read its info
++    InternalInformation *info = it.value();
++    QVector<int> &sourceToProxy = (orientation == Qt::Vertical) ? info->proxyRows : info->proxyColumns;
++    QVector<int> &proxyToSource = (orientation == Qt::Vertical) ? info->sourceRows : info->sourceColumns;
++
++    int itemCount = end - start + 1;
++    int oldItemCount = sourceToProxy.size();
++
++    // We have inserted childs for the source parent, so it is needed to update its childs
++    updateChildrenMapping(sourceParent, info, orientation, start, end, itemCount, false);
++
++    // Make room for new elements with a dummy default value
++    sourceToProxy.insert(start, itemCount, -1);
++
++    if (start < oldItemCount)
++    {
++        int proxyCount = proxyToSource.size();
++
++        for (int i = 0; i < proxyCount; i++)
++        {
++            int sourceItem = proxyToSource.at(i);
++
++            if (sourceItem >= start)
++            {
++                proxyToSource.replace(i, sourceItem + itemCount);
++            }
++        }
++
++        buildSourceToProxyMapping(proxyToSource, sourceToProxy);
++    }
++
++    QVector<int> sourceItems;
++    for (int i = start; i <= end; i++)
++    {
++        if ((orientation == Qt::Vertical) ? p->filterAcceptsRow(i, sourceParent)
++                                          : p->filterAcceptsColumn(i, sourceParent))
++        {
++            sourceItems << i;
++        }
++    }
++
++    if (orientation == Qt::Vertical)
++        sortSourceRows(sourceItems, sourceParent);
++
++    insertSourceItems(sourceToProxy, proxyToSource, sourceItems, sourceParent, orientation);
++}
++
++QMap<QModelIndex, KCategorizedSortFilterProxyModel::Private::InternalInformation*>::const_iterator KCategorizedSortFilterProxyModel::Private::createInternalInformation(const QModelIndex &sourceParent) const
++{
++    QMap<QModelIndex, InternalInformation*>::const_iterator it = sourceIndexMap.constFind(sourceParent);
++
++    // If source parent was already mapped, return it
++    if (it != sourceIndexMap.constEnd())
++    {
++        return it;
++    }
++
++    InternalInformation *info = new InternalInformation;
++
++    if (!p->sourceModel())
++    {
++        return QMap<QModelIndex, InternalInformation*>::const_iterator(sourceIndexMap.insert(sourceParent, info));
++    }
++
++    // Ignore those rows filtered
++    int sourceRows = p->sourceModel()->rowCount(sourceParent);
++    for (int i = 0; i < sourceRows; i++)
++    {
++        if (p->filterAcceptsRow(i, sourceParent))
++        {
++            info->sourceRows << i;
++        }
++    }
++
++    // Ignore those columns filtered
++    int sourceColumns = p->sourceModel()->columnCount(sourceParent);
++    for (int i = 0; i < sourceColumns; i++)
++    {
++        if (p->filterAcceptsColumn(i, sourceParent))
++        {
++            info->sourceColumns << i;
++        }
++    }
++
++    sortSourceRows(info->sourceRows, sourceParent);
++
++    info->proxyRows.resize(sourceRows);
++    buildSourceToProxyMapping(info->sourceRows, info->proxyRows);
++
++    info->proxyColumns.resize(sourceColumns);
++    buildSourceToProxyMapping(info->sourceColumns, info->proxyColumns);
++
++    it = QMap<QModelIndex, InternalInformation*>::const_iterator(sourceIndexMap.insert(sourceParent, info));
++
++    info->mapIterator = it;
++
++    if (sourceParent.isValid())
++    {
++        QModelIndex sourceGrandParent = sourceParent.parent();
++        QMap<QModelIndex, InternalInformation*>::const_iterator git = createInternalInformation(sourceGrandParent);
++        git.value()->mappedChildren.append(sourceParent);
++    }
++
++    return it;
++}
++
++void KCategorizedSortFilterProxyModel::Private::removeInternalInformation(const QModelIndex &sourceParent)
++{
++    if (InternalInformation *info = sourceIndexMap.take(sourceParent))
++    {
++        for (int i = 0; i < info->mappedChildren.size(); i++)
++        {
++            removeInternalInformation(info->mappedChildren.at(i));
++        }
++
++        delete info;
++    }
++}
++
++void KCategorizedSortFilterProxyModel::Private::updateChildrenMapping(const QModelIndex &sourceParent, InternalInformation *parentInfo, Qt::Orientation orientation, int start, int end, int itemCount, bool remove)
++{
++    QVector<QPair<QModelIndex, InternalInformation*> > movedSourceIndexMappings;
++    QVector<QModelIndex>::iterator it = parentInfo->mappedChildren.begin();
++
++    for (; it != parentInfo->mappedChildren.end();)
++    {
++        const QModelIndex sourceChildIndex = *it;
++        const int pos = (orientation == Qt::Vertical) ? sourceChildIndex.row()
++                                                      : sourceChildIndex.column();
++
++        if (pos < start)
++        {
++            // The index is not affected by the change
++
++            it++;
++        }
++        else if (remove && pos <= end)
++        {
++            // The index is affected, and is being removed
++
++            it = parentInfo->mappedChildren.erase(it);
++            removeInternalInformation(sourceChildIndex);
++        }
++        else
++        {
++            // The affected set of items is above the current one, we need to update
++            // its indexes
++
++            QModelIndex newIndex;
++            const int newPos = remove ? pos - itemCount
++                                      : pos + itemCount;
++
++            if (orientation == Qt::Vertical)
++            {
++                newIndex = p->sourceModel()->index(newPos,
++                                                   sourceChildIndex.column(),
++                                                   sourceParent);
++            }
++            else
++            {
++                newIndex = p->sourceModel()->index(sourceChildIndex.row(),
++                                                   newPos,
++                                                   sourceParent);
++            }
++
++            *it = newIndex;
++            it++;
++
++            // Update internal information
++            InternalInformation *info = sourceIndexMap.take(sourceChildIndex);
++
++            movedSourceIndexMappings << QPair<QModelIndex, InternalInformation*>(newIndex, info);
++        }
++    }
++
++    QVector<QPair<QModelIndex, InternalInformation*> >::iterator it2 = movedSourceIndexMappings.begin();
++    for (; it2 != movedSourceIndexMappings.end(); it2++)
++        (*it2).second->mapIterator = sourceIndexMap.insert((*it2).first, (*it2).second);
++}
++
++void KCategorizedSortFilterProxyModel::Private::buildSourceToProxyMapping(const QVector<int> &proxyToSource, QVector<int> &sourceToProxy) const
++{
++    sourceToProxy.fill(-1);
++
++    for (int i = 0; i < proxyToSource.size(); i++)
++    {
++        sourceToProxy[proxyToSource.at(i)] = i;
++    }
++}
++
++void KCategorizedSortFilterProxyModel::Private::sortSourceRows(QVector<int> &sourceRows, const QModelIndex &sourceParent) const
++{
++    if (sortColumn < 0)
++    {
++        return;
++    }
++
++    // Add all elements mapped to the source model
++    QVector<int> sourceRowList;
++    QVector<int> sourceRowSortedList;
++    for (int i = 0; i < p->sourceModel()->rowCount(); i++)
++    {
++        sourceRowList << i;
++        sourceRowSortedList << i;
++    }
++
++    LessThan ltgp(sourceParent, p->sourceModel(), p, LessThan::GeneralPurpose);
++    qStableSort(sourceRows.begin(), sourceRows.end(), ltgp);
++
++    // Explore categories
++    QString prevCategory = p->sourceModel()->data(p->sourceModel()->index(sourceRowSortedList.at(0), sortColumn, sourceParent), KCategorizedSortFilterProxyModel::CategoryRole).toString();
++    QString lastCategory = prevCategory;
++    QVector<int> modelRowList;
++    QStringList categories;
++    QMap<QString, QVector<int> > categoriesRows;
++    foreach (int row, sourceRowSortedList)
++    {
++        lastCategory = p->sourceModel()->data(p->sourceModel()->index(row, sortColumn, sourceParent), KCategorizedSortFilterProxyModel::CategoryRole).toString();
++
++        if (prevCategory != lastCategory)
++        {
++            categoriesRows.insert(prevCategory, modelRowList);
++            categories << prevCategory;
++            modelRowList.clear();
++        }
++
++        modelRowList << row;
++        prevCategory = lastCategory;
++    }
++
++    categoriesRows.insert(prevCategory, modelRowList);
++    categories << prevCategory;
++
++    sourceRows.clear();
++
++    LessThan ltcp(sourceParent, p->sourceModel(), p, LessThan::CategoryPurpose);
++    QVector<int> rowList;
++    foreach (const QString &key, categories)
++    {
++        rowList = categoriesRows[key];
++        qStableSort(rowList.begin(), rowList.end(), ltcp);
++        sourceRows << rowList;
++    }
++}
++
++void KCategorizedSortFilterProxyModel::Private::insertSourceItems(QVector<int> &sourceToProxy, QVector<int> &proxyToSource, const QVector<int> &sourceItems, const QModelIndex &sourceParent, Qt::Orientation orientation, bool emitSignal)
++{
++    QModelIndex proxyParent = this->sourceToProxy(sourceParent);
++
++    // If source parent is not mapped, return
++    if (!proxyParent.isValid() && sourceParent.isValid())
++    {
++        return;
++    }
++
++    QVector<QPair<int, QVector<int> > > proxyIntervals;
++
++    proxyIntervals = proxyIntervalsForSourceItemsToAdd(proxyToSource, sourceItems, sourceParent, orientation);
++
++    for (int i = proxyIntervals.size() - 1; i >= 0; i--)
++    {
++        QPair<int, QVector<int> > interval = proxyIntervals.at(i);
++        int proxyStart = interval.first;
++        QVector<int> sourceItems = interval.second;
++        int proxyEnd = proxyStart + sourceItems.size() - 1;
++
++        if (orientation == Qt::Vertical)
++        {
++            emit p->beginInsertRows(proxyParent, proxyStart, proxyEnd);
++        }
++        else
++        {
++            emit p->beginInsertColumns(proxyParent, proxyStart, proxyEnd);
++        }
++
++        for (int i = 0; i < sourceItems.size(); i++)
++        {
++            proxyToSource.insert(proxyStart + i, sourceItems.at(i));
++        }
++
++        buildSourceToProxyMapping(proxyToSource, sourceToProxy);
++
++        if (orientation == Qt::Vertical)
++        {
++            emit p->endInsertRows();
++        }
++        else
++        {
++            emit p->endInsertColumns();
++        }
++    }
++}
++
++void KCategorizedSortFilterProxyModel::Private::removeSourceItems(QVector<int> &sourceToProxy, QVector<int> &proxyToSource, const QVector<int> &sourceItems, const QModelIndex &sourceParent, Qt::Orientation orientation, bool emitSignal)
++{
++    QModelIndex proxyParent = this->sourceToProxy(sourceParent);
++
++    if (!proxyParent.isValid() && sourceParent.isValid())
++    {
++        // This index has been already removed
++        return;
++    }
++
++    QVector<QPair<int, int> > proxyIntervals;
++    proxyIntervals = proxyIntervalsForSourceItems(sourceToProxy, sourceItems);
++
++    for (int i = proxyIntervals.size() - 1; i >= 0; i--)
++    {
++        QPair<int, int> interval = proxyIntervals.at(i);
++        int proxyStart = interval.first;
++        int proxyEnd = interval.second;
++        removeProxyInterval(sourceToProxy, proxyToSource, proxyStart, proxyEnd, proxyParent, orientation, emitSignal);
++    }
++}
++
++void KCategorizedSortFilterProxyModel::Private::proxyItemRange(const QVector<int> &sourceToProxy, const QVector<int> &sourceItems, int &proxyLow, int &proxyHigh) const
++{
++    proxyLow = INT_MAX;
++    proxyHigh = INT_MIN;
++
++    foreach (int sourceItem, sourceItems)
++    {
++        int proxyItem = sourceToProxy.at(sourceItem);
++
++        proxyLow = qMin(proxyLow, proxyItem);
++
++        proxyHigh = qMax(proxyHigh, proxyItem);
++    }
++}
++
++QVector<QPair<int, int > > KCategorizedSortFilterProxyModel::Private::proxyIntervalsForSourceItems(const QVector<int> &sourceToProxy, const QVector<int> &sourceItems) const
++{
++    QVector<QPair<int, int> > proxyIntervals;
++
++    if (sourceItems.isEmpty())
++    {
++        return proxyIntervals;
++    }
++
++    int sourceItemsIndex = 0;
++
++    while (sourceItemsIndex < sourceItems.size())
++    {
++        int firstProxyItem = sourceToProxy.at(sourceItems.at(sourceItemsIndex));
++        int lastProxyItem = firstProxyItem;
++        sourceItemsIndex++;
++
++        // Find end of interval
++        while ((sourceItemsIndex < sourceItems.size()) &&
++               (sourceToProxy.at(sourceItems.at(sourceItemsIndex)) == lastProxyItem + 1))
++        {
++            lastProxyItem++;
++            sourceItemsIndex++;
++        }
++
++        // Add interval to result
++        proxyIntervals << QPair<int, int>(firstProxyItem, lastProxyItem);
++    }
++
++    qStableSort(proxyIntervals.begin(), proxyIntervals.end());
++
++    return proxyIntervals;
++}
++
++void KCategorizedSortFilterProxyModel::Private::removeProxyInterval(QVector<int> &sourceToProxy, QVector<int> &proxyToSource, int proxyStart, int proxyEnd, const QModelIndex &proxyParent, Qt::Orientation orientation, bool emitSignal)
++{
++    if (emitSignal)
++    {
++        if (orientation == Qt::Vertical)
++        {
++            emit p->beginRemoveRows(proxyParent, proxyStart, proxyEnd);
++        }
++        else
++        {
++            emit p->beginRemoveColumns(proxyParent, proxyStart, proxyEnd);
++        }
++    }
++
++    proxyToSource.remove(proxyStart, proxyEnd - proxyStart + 1);
++
++    buildSourceToProxyMapping(proxyToSource, sourceToProxy);
++
++    if (emitSignal)
++    {
++        if (orientation == Qt::Vertical)
++        {
++            emit p->endRemoveRows();
++        }
++        else
++        {
++            emit p->endRemoveColumns();
++        }
++    }
++}
++
++QVector<QPair<int, QVector<int > > > KCategorizedSortFilterProxyModel::Private::proxyIntervalsForSourceItemsToAdd(const QVector<int> &proxyToSource, const QVector<int> &sourceItems, const QModelIndex &sourceParent, Qt::Orientation orientation) const
++{
++    QVector<QPair<int, QVector<int> > > proxyIntervals;
++
++    if (sourceItems.isEmpty())
++        return proxyIntervals;
++
++    int proxyLow = 0;
++    int proxyItem = 0;
++    int sourceItemsIndex = 0;
++    QVector<int> sourceItemsInInterval;
++    bool compare = (orientation == Qt::Vertical && sortColumn >= 0);
++
++    while (sourceItemsIndex < sourceItems.size())
++    {
++        sourceItemsInInterval.clear();
++        int firstNewSourceItem = sourceItems.at(sourceItemsIndex);
++        sourceItemsInInterval << firstNewSourceItem;
++        sourceItemsIndex++;
++
++        int proxyHigh = proxyToSource.size() - 1;
++        QModelIndex i = compare ? p->sourceModel()->index(firstNewSourceItem, sortColumn, sourceParent)
++                                : QModelIndex();
++
++        // Start the binary search
++        while (proxyLow <= proxyHigh)
++        {
++            proxyItem = (proxyLow + proxyHigh) / 2;
++
++            if (compare)
++            {
++                QModelIndex i2 = p->sourceModel()->index(proxyToSource.at(proxyItem), sortColumn, sourceParent);
++
++                // The Big Trick (ereslibre)
++                if ((sortOrder == Qt::AscendingOrder) ? p->lessThanGeneralPurpose(i, i2) || (!p->lessThanGeneralPurpose(i2, i) && p->lessThanCategoryPurpose(i, i2))
++                                                      : p->lessThanGeneralPurpose(i2, i) || (!p->lessThanGeneralPurpose(i, i2) && p->lessThanCategoryPurpose(i2, i)))
++                {
++                    proxyHigh = proxyItem - 1;
++                }
++                else
++                {
++                    proxyLow = proxyItem + 1;
++                }
++            }
++            else
++            {
++                if (firstNewSourceItem < proxyToSource.at(proxyItem))
++                {
++                    proxyHigh = proxyItem - 1;
++                }
++                else
++                {
++                    proxyLow = proxyItem + 1;
++                }
++            }
++        }
++
++        proxyItem = proxyLow;
++
++        if (proxyItem >= proxyToSource.size())
++        {
++            for (; sourceItemsIndex < sourceItems.size(); sourceItemsIndex++)
++            {
++                sourceItemsInInterval << sourceItems.at(sourceItemsIndex);
++            }
++        }
++        else
++        {
++            i = compare ? p->sourceModel()->index(proxyToSource.at(proxyItem), sortColumn, sourceParent)
++                        : QModelIndex();
++
++            for (; sourceItemsIndex < sourceItems.size(); sourceItemsIndex++)
++            {
++                int newSourceItem = sourceItems.at(sourceItemsIndex);
++
++                if (compare)
++                {
++                    QModelIndex i2 = p->sourceModel()->index(newSourceItem, sortColumn, sourceParent);
++
++                    // The Big Trick (ereslibre)
++                    if ((sortOrder == Qt::AscendingOrder) ? p->lessThanGeneralPurpose(i, i2) || (!p->lessThanGeneralPurpose(i2, i) && p->lessThanCategoryPurpose(i, i2))
++                                                          : p->lessThanGeneralPurpose(i2, i) || (!p->lessThanGeneralPurpose(i, i2) && p->lessThanCategoryPurpose(i2, i)))
++                    {
++                        break;
++                    }
++                }
++                else
++                {
++                    if (proxyToSource.at(proxyItem) < newSourceItem)
++                    {
++                        break;
++                    }
++                }
++
++                sourceItemsInInterval << newSourceItem;
++            }
++        }
++
++        proxyIntervals << QPair<int, QVector<int> >(proxyItem, sourceItemsInInterval);
++    }
++
++    return proxyIntervals;
++}
++
++QMap<QModelIndex, KCategorizedSortFilterProxyModel::Private::InternalInformation*>::const_iterator KCategorizedSortFilterProxyModel::Private::indexToIterator(const QModelIndex &proxyIndex) const
++{
++    const void *p = proxyIndex.internalPointer();
++    QMap<QModelIndex, InternalInformation*>::const_iterator it = static_cast<const InternalInformation*>(p)->mapIterator;
++
++    return it;
++}
++
++QModelIndex KCategorizedSortFilterProxyModel::Private::sourceToProxy(const QModelIndex &sourceIndex) const
++{
++    if (!sourceIndex.isValid())
++    {
++        return QModelIndex();
++    }
++
++    QModelIndex sourceParent = sourceIndex.parent();
++    QMap<QModelIndex, InternalInformation*>::const_iterator it = createInternalInformation(sourceParent);
++    InternalInformation *info = it.value();
++
++    if ((sourceIndex.row() >= info->proxyRows.size()) || (sourceIndex.column() >= info->proxyColumns.size()))
++    {
++        return QModelIndex();
++    }
++
++    int proxyRow = info->proxyRows.at(sourceIndex.row());
++    int proxyColumn = info->proxyColumns.at(sourceIndex.column());
++
++    if (proxyRow == -1 || proxyColumn == -1)
++    {
++        return QModelIndex();
++    }
++
++    return p->createIndex(proxyRow, proxyColumn, *it);
++}
++
++QModelIndex KCategorizedSortFilterProxyModel::Private::proxyToSource(const QModelIndex &proxyIndex) const
++{
++    if (!proxyIndex.isValid())
++    {
++        return QModelIndex();
++    }
++
++    QMap<QModelIndex, InternalInformation*>::const_iterator it = indexToIterator(proxyIndex);
++    InternalInformation *info = it.value();
++
++    if ((proxyIndex.row() >= info->sourceRows.size()) || (proxyIndex.column() >= info->sourceColumns.size()))
++    {
++        return QModelIndex();
++    }
++
++    int sourceRow = info->sourceRows.at(proxyIndex.row());
++    int sourceCol = info->sourceColumns.at(proxyIndex.column());
++
++    return p->sourceModel()->index(sourceRow, sourceCol, it.key());
++}
++
++bool KCategorizedSortFilterProxyModel::Private::indexValid(const QModelIndex &index) const
++{
++    return ((index.row() >= 0) && (index.column() >= 0) && (index.model() == p));
++}
++
++#include "kcategorizedsortfilterproxymodel.moc"

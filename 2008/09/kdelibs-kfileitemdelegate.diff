@@ -1,0 +1,145 @@
+diff --git a/kio/kio/kdirmodel.cpp b/kio/kio/kdirmodel.cpp
+index a096fb9..18f95df 100644
+--- a/kio/kio/kdirmodel.cpp
++++ b/kio/kio/kdirmodel.cpp
+@@ -537,6 +537,8 @@ QVariant KDirModel::data( const QModelIndex & index, int role ) const
+                 return int(alignment);
+             }
+             break;
++        case Qt::ToolTipRole:
++            return item.text();
+         case FileItemRole:
+             return QVariant::fromValue(item);
+         case ChildCountRole:
+diff --git a/kio/kio/kfileitemdelegate.cpp b/kio/kio/kfileitemdelegate.cpp
+index 15968be..0c5c881 100644
+--- a/kio/kio/kfileitemdelegate.cpp
++++ b/kio/kio/kfileitemdelegate.cpp
+@@ -116,6 +116,7 @@ class KFileItemDelegate::Private
+         QPointF shadowOffset;
+         qreal shadowBlur;
+         QSize maximumSize;
++        bool showToolTipWhenElided;
+ 
+     private:
+         KFileItemDelegate * const q;
+@@ -128,7 +129,8 @@ class KFileItemDelegate::Private
+ 
+ KFileItemDelegate::Private::Private(KFileItemDelegate *parent)
+      : shadowColor(Qt::transparent), shadowOffset(1, 1), shadowBlur(2), maximumSize(0, 0),
+-       q(parent), animationHandler(new KIO::DelegateAnimationHandler(parent))
++       showToolTipWhenElided(true), q(parent),
++       animationHandler(new KIO::DelegateAnimationHandler(parent))
+ {
+ }
+ 
+@@ -973,6 +975,18 @@ QSize KFileItemDelegate::maximumSize() const
+ }
+ 
+ 
++void KFileItemDelegate::setShowToolTipWhenElided(bool showToolTip)
++{
++    d->showToolTipWhenElided = showToolTip;
++}
++
++
++bool KFileItemDelegate::showToolTipWhenElided() const
++{
++    return d->showToolTipWhenElided;
++}
++
++
+ QIcon KFileItemDelegate::Private::decoration(const QStyleOptionViewItemV4 &option, const QModelIndex &index) const
+ {
+     const QVariant value = index.data(Qt::DecorationRole);
+@@ -1323,8 +1337,37 @@ bool KFileItemDelegate::helpEvent(QHelpEvent *event, QAbstractItemView *view, co
+ {
+     Q_UNUSED(event)
+     Q_UNUSED(view)
+-    Q_UNUSED(option)
+-    Q_UNUSED(index)
++
++    // if the tooltip information the model keeps is different from the display information,
++    // show it always
++    const QVariant toolTip = index.data(Qt::ToolTipRole);
++
++    if (!toolTip.isValid()) {
++        return false;
++    }
++
++    if (index.data() != toolTip) {
++        return QAbstractItemDelegate::helpEvent(event, view, option, index);
++    }
++
++    if (!d->showToolTipWhenElided) {
++        return false;
++    }
++
++    // in the case the tooltip information is the same as the display information,
++    // show it only in the case the display information is elided
++    QStyleOptionViewItemV4 opt(option);
++    d->initStyleOption(&opt, index);
++
++    QTextLayout labelLayout;
++    QTextLayout infoLayout;
++    QRect textBoundingRect;
++    d->layoutTextItems(opt, index, &labelLayout, &infoLayout, &textBoundingRect);
++    const QString elidedText = d->elidedText(labelLayout, opt, textBoundingRect.size());
++
++    if (elidedText != d->display(index)) {
++        return QAbstractItemDelegate::helpEvent(event, view, option, index);
++    }
+ 
+     return false;
+ }
+diff --git a/kio/kio/kfileitemdelegate.h b/kio/kio/kfileitemdelegate.h
+index b62d848..5b76dd9 100644
+--- a/kio/kio/kfileitemdelegate.h
++++ b/kio/kio/kfileitemdelegate.h
+@@ -117,6 +117,15 @@ class KIO_EXPORT KFileItemDelegate : public QAbstractItemDelegate
+      */
+     Q_PROPERTY(QSize maximumSize READ maximumSize WRITE setMaximumSize)
+ 
++    /**
++     * This property determines whether a tooltip will be shown by the delegate
++     * if the display role is elided. This tooltip will contain the full display
++     * role information. The tooltip will only be shown if the Qt::ToolTipRole differs
++     * from Qt::DisplayRole, or if they match, showToolTipWhenElided flag is set and
++     * the display role information is elided.
++     */
++    Q_PROPERTY(bool showToolTipWhenElided READ showToolTipWhenElided WRITE setShowToolTipWhenElided)
++
+     Q_ENUMS(Information)
+ 
+ 
+@@ -345,6 +354,30 @@ class KIO_EXPORT KFileItemDelegate : public QAbstractItemDelegate
+         QSize maximumSize() const;
+ 
+         /**
++         * Sets whether a tooltip should be shown if the display role is
++         * elided containing the full display role information.
++         *
++         * @note The tooltip will only be shown if the Qt::ToolTipRole differs
++         *       from Qt::DisplayRole, or if they match, showToolTipWhenElided
++         *       flag is set and the display role information is elided.
++         * @see showToolTipWhenElided()
++         * @since 4.2
++         */
++        void setShowToolTipWhenElided(bool showToolTip);
++
++        /**
++         * Returns whether a tooltip should be shown if the display role
++         * is elided containing the full display role information.
++         *
++         * @note The tooltip will only be shown if the Qt::ToolTipRole differs
++         *       from Qt::DisplayRole, or if they match, showToolTipWhenElided
++         *       flag is set and the display role information is elided.
++         * @see setShowToolTipWhenElided()
++         * @since 4.2
++         */
++        bool showToolTipWhenElided() const;
++
++        /**
+          * Reimplemented from @ref QAbstractItemDelegate.
+          */
+         virtual bool eventFilter(QObject *object, QEvent *event);

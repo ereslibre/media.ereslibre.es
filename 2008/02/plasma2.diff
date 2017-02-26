@@ -1,0 +1,108 @@
+Index: workspace/libs/plasma/phase.cpp
+===================================================================
+--- workspace/libs/plasma/phase.cpp	(revisión: 772275)
++++ workspace/libs/plasma/phase.cpp	(copia de trabajo)
+@@ -26,6 +26,7 @@
+ #include <KConfigGroup>
+ #include <KService>
+ #include <KServiceTypeTrader>
++#include <KGlobalSettings>
+ 
+ #include "animator.h"
+ #include "widgets/widget.h"
+@@ -88,10 +89,12 @@ class Phase::Private
+ {
+     public:
+ 
+-        Private()
+-            : animator(0),
++        Private(Phase *q)
++            : q(q),
++              animator(0),
+               animId(0),
+-              timerId(0)
++              timerId(0),
++              animationsEnabled(KGlobalSettings::animationsEnabled())
+         {
+         }
+ 
+@@ -114,6 +117,9 @@ class Phase::Private
+ 
+         qreal calculateProgress(int frames, int currentFrame)
+         {
++            if (!animationsEnabled)
++                return qreal(1.0);
++
+             qreal progress = frames;
+             progress = currentFrame / progress;
+             progress = qMin(qreal(1.0), qMax(qreal(0.0), progress));
+@@ -153,10 +159,23 @@ class Phase::Private
+                     break;
+             }
+         }
++
++        void _k_slotSettingsChanged(int category)
++        {
++            Q_UNUSED(category);
++
++            animationsEnabled = KGlobalSettings::animationsEnabled();
++        }
++
++        Phase* q;
+         Animator* animator;
+         int animId;
+         int timerId;
+         QTime time;
++        // Caching this property prevents us from asking KGlobalSettings very
++        // repeatedly. We need to update this property when KGlobalSettings notifies
++        // a certain change on the current settings. (ereslibre)
++        bool animationsEnabled;
+ 
+         //TODO: eventually perhaps we should allow multiple animations simulataneously
+         //      which would imply changing this to a QMap<QGraphicsItem*, QList<QTimeLine*> >
+@@ -183,8 +202,10 @@ Phase* Phase::self()
+ 
+ Phase::Phase(QObject * parent)
+     : QObject(parent),
+-      d(new Private)
++      d(new Private(this))
+ {
++    connect(KGlobalSettings::self(), SIGNAL(settingsChanged(int)), this, SLOT(_k_slotSettingsChanged(int)));
++
+     init();
+ }
+ 
+@@ -455,6 +476,7 @@ void Phase::timerEvent(QTimerEvent *even
+ 
+     foreach (AnimationState* state, d->animatedItems) {
+         if (state->currentInterval <= elapsed) {
++            if (d->animationsEnabled) {
+             // we need to step forward!
+             state->currentFrame += qMax(1, elapsed / state->interval);
+ 
+@@ -472,6 +494,12 @@ void Phase::timerEvent(QTimerEvent *even
+                 delete state;
+             }
+         } else {
++                d->performAnimation(1, state);
++                d->animatedItems.erase(d->animatedItems.find(state->item));
++                emit animationComplete(state->item, state->animation);
++                delete state;
++            }
++        } else {
+             state->currentInterval -= elapsed;
+             animationsRemain = true;
+         }
+Index: workspace/libs/plasma/phase.h
+===================================================================
+--- workspace/libs/plasma/phase.h	(revisión: 772275)
++++ workspace/libs/plasma/phase.h	(copia de trabajo)
+@@ -132,6 +132,8 @@ private:
+ 
+     class Private;
+     Private * const d;
++
++    Q_PRIVATE_SLOT( d, void _k_slotSettingsChanged( int category ) )
+ };
+ 
+ } // namespace Plasma

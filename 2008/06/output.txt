@@ -1,0 +1,135 @@
+WARNING: field 'http://strigi.sf.net/ontologies/0.9#debugParseError' is not defined in any rdfs ontology database.
+/home/ereslibre/kde/lib/strigi/strigila_xpm.so
+/home/ereslibre/kde/lib/strigi/strigita_mp4.so
+/home/ereslibre/kde/lib/strigi/strigila_deb.so
+/home/ereslibre/kde/lib/strigi/strigila_cpp.so
+/home/ereslibre/kde/lib/strigi/strigita_xbm.so
+/home/ereslibre/kde/lib/strigi/strigita_dvi.so
+/home/ereslibre/kde/lib/strigi/strigiea_vcf.so
+/home/ereslibre/kde/lib/strigi/strigita_avi.so
+/home/ereslibre/kde/lib/strigi/strigita_ts.so
+/home/ereslibre/kde/lib/strigi/strigita_pcx.so
+/home/ereslibre/kde/lib/strigi/strigiea_ics.so
+/home/ereslibre/kde/lib/strigi/strigita_audible.so
+/home/ereslibre/kde/lib/strigi/strigita_rgb.so
+/home/ereslibre/kde/lib/strigi/strigita_wav.so
+/home/ereslibre/kde/lib/strigi/strigila_po.so
+/home/ereslibre/kde/lib/strigi/strigita_ico.so
+/home/ereslibre/kde/lib/strigi/strigila_diff.so
+/home/ereslibre/kde/lib/strigi/strigita_au.so
+/home/ereslibre/kde/lib/strigi/strigita_font.so
+/home/ereslibre/kde/lib/strigi/strigita_dds.so
+/home/ereslibre/kde/lib/strigi/strigita_gif.so
+/home/ereslibre/kde/lib/strigi/strigila_txt.so
+/home/ereslibre/kde/lib/strigi/strigita_sid.so
+/home/ereslibre/kde/lib/strigi/strigila_namespaceharvester.so
+/home/ereslibre/kde/lib/strigi/strigiea_rfc822.so
+WARNING: field 'diff.stats.modify_file_count' is not defined in any rdfs ontology database.
+WARNING: field 'diff.first_modify_file' is not defined in any rdfs ontology database.
+WARNING: field 'content.format_subtype' is not defined in any rdfs ontology database.
+WARNING: field 'content.generator' is not defined in any rdfs ontology database.
+WARNING: field 'diff.stats.hunk_count' is not defined in any rdfs ontology database.
+WARNING: field 'diff.stats.insert_line_count' is not defined in any rdfs ontology database.
+WARNING: field 'diff.stats.modify_line_count' is not defined in any rdfs ontology database.
+WARNING: field 'diff.stats.delete_line_count' is not defined in any rdfs ontology database.
+WARNING: field 'maxLineLength' is not defined in any rdfs ontology database.
+WARNING: field 'line ending format' is not defined in any rdfs ontology database.
+WARNING: field 'content.mime_type' is not defined in any rdfs ontology database.
+WARNING: field 'audio.title' is not defined in any rdfs ontology database.
+WARNING: field 'audio.artist' is not defined in any rdfs ontology database.
+WARNING: field 'todo.audio.narrator' is not defined in any rdfs ontology database.
+WARNING: field 'media.codec' is not defined in any rdfs ontology database.
+WARNING: field 'todo.audible.user_id' is not defined in any rdfs ontology database.
+WARNING: field 'todo.audible.user_alias' is not defined in any rdfs ontology database.
+WARNING: field 'audio.duration' is not defined in any rdfs ontology database.
+WARNING: field 'content.description' is not defined in any rdfs ontology database.
+WARNING: field 'content.copyright' is not defined in any rdfs ontology database.
+WARNING: field 'content.keyword' is not defined in any rdfs ontology database.
+WARNING: field 'content.creation_time' is not defined in any rdfs ontology database.
+WARNING: field 'content.maintainer' is not defined in any rdfs ontology database.
+WARNING: field 'content.ID' is not defined in any rdfs ontology database.
+WARNING: field 'audio.channel_count' is not defined in any rdfs ontology database.
+WARNING: field 'dds volume depth' is not defined in any rdfs ontology database.
+WARNING: field 'dds mipmap count' is not defined in any rdfs ontology database.
+WARNING: field 'dds image type' is not defined in any rdfs ontology database.
+WARNING: field 'font.family' is not defined in any rdfs ontology database.
+WARNING: field 'font.weight' is not defined in any rdfs ontology database.
+WARNING: field 'font.slant' is not defined in any rdfs ontology database.
+WARNING: field 'font.width' is not defined in any rdfs ontology database.
+WARNING: field 'font.spacing' is not defined in any rdfs ontology database.
+WARNING: field 'font.foundry' is not defined in any rdfs ontology database.
+WARNING: field 'content.version' is not defined in any rdfs ontology database.
+WARNING: field 'document.stats.image_count' is not defined in any rdfs ontology database.
+WARNING: field 'content.genre' is not defined in any rdfs ontology database.
+WARNING: field 'TODO_trackNumber' is not defined in any rdfs ontology database.
+WARNING: field 'TODO_discNumber' is not defined in any rdfs ontology database.
+WARNING: field 'content.author' is not defined in any rdfs ontology database.
+WARNING: field 'content.comment' is not defined in any rdfs ontology database.
+WARNING: field 'audio.album' is not defined in any rdfs ontology database.
+WARNING: field 'TODO_audio.albumartist' is not defined in any rdfs ontology database.
+WARNING: field 'content.links' is not defined in any rdfs ontology database.
+WARNING: field 'TODO_content.purchaser' is not defined in any rdfs ontology database.
+WARNING: field 'TODO_content.purchasedate' is not defined in any rdfs ontology database.
+WARNING: field 'media.duration' is not defined in any rdfs ontology database.
+WARNING: field 'TODO_video.duration' is not defined in any rdfs ontology database.
+WARNING: field 'av.audio_codec' is not defined in any rdfs ontology database.
+WARNING: field 'av.video_codec' is not defined in any rdfs ontology database.
+WARNING: field 'content.thumbnail' is not defined in any rdfs ontology database.
+WARNING: field 'user.rating' is not defined in any rdfs ontology database.
+WARNING: field 'image.width' is not defined in any rdfs ontology database.
+WARNING: field 'image.height' is not defined in any rdfs ontology database.
+WARNING: field 'media.sample_rate' is not defined in any rdfs ontology database.
+WARNING: field 'media.sample_format' is not defined in any rdfs ontology database.
+WARNING: field 'document.stats.image_name' is not defined in any rdfs ontology database.
+WARNING: field 'document.stats.image_shared_rows' is not defined in any rdfs ontology database.
+WARNING: field 'message' is not defined in any rdfs ontology database.
+WARNING: field 'translated' is not defined in any rdfs ontology database.
+WARNING: field 'untranslated' is not defined in any rdfs ontology database.
+WARNING: field 'obsolete' is not defined in any rdfs ontology database.
+WARNING: field 'Product Id' is not defined in any rdfs ontology database.
+WARNING: field 'Events' is not defined in any rdfs ontology database.
+WARNING: field 'Journals' is not defined in any rdfs ontology database.
+WARNING: field 'Todos' is not defined in any rdfs ontology database.
+WARNING: field 'Todos Completed' is not defined in any rdfs ontology database.
+WARNING: field 'Todos Overdue' is not defined in any rdfs ontology database.
+WARNING: field 'email.from' is not defined in any rdfs ontology database.
+WARNING: field 'email.to' is not defined in any rdfs ontology database.
+WARNING: field 'message.subject' is not defined in any rdfs ontology database.
+WARNING: field 'email.content_type' is not defined in any rdfs ontology database.
+WARNING: field 'vcf.name' is not defined in any rdfs ontology database.
+WARNING: field 'vcf.email' is not defined in any rdfs ontology database.
+WARNING: field 'vcf.telephone' is not defined in any rdfs ontology database.
+WARNING: field 'translation.total' is not defined in any rdfs ontology database.
+WARNING: field 'translation.translated' is not defined in any rdfs ontology database.
+WARNING: field 'translation.untranslated' is not defined in any rdfs ontology database.
+WARNING: field 'translation.fuzzy' is not defined in any rdfs ontology database.
+WARNING: field 'translation.last_translator' is not defined in any rdfs ontology database.
+WARNING: field 'translation.translation_date' is not defined in any rdfs ontology database.
+WARNING: field 'translation.source_date' is not defined in any rdfs ontology database.
+WARNING: field 'ole.category' is not defined in any rdfs ontology database.
+WARNING: field 'ole.presentationtarget' is not defined in any rdfs ontology database.
+WARNING: field 'ole.manager' is not defined in any rdfs ontology database.
+WARNING: field 'ole.company' is not defined in any rdfs ontology database.
+WARNING: field 'document.stats.table_count' is not defined in any rdfs ontology database.
+WARNING: field 'document.stats.object_count' is not defined in any rdfs ontology database.
+WARNING: field 'http://rdf.openmolecules.net/0.9#moleculeCount' is not defined in any rdfs ontology database.
+kfile(16623) KFileMetaInfoPrivate::init: KUrl("file:///home/ereslibre/opera-9.50.gcc4-shared-qt3.i386.rpm")
+'' is not a UTF8 or latin1 string
+'' is not a UTF8 or latin1 string
+'' is not a UTF8 or latin1 string
+'' is not a UTF8 or latin1 string
+'' is not a UTF8 or latin1 string
+'' is not a UTF8 or latin1 string
+loading writer for key  "http://freedesktop.org/standards/xesam/1.0/core#sourceModified" 
+kfile(16623)/kdecore (KSycoca) KSycocaPrivate::openDatabase: Trying to open ksycoca from  "/var/tmp/kdecache-ereslibre/ksycoca4"
+loading writer for key  "http://freedesktop.org/standards/xesam/1.0/core#name" 
+loading writer for key  "http://freedesktop.org/standards/xesam/1.0/core#url" 
+loading writer for key  "http://strigi.sf.net/ontologies/0.9#parentUrl" 
+loading writer for key  "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" 
+loading writer for key  "http://freedesktop.org/standards/xesam/1.0/core#mimeType" 
+loading writer for key  "http://strigi.sf.net/ontologies/0.9#depth" 
+loading writer for key  "http://freedesktop.org/standards/xesam/1.0/core#fileExtension" 
+kfile(16623) processMetaDataOptions: "-- /home/ereslibre/opera-9.50.gcc4-shared-qt3.i386.rpm ---"
+real    0m3.509s
+user    0m3.384s
+sys     0m0.060s

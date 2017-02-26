@@ -1,0 +1,116 @@
+diff --git a/kdeui/jobs/kabstractwidgetjobtracker.cpp b/kdeui/jobs/kabstractwidgetjobtracker.cpp
+index 09e5a45..75d88d5 100644
+--- a/kdeui/jobs/kabstractwidgetjobtracker.cpp
++++ b/kdeui/jobs/kabstractwidgetjobtracker.cpp
+@@ -117,12 +117,7 @@ void KAbstractWidgetJobTracker::finished(KJob *job)
+         return;
+     }
+ 
+-    // clean or delete dialog
+-    if (d->moreOptions[job].autoDelete) {
+-        widget(job)->deleteLater();
+-    } else {
+-        slotClean(job);
+-    }
++    slotClean(job);
+ }
+ 
+ void KAbstractWidgetJobTracker::slotStop(KJob *job)
+diff --git a/kdeui/jobs/kwidgetjobtracker.cpp b/kdeui/jobs/kwidgetjobtracker.cpp
+index c59aeb3..d72a8f7 100644
+--- a/kdeui/jobs/kwidgetjobtracker.cpp
++++ b/kdeui/jobs/kwidgetjobtracker.cpp
+@@ -359,8 +359,9 @@ void KWidgetJobTracker::Private::ProgressWidget::speed(unsigned long value)
+ void KWidgetJobTracker::Private::ProgressWidget::slotClean()
+ {
+     if (!keepOpenChecked) {
+-        hide();
++        delete this;
+     } else {
++        finishedProperty = true;
+         percent(100);
+         cancelClose->setGuiItem(KStandardGuiItem::close());
+         openFile->setEnabled(true);
+@@ -368,6 +369,7 @@ void KWidgetJobTracker::Private::ProgressWidget::slotClean()
+             totalSize = processedSize;
+         processedAmount(KJob::Bytes, totalSize);
+         keepOpenCheck->setEnabled(false);
++        pauseButton->setEnabled(false);
+         if (!startTime.isNull()) {
+             int s = startTime.elapsed();
+             if (!s)
+@@ -375,7 +377,6 @@ void KWidgetJobTracker::Private::ProgressWidget::slotClean()
+             speedLabel->setText(i18n("%1/s (done)",
+                                         KGlobal::locale()->formatByteSize(1000 * totalSize / s)));
+         }
+-        tracker->setAutoDelete(job, true);
+     }
+ }
+ 
+@@ -393,18 +394,16 @@ void KWidgetJobTracker::Private::ProgressWidget::resumed()
+ 
+ void KWidgetJobTracker::Private::ProgressWidget::closeEvent(QCloseEvent *event)
+ {
+-    if (tracker->stopOnClose(job)) {
++    QWidget::closeEvent(event);
++
++    if (tracker->stopOnClose(job) && !finishedProperty) {
+         tracker->slotStop(job);
+     } else if (tracker->autoDelete(job)) {
+         // Using deleteLater() on the widget wont help us to be sure that the
+         // widget will actually become deleted before the job. Solution: delete
+         // the widget right now. (ereslibre)
+         delete this;
+-    } else {
+-        tracker->slotClean(job);
+     }
+-
+-    QWidget::closeEvent(event);
+ }
+ 
+ void KWidgetJobTracker::Private::ProgressWidget::init()
+@@ -445,6 +444,7 @@ void KWidgetJobTracker::Private::ProgressWidget::init()
+     progressHBox->addWidget(progressBar);
+ 
+     suspendedProperty = false;
++    finishedProperty = false;
+     pauseButton = new KPushButton(i18n("Pause"), this);
+     QObject::connect(pauseButton, SIGNAL(clicked()),
+                      this, SLOT(_k_pauseResumeClicked()));
+@@ -594,11 +594,11 @@ void KWidgetJobTracker::Private::ProgressWidget::_k_pauseResumeClicked()
+ 
+ void KWidgetJobTracker::Private::ProgressWidget::_k_stop()
+ {
+-    tracker->slotStop(job);
+-    // Using deleteLater() on the widget wont help us to be sure that the
+-    // widget will actually become deleted before the job. Solution: delete
+-    // the widget right now. (ereslibre)
+-    delete tracker->widget(job);
++    if (!finishedProperty) {
++        tracker->slotStop(job);
++    } else {
++        delete this;
++    }
+ }
+ 
+ #include "kwidgetjobtracker.moc"
+diff --git a/kdeui/jobs/kwidgetjobtracker_p.h b/kdeui/jobs/kwidgetjobtracker_p.h
+index a54cc58..30c8b66 100644
+--- a/kdeui/jobs/kwidgetjobtracker_p.h
++++ b/kdeui/jobs/kwidgetjobtracker_p.h
+@@ -80,7 +80,6 @@ public:
+     ~ProgressWidget()
+     {
+         beingDeleted = true;    // keep the tracker from trying to delete us
+-        tracker->unregisterJob(job);
+     }
+ 
+     KWidgetJobTracker *const tracker;
+@@ -116,6 +115,7 @@ public:
+     QProgressBar *progressBar;
+ 
+     bool suspendedProperty;
++    bool finishedProperty;
+ 
+     void init();
+     void showTotals();

@@ -1,0 +1,135 @@
+Index: workspace/systemsettings/categories/settings-general.desktop
+===================================================================
+--- workspace/systemsettings/categories/settings-general.desktop	(revisión: 752779)
++++ workspace/systemsettings/categories/settings-general.desktop	(copia de trabajo)
+@@ -1,6 +1,7 @@
+ [Desktop Entry]
+ Type=Service
+ X-KDE-ServiceTypes=SystemSettingsCategory
++X-KDE-Weight=100
+ X-KDE-System-Settings-Category=general
+ X-KDE-System-Settings-Parent-Category=
+ 
+Index: workspace/systemsettings/categories/settings-advanced.desktop
+===================================================================
+--- workspace/systemsettings/categories/settings-advanced.desktop	(revisión: 752779)
++++ workspace/systemsettings/categories/settings-advanced.desktop	(copia de trabajo)
+@@ -1,6 +1,7 @@
+ [Desktop Entry]
+ Type=Service
+ X-KDE-ServiceTypes=SystemSettingsCategory
++X-KDE-Weight=200
+ X-KDE-System-Settings-Category=advanced
+ X-KDE-System-Settings-Parent-Category=
+ 
+Index: workspace/systemsettings/mainwindow.h
+===================================================================
+--- workspace/systemsettings/mainwindow.h	(revisión: 752784)
++++ workspace/systemsettings/mainwindow.h	(copia de trabajo)
+@@ -86,7 +86,7 @@ private:
+ 	KCMultiWidget *groupWidget;
+ 	QScrollArea *scrollView;
+ 
+-	QHash<const KService*,KCMultiWidget*> moduleItemToWidgetDict;
++	QHash<KService::Ptr,KCMultiWidget*> moduleItemToWidgetDict;
+ 	QHash<const QAbstractItemModel *,int> modelToTabHash;
+ 
+ 	QList<KToggleAction*> pageActions;
+@@ -117,5 +117,7 @@ private:
+ 	KAboutData *dummyAbout;
+ };
+ 
++bool pageLessThan( MenuItem *page1, MenuItem *page2 );
++
+ #endif
+ 
+Index: workspace/systemsettings/menuitem.h
+===================================================================
+--- workspace/systemsettings/menuitem.h	(revisión: 752779)
++++ workspace/systemsettings/menuitem.h	(copia de trabajo)
+@@ -37,7 +37,7 @@ public:
+     bool menu;
+     QString name;
+     QString caption;
+-    const KService * service;
++    KService::Ptr service;
+     KCModuleInfo item;
+ };
+ 
+Index: workspace/systemsettings/mainwindow.cpp
+===================================================================
+--- workspace/systemsettings/mainwindow.cpp	(revisión: 752784)
++++ workspace/systemsettings/mainwindow.cpp	(copia de trabajo)
+@@ -64,6 +64,7 @@ MainWindow::MainWindow(const QString & m
+ 
+ 	// Load the menu structure in from disk.
+     readMenu( rootItem );
++    qStableSort( rootItem->children.begin(), rootItem->children.end(), pageLessThan ); // sort tabs by weight
+ 	moduleTabs = new KTabWidget(this, QTabWidget::North|QTabWidget::Rounded);
+ 	buildActions();
+ 	buildMainWidget();
+@@ -93,7 +94,7 @@ void MainWindow::readMenu( MenuItem * pa
+     space.fill( ' ', depth * 2 );
+     kDebug() << space << "Looking for children in '" << parent->name << "'";
+     for (int i = 0; i < categories.size(); ++i) {
+-        const KService* entry = categories.at(i).data();
++        KService::Ptr entry = categories.at(i);
+         QString parentCategory = entry->property("X-KDE-System-Settings-Parent-Category").toString();
+         QString category = entry->property("X-KDE-System-Settings-Category").toString();
+         //kDebug() << "Examining category " << parentCategory << "/" << category;
+@@ -103,13 +104,14 @@ void MainWindow::readMenu( MenuItem * pa
+             MenuItem * menuItem = new MenuItem(true, parent);
+             menuItem->name = category;
+             menuItem->service = entry;
++            menuItem->item = KCModuleInfo( entry );
+             readMenu( menuItem );
+         }
+     }
+ 
+     // scan for any modules at this level and add them
+     for (int i = 0; i < modules.size(); ++i) {
+-        const KService* entry = modules.at(i).data();
++        KService::Ptr entry = modules.at(i);
+         QString category = entry->property("X-KDE-System-Settings-Parent-Category").toString();
+         //kDebug() << "Examining module " << category;
+         if(!parent->name.isEmpty() && category == parent->name ) {
+@@ -124,8 +126,6 @@ void MainWindow::readMenu( MenuItem * pa
+             infoItem->item = module;
+         }
+     }
+-
+-    //qSort(currentMenu); // TODO: sort by weight
+ }
+ 
+ void MainWindow::closeEvent ( QCloseEvent * )
+@@ -135,7 +135,6 @@ void MainWindow::closeEvent ( QCloseEven
+ 	}
+ }
+ 
+-
+ void MainWindow::buildMainWidget()
+ {
+     windowStack = new QStackedWidget(this);
+@@ -485,4 +484,9 @@ void MainWindow::slotSearchHits(const QS
+ 	}
+ }
+ 
++bool pageLessThan( MenuItem *page1, MenuItem *page2 )
++{
++    return page1->item.weight() < page2->item.weight();
++}
++
+ #include "mainwindow.moc"
+Index: workspace/systemsettings/menuitem.cpp
+===================================================================
+--- workspace/systemsettings/menuitem.cpp	(revisión: 752779)
++++ workspace/systemsettings/menuitem.cpp	(copia de trabajo)
+@@ -21,7 +21,7 @@
+ #include "menuitem.h"
+ 
+ MenuItem::MenuItem( bool isMenu, MenuItem * itsParent )
+-    : menu( isMenu ), parent( itsParent ), service( 0 )
++    : menu( isMenu ), parent( itsParent )
+ {
+     if ( parent ) {
+         parent->children.append( this );

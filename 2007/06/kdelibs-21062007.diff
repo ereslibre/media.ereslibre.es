@@ -1,0 +1,79 @@
+Index: kio/kio/kdirmodel.h
+===================================================================
+--- kio/kio/kdirmodel.h	(revisión: 678237)
++++ kio/kio/kdirmodel.h	(copia de trabajo)
+@@ -26,6 +26,11 @@
+ class KDirLister;
+ class KDirModelPrivate;
+ 
++namespace Nepomuk
++{
++    class Resource;
++};
++
+ /**
+  * @short A model for a KIO-based directory tree.
+  *
+@@ -64,6 +69,11 @@ public:
+     KFileItem* itemForIndex( const QModelIndex& index ) const;
+ 
+     /**
++     * Return the nepomuk resource item for a given index.
++     */
++    Nepomuk::Resource resourceForIndex( const QModelIndex& index ) const;
++
++    /**
+      * Return the index for a given kfileitem. This can be slow.
+      * @deprecated use the method that takes a KFileItem by value
+      */
+@@ -98,6 +108,8 @@ public:
+         Owner,
+         Group,
+         Type,
++        Rating,
++        Tags,
+         ColumnCount
+     };
+ 
+Index: kio/kio/kdirmodel.cpp
+===================================================================
+--- kio/kio/kdirmodel.cpp	(revisión: 678237)
++++ kio/kio/kdirmodel.cpp	(copia de trabajo)
+@@ -31,6 +31,10 @@
+ #include <QDir>
+ #include <sys/types.h>
+ 
++#include <nepomuk/resource.h>
++#include <nepomuk/variant.h>
++#include <nepomuk/global.h>
++
+ class KDirModelNode;
+ class KDirModelDirNode;
+ 
+@@ -507,6 +511,13 @@ KFileItem* KDirModel::itemForIndex( cons
+     }
+ }
+ 
++Nepomuk::Resource KDirModel::resourceForIndex( const QModelIndex& index ) const
++{
++    KFileItem* item = itemForIndex( index );
++
++    return Nepomuk::Resource( item->url().url(), Nepomuk::NFO::File() );
++}
++
+ QModelIndex KDirModel::indexForItem( const KFileItem* item ) const
+ {
+     // Note that we can only use the URL here, not the pointer.
+Index: kio/CMakeLists.txt
+===================================================================
+--- kio/CMakeLists.txt	(revisión: 678237)
++++ kio/CMakeLists.txt	(copia de trabajo)
+@@ -222,7 +222,7 @@ kde4_automoc(${kio_LIB_PRIVATE_SRCS})
+ 
+ kde4_add_library(kio SHARED ${kio_LIB_SRCS})
+ 
+-target_link_libraries(kio ${KDE4_KDEUI_LIBS} ${ZLIB_LIBRARY} ${STRIGI_LIBRARIES} ${KDE4_SOLID_LIBS})
++target_link_libraries(kio ${KDE4_KDEUI_LIBS} ${ZLIB_LIBRARY} ${STRIGI_LIBRARIES} ${KDE4_SOLID_LIBS} nepomuk )
+ 
+ if (UNIX)
+    target_link_libraries(kio kdesu)

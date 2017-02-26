@@ -1,0 +1,3564 @@
+Index: apps/dolphin/src/dolphinsortfilterproxymodel.cpp
+===================================================================
+--- apps/dolphin/src/dolphinsortfilterproxymodel.cpp	(revisión: 713026)
++++ apps/dolphin/src/dolphinsortfilterproxymodel.cpp	(copia de trabajo)
+@@ -22,27 +22,28 @@
+ 
+ #include "dolphinsortfilterproxymodel.h"
+ 
+-#ifdef HAVE_NEPOMUK
+ #include <config-nepomuk.h>
++#ifdef HAVE_NEPOMUK
+ #include <nepomuk/global.h>
+ #include <nepomuk/resource.h>
+ #include <nepomuk/tag.h>
+ #endif
+ 
+-#include <kdirmodel.h>
++#include "dolphinmodel.h"
++
+ #include <kfileitem.h>
+ #include <kdatetime.h>
+ #include <klocale.h>
+ 
+ static DolphinView::Sorting sortingTypeTable[] =
+ {
+-    DolphinView::SortByName,        // KDirModel::Name
+-    DolphinView::SortBySize,        // KDirModel::Size
+-    DolphinView::SortByDate,        // KDirModel::ModifiedTime
+-    DolphinView::SortByPermissions, // KDirModel::Permissions
+-    DolphinView::SortByOwner,       // KDirModel::Owner
+-    DolphinView::SortByGroup,       // KDirModel::Group
+-    DolphinView::SortByType         // KDirModel::Type
++    DolphinView::SortByName,        // DolphinModel::Name
++    DolphinView::SortBySize,        // DolphinModel::Size
++    DolphinView::SortByDate,        // DolphinModel::ModifiedTime
++    DolphinView::SortByPermissions, // DolphinModel::Permissions
++    DolphinView::SortByOwner,       // DolphinModel::Owner
++    DolphinView::SortByGroup,       // DolphinModel::Group
++    DolphinView::SortByType         // DolphinModel::Type
+ #ifdef HAVE_NEPOMUK
+     , DolphinView::SortByRating
+     , DolphinView::SortByTags
+@@ -62,23 +63,27 @@
+ 
+ void DolphinSortFilterProxyModel::setSorting(DolphinView::Sorting sorting)
+ {
++    m_sorting = sorting;
++
+     // change the sorting column by keeping the current sort order
+-    sort(sorting, m_sortOrder);
++    KDirSortFilterProxyModel::sort((int) m_sorting, m_sortOrder);
+ }
+ 
+ void DolphinSortFilterProxyModel::setSortOrder(Qt::SortOrder sortOrder)
+ {
++    m_sortOrder = sortOrder;
++
+     // change the sort order by keeping the current column
+-    sort(m_sorting, sortOrder);
++    KDirSortFilterProxyModel::sort((int) m_sorting, m_sortOrder);
+ }
+ 
+ void DolphinSortFilterProxyModel::sort(int column, Qt::SortOrder sortOrder)
+ {
+     m_sorting = sortingForColumn(column);
+     m_sortOrder = sortOrder;
+-    setSortRole(m_sorting);
+-    KDirSortFilterProxyModel::sort(column, sortOrder);
++
+     emit sortingRoleChanged();
++    KDirSortFilterProxyModel::sort((int) m_sorting, sortOrder);
+ }
+ 
+ DolphinView::Sorting DolphinSortFilterProxyModel::sortingForColumn(int column)
+@@ -91,100 +96,56 @@
+ bool DolphinSortFilterProxyModel::lessThanGeneralPurpose(const QModelIndex &left,
+                                                          const QModelIndex &right) const
+ {
+-    KDirModel* dirModel = static_cast<KDirModel*>(sourceModel());
++#ifdef HAVE_NEPOMUK
++    DolphinModel* dolphinModel = static_cast<DolphinModel*>(sourceModel());
+ 
+-    const KFileItem leftFileItem  = dirModel->itemForIndex(left);
+-    const KFileItem rightFileItem = dirModel->itemForIndex(right);
++    const KFileItem leftFileItem  = dolphinModel->itemForIndex(left);
++    const KFileItem rightFileItem = dolphinModel->itemForIndex(right);
+ 
+-    //FIXME left.column() should be used instead!
+-    switch (sortRole()) {
+-    case DolphinView::SortByName: {
+-        QString leftFileName(leftFileItem.name());
+-        if (leftFileName.at(0) == '.') {
+-            leftFileName = leftFileName.mid(1);
+-        }
++    switch (left.column()) {
+ 
+-        QString rightFileName(rightFileItem.name());
+-        if (rightFileName.at(0) == '.') {
+-            rightFileName = rightFileName.mid(1);
+-        }
+-
+-        // We don't care about case for building categories. We also don't
+-        // want here to compare by a natural comparison.
+-        return naturalCompare(leftFileName, rightFileName) < 0;
+-    }
+-
+-    case DolphinView::SortBySize:
+-        // If we are sorting by size, show folders first. We will sort them
+-        // correctly later.
+-        return leftFileItem.isDir() && !rightFileItem.isDir();
+-
+-    case DolphinView::SortByDate: {
+-        KDateTime leftTime = leftFileItem.time(KFileItem::ModificationTime);
+-        KDateTime rightTime = rightFileItem.time(KFileItem::ModificationTime);
+-        return leftTime > rightTime;
+-    }
+-
+-    case DolphinView::SortByPermissions: {
+-        return naturalCompare(leftFileItem.permissionsString(),
+-                            rightFileItem.permissionsString()) < 0;
+-    }
+-
+-    case DolphinView::SortByOwner: {
+-        return naturalCompare(leftFileItem.user().toLower(),
+-                              rightFileItem.user().toLower()) < 0;
+-    }
+-
+-    case DolphinView::SortByGroup: {
+-        return naturalCompare(leftFileItem.group().toLower(),
+-                              rightFileItem.group().toLower()) < 0;
+-    }
+-
+-    case DolphinView::SortByType: {
+-        // If we are sorting by size, show folders first. We will sort them
+-        // correctly later.
+-        if (leftFileItem.isDir() && !rightFileItem.isDir()) {
+-            return true;
+-        } else if (!leftFileItem.isDir() && rightFileItem.isDir()) {
+-            return false;
+-        }
+-
+-        return naturalCompare(leftFileItem.mimeComment().toLower(),
+-                              rightFileItem.mimeComment().toLower()) < 0;
+-    }
+-#ifdef HAVE_NEPOMUK
+     case DolphinView::SortByRating: {
+-        const quint32 leftRating = ratingForIndex(left);
+-        const quint32 rightRating = ratingForIndex(right);
++        const quint32 leftRating = DolphinModel::ratingForIndex(left);
++        const quint32 rightRating = DolphinModel::ratingForIndex(right);
+         return leftRating > rightRating;
+     }
++
+     case DolphinView::SortByTags: {
+-        const QString leftTags = tagsForIndex(left);
+-        const QString rightTags = tagsForIndex(right);
++        const QString leftTags = DolphinModel::tagsForIndex(left);
++        const QString rightTags = DolphinModel::tagsForIndex(right);
+ 
+         if (leftTags.isEmpty() && !rightTags.isEmpty())
+             return false;
+         else if (!leftTags.isEmpty() && rightTags.isEmpty())
+             return true;
+ 
+-        return naturalCompare(tagsForIndex(left), tagsForIndex(right)) < 0;
++        return naturalCompare(DolphinModel::tagsForIndex(left), DolphinModel::tagsForIndex(right)) < 0;
+     }
+-#endif
++
+     default:
+         break;
++
+     }
+-    return false;
++#endif
++
++    return KDirSortFilterProxyModel::lessThanGeneralPurpose(left, right);
+ }
+ 
+ bool DolphinSortFilterProxyModel::lessThan(const QModelIndex& left,
+                                            const QModelIndex& right) const
+ {
+ #ifdef HAVE_NEPOMUK
+-    KDirModel* dirModel = static_cast<KDirModel*>(sourceModel());
++    DolphinModel* dolphinModel = static_cast<DolphinModel*>(sourceModel());
+ 
+-    const KFileItem leftFileItem  = dirModel->itemForIndex(left);
+-    const KFileItem rightFileItem = dirModel->itemForIndex(right);
++    const KFileItem leftFileItem  = dolphinModel->itemForIndex(left);
++    const KFileItem rightFileItem = dolphinModel->itemForIndex(right);
+ 
++    // On our priority, folders go above regular files.
++    if (leftFileItem.isDir() && !rightFileItem.isDir()) {
++        return true;
++    } else if (!leftFileItem.isDir() && rightFileItem.isDir()) {
++        return false;
++    }
+ 
+     // Hidden elements go before visible ones, if they both are
+     // folders or files.
+@@ -194,11 +155,11 @@
+         return false;
+     }
+ 
+-    //FIXME left.column() should be used instead!
+-    switch (sortRole()) {
++    switch (left.column()) {
++
+     case DolphinView::SortByRating: {
+-        const quint32 leftRating  = ratingForIndex(left);
+-        const quint32 rightRating = ratingForIndex(right);
++        const quint32 leftRating  = DolphinModel::ratingForIndex(left);
++        const quint32 rightRating = DolphinModel::ratingForIndex(right);
+ 
+         if (leftRating == rightRating) {
+             // On our priority, folders go above regular files.
+@@ -222,8 +183,8 @@
+     }
+ 
+     case DolphinView::SortByTags: {
+-        const QString leftTags = tagsForIndex(left);
+-        const QString rightTags = tagsForIndex(right);
++        const QString leftTags = DolphinModel::tagsForIndex(left);
++        const QString rightTags = DolphinModel::tagsForIndex(right);
+ 
+         if (leftTags == rightTags) {
+             // On our priority, folders go above regular files.
+@@ -245,61 +206,14 @@
+ 
+         return naturalCompare(leftTags, rightTags) < 0;
+     }
+-    }
+-#endif
+ 
+-    return KDirSortFilterProxyModel::lessThan(left, right);
+-}
++    default:
++        break;
+ 
+-quint32 DolphinSortFilterProxyModel::ratingForIndex(const QModelIndex& index)
+-{
+-#ifdef HAVE_NEPOMUK
+-    quint32 rating = 0;
+-
+-    const KDirModel* dirModel = static_cast<const KDirModel*>(index.model());
+-    KFileItem item = dirModel->itemForIndex(index);
+-    if (!item.isNull()) {
+-        const Nepomuk::Resource resource(item.url().url(), Nepomuk::NFO::File());
+-        rating = resource.rating();
+     }
+-    return rating;
+-#else
+-    Q_UNUSED(index);
+-    return 0;
+ #endif
+-}
+ 
+-QString DolphinSortFilterProxyModel::tagsForIndex(const QModelIndex& index)
+-{
+-#ifdef HAVE_NEPOMUK
+-    QString tagsString;
+-
+-    const KDirModel* dirModel = static_cast<const KDirModel*>(index.model());
+-    KFileItem item = dirModel->itemForIndex(index);
+-    if (!item.isNull()) {
+-        const Nepomuk::Resource resource(item.url().url(), Nepomuk::NFO::File());
+-        const QList<Nepomuk::Tag> tags = resource.tags();
+-        QStringList stringList;
+-        foreach (const Nepomuk::Tag& tag, tags) {
+-            stringList.append(tag.label());
+-        }
+-        stringList.sort();
+-
+-        foreach (const QString& str, stringList) {
+-            tagsString += str;
+-            tagsString += ", ";
+-        }
+-
+-        if (!tagsString.isEmpty()) {
+-            tagsString.resize(tagsString.size() - 2);
+-        }
+-    }
+-
+-    return tagsString;
+-#else
+-    Q_UNUSED(index);
+-    return QString();
+-#endif
++    return KDirSortFilterProxyModel::lessThan(left, right);
+ }
+ 
+ #include "dolphinsortfilterproxymodel.moc"
+Index: apps/dolphin/src/dolphincategorydrawer.cpp
+===================================================================
+--- apps/dolphin/src/dolphincategorydrawer.cpp	(revisión: 0)
++++ apps/dolphin/src/dolphincategorydrawer.cpp	(revisión: 0)
+@@ -0,0 +1,302 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@gmail.com>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#include "dolphincategorydrawer.h"
++
++#include <QPainter>
++#include <QFile>
++#include <QDir>
++
++#include <kiconloader.h>
++#include <kcategorizedsortfilterproxymodel.h>
++#include <kpixmapeffect.h>
++#include <kuser.h>
++
++#include <config-nepomuk.h>
++#ifdef HAVE_NEPOMUK
++#include <nepomuk/global.h>
++#include <nepomuk/resource.h>
++#include <nepomuk/tag.h>
++#endif
++
++#include "dolphinview.h"
++#include "dolphinmodel.h"
++
++DolphinCategoryDrawer::DolphinCategoryDrawer()
++{
++}
++
++DolphinCategoryDrawer::~DolphinCategoryDrawer()
++{
++}
++
++void DolphinCategoryDrawer::drawCategory(const QModelIndex &index, int sortRole,
++                                         const QStyleOption &option, QPainter *painter) const
++{
++    QRect starRect = option.rect;
++
++    int iconSize =  KIconLoader::global()->currentSize(K3Icon::Small);
++    QVariant categoryVariant = index.model()->data(index, KCategorizedSortFilterProxyModel::CategoryRole);
++
++    if (!categoryVariant.isValid())
++    {
++        return;
++    }
++
++    const QString category = categoryVariant.toString();
++
++    QColor color = option.palette.color(QPalette::Text);
++
++    painter->save();
++    painter->setRenderHint(QPainter::Antialiasing);
++
++    QStyleOptionButton opt;
++
++    opt.rect = option.rect;
++    opt.palette = option.palette;
++    opt.direction = option.direction;
++    opt.text = category;
++
++    if (option.state & QStyle::State_MouseOver)
++    {
++        QColor hover = option.palette.color(QPalette::Highlight).light();
++        hover.setAlpha(88);
++
++        QLinearGradient gradient(option.rect.topLeft(),
++                                 option.rect.bottomRight());
++        gradient.setColorAt(option.direction == Qt::LeftToRight ? 0
++                                                                : 1, hover);
++        gradient.setColorAt(option.direction == Qt::LeftToRight ? 1
++                                                                : 0, Qt::transparent);
++
++        painter->fillRect(option.rect, gradient);
++    }
++
++    QFont painterFont = painter->font();
++    painterFont.setWeight(QFont::Bold);
++    QFontMetrics metrics(painterFont);
++    painter->setFont(painterFont);
++
++    QPainterPath path;
++    path.addRect(option.rect.left(),
++                 option.rect.bottom() - 2,
++                 option.rect.width(),
++                 2);
++
++    QLinearGradient gradient(option.rect.topLeft(),
++                             option.rect.bottomRight());
++    gradient.setColorAt(option.direction == Qt::LeftToRight ? 0
++                                                            : 1, color);
++    gradient.setColorAt(option.direction == Qt::LeftToRight ? 1
++                                                            : 0, Qt::transparent);
++
++    painter->setBrush(gradient);
++    painter->fillPath(path, gradient);
++
++    if (option.direction == Qt::LeftToRight)
++    {
++        opt.rect.setLeft(opt.rect.left() + (iconSize / 4));
++        starRect.setLeft(starRect.left() + (iconSize / 4));
++        starRect.setRight(starRect.right() + (iconSize / 4));
++    }
++    else
++    {
++        opt.rect.setRight(opt.rect.width() - (iconSize / 4));
++        starRect.setLeft(starRect.width() - iconSize);
++        starRect.setRight(starRect.width() - (iconSize / 4));
++    }
++
++    bool paintIcon = true;
++    bool paintText = true;
++
++    QPixmap icon;
++    switch (index.column()) {
++        case KDirModel::Name:
++            paintIcon = false;
++            break;
++
++        case KDirModel::Size:
++            paintIcon = false;
++            break;
++
++        case KDirModel::ModifiedTime:
++            paintIcon = false;
++            break;
++
++        case KDirModel::Permissions:
++            paintIcon = false; // TODO: let's think about how to represent permissions
++            break;
++
++        case KDirModel::Owner: {
++            opt.rect.setTop(option.rect.top() + (iconSize / 4));
++            KUser user(category);
++            if (QFile::exists(user.homeDir() + QDir::separator() + ".face.icon"))
++            {
++                icon = QPixmap::fromImage(QImage(user.homeDir() + QDir::separator() + ".face.icon")).scaled(iconSize, iconSize);
++            }
++            else
++            {
++                icon = KIconLoader::global()->loadIcon("user", K3Icon::Small);
++            }
++            break;
++        }
++
++        case KDirModel::Group:
++            paintIcon = false;
++            break;
++
++        case KDirModel::Type: {
++            opt.rect.setTop(option.rect.top() + (option.rect.height() / 2) - (iconSize / 2));
++            const KCategorizedSortFilterProxyModel *proxyModel = static_cast<const KCategorizedSortFilterProxyModel*>(index.model());
++            const DolphinModel *model = static_cast<const DolphinModel*>(proxyModel->sourceModel());
++            KFileItem item = model->itemForIndex(proxyModel->mapToSource(index));
++            // This is the only way of getting the icon right. Others will fail on corner
++            // cases like the item representing this group has been set a different icon,
++            // so the group icon drawn is that one particularly. This way assures the drawn
++            // icon is the one of the mimetype of the group itself. (ereslibre)
++            icon = KIconLoader::global()->loadMimeTypeIcon(item.mimeTypePtr()->iconName(),
++                                                           K3Icon::Small);
++            break;
++        }
++
++#ifdef HAVE_NEPOMUK
++        case DolphinModel::Rating: {
++            paintText = false;
++            paintIcon = false;
++
++            starRect.setTop(option.rect.top() + (option.rect.height() / 2) - (iconSize / 2));
++            starRect.setSize(QSize(iconSize, iconSize));
++
++            QPixmap pixmap = KIconLoader::global()->loadIcon("rating", K3Icon::Small);
++            QPixmap smallPixmap = KIconLoader::global()->loadIcon("rating", K3Icon::NoGroup, iconSize / 2);
++            QPixmap disabledPixmap = KIconLoader::global()->loadIcon("rating", K3Icon::Small);
++
++            KPixmapEffect::toGray(disabledPixmap, false);
++
++            int rating = category.toInt();
++
++            for (int i = 0; i < rating - (rating % 2); i += 2) {
++                painter->drawPixmap(starRect, pixmap);
++
++                if (option.direction == Qt::LeftToRight)
++                {
++                    starRect.setLeft(starRect.left() + iconSize + (iconSize / 4) /* separator between stars */);
++                    starRect.setRight(starRect.right() + iconSize + (iconSize / 4) /* separator between stars */);
++                }
++                else
++                {
++                    starRect.setLeft(starRect.left() - iconSize - (iconSize / 4) /* separator between stars */);
++                    starRect.setRight(starRect.right() - iconSize - (iconSize / 4) /* separator between stars */);
++                }
++            }
++
++            if (rating && rating % 2) {
++                if (option.direction == Qt::RightToLeft)
++                {
++                    starRect.setLeft(starRect.left() + (iconSize / 2) /* separator between stars */);
++                    //starRect.setRight(starRect.right() + (iconSize / 2) /* separator between stars */);
++                }
++
++                starRect.setTop(option.rect.top() + (option.rect.height() / 2) - (iconSize / 4));
++                starRect.setSize(QSize(iconSize / 2, iconSize / 2));
++                painter->drawPixmap(starRect, smallPixmap);
++                starRect.setTop(opt.rect.top() + (option.rect.height() / 2) - (iconSize / 2));
++                //starRect.setSize(QSize(iconSize / 2, iconSize / 2));
++
++                if (option.direction == Qt::LeftToRight)
++                {
++                    starRect.setLeft(starRect.left() + (iconSize / 2) + (iconSize / 4));
++                    starRect.setRight(starRect.right() + (iconSize / 2) + (iconSize / 4));
++                }
++                else
++                {
++                    starRect.setLeft(starRect.left() - (iconSize / 2) - (iconSize / 4));
++                    starRect.setRight(starRect.right() - (iconSize / 2) - (iconSize / 4));
++                }
++
++                if (option.direction == Qt::RightToLeft)
++                {
++                    starRect.setLeft(starRect.left() - (iconSize / 2));
++                    starRect.setRight(starRect.right() - (iconSize / 2));
++                }
++
++                starRect.setSize(QSize(iconSize, iconSize));
++            }
++
++            for (int i = rating; i < 9; i += 2) {
++                painter->drawPixmap(starRect, disabledPixmap);
++
++                if (option.direction == Qt::LeftToRight)
++                {
++                    starRect.setLeft(starRect.left() + iconSize + (iconSize / 4));
++                    starRect.setRight(starRect.right() + iconSize + (iconSize / 4));
++                }
++                else
++                {
++                    starRect.setLeft(starRect.left() - iconSize - (iconSize / 4));
++                    starRect.setRight(starRect.right() - iconSize - (iconSize / 4));
++                }
++            }
++
++            break;
++        }
++
++        case DolphinModel::Tags:
++            paintIcon = false;
++            break;
++#endif
++    }
++
++    if (paintIcon) {
++        painter->drawPixmap(QRect(option.direction == Qt::LeftToRight ? opt.rect.left()
++                                                                      : opt.rect.right() - iconSize, opt.rect.top(), iconSize, iconSize), icon);
++
++        if (option.direction == Qt::LeftToRight)
++        {
++            opt.rect.setLeft(opt.rect.left() + iconSize + (iconSize / 4));
++        }
++    }
++
++    if (paintText) {
++        opt.rect.setTop(option.rect.top() + (iconSize / 4));
++        opt.rect.setBottom(opt.rect.bottom() - 2);
++        painter->setPen(color);
++
++        QRect textRect = opt.rect;
++
++        if (option.direction == Qt::RightToLeft)
++        {
++            textRect.setWidth(textRect.width() - (paintIcon ? iconSize + (iconSize / 4)
++                                                            : (iconSize / 4)));
++        }
++
++        painter->drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft,
++        metrics.elidedText(category, Qt::ElideRight, textRect.width()));
++    }
++
++    painter->restore();
++}
++
++int DolphinCategoryDrawer::categoryHeight(const QStyleOption &option) const
++{
++    int iconSize = KIconLoader::global()->currentSize(K3Icon::Small);
++
++    return qMax(option.fontMetrics.height() + (iconSize / 4) * 2 + 2, iconSize + (iconSize / 4) * 2 + 2) /* 2 gradient */;
++}
+Index: apps/dolphin/src/dolphincolumnview.cpp
+===================================================================
+--- apps/dolphin/src/dolphincolumnview.cpp	(revisión: 713026)
++++ apps/dolphin/src/dolphincolumnview.cpp	(copia de trabajo)
+@@ -19,6 +19,7 @@
+ 
+ #include "dolphincolumnview.h"
+ 
++#include "dolphinmodel.h"
+ #include "dolphincontroller.h"
+ #include "dolphinsettings.h"
+ 
+@@ -27,7 +28,6 @@
+ #include <kcolorutils.h>
+ #include <kcolorscheme.h>
+ #include <kdirlister.h>
+-#include <kdirmodel.h>
+ 
+ #include <QAbstractProxyModel>
+ #include <QApplication>
+@@ -239,8 +239,8 @@
+     if (!m_childUrl.isEmpty()) {
+         // indicate the shown URL of the next column by highlighting the shown folder item
+         const QAbstractProxyModel* proxyModel = static_cast<const QAbstractProxyModel*>(m_view->model());
+-        const KDirModel* dirModel = static_cast<const KDirModel*>(proxyModel->sourceModel());
+-        const QModelIndex dirIndex = dirModel->indexForUrl(m_childUrl);
++        const DolphinModel* dolphinModel = static_cast<const DolphinModel*>(proxyModel->sourceModel());
++        const QModelIndex dirIndex = dolphinModel->indexForUrl(m_childUrl);
+         const QModelIndex proxyIndex = proxyModel->mapFromSource(dirIndex);
+         if (proxyIndex.isValid() && !selectionModel()->isSelected(proxyIndex)) {
+             const QRect itemRect = visualRect(proxyIndex);
+@@ -420,8 +420,6 @@
+ 
+ void DolphinColumnView::setModel(QAbstractItemModel* model)
+ {
+-    // TODO: remove all columns
+-
+     activeColumn()->setModel(model);
+     QAbstractItemView::setModel(model);
+ }
+Index: apps/dolphin/src/dolphinmodel.h
+===================================================================
+--- apps/dolphin/src/dolphinmodel.h	(revisión: 0)
++++ apps/dolphin/src/dolphinmodel.h	(revisión: 0)
+@@ -0,0 +1,58 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@gmail.com>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#ifndef DOLPHINMODEL_H
++#define DOLPHINMODEL_H
++
++#include <kdirmodel.h>
++
++#include <libdolphin_export.h>
++
++class LIBDOLPHINPRIVATE_EXPORT DolphinModel
++    : public KDirModel
++{
++public:
++    enum AdditionalColumns {
++        Rating = ColumnCount, // ColumnCount defined at KDirModel
++        Tags,
++        ExtraColumnCount
++    };
++
++    DolphinModel(QObject *parent = 0);
++    virtual ~DolphinModel();
++
++    virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
++
++    virtual int columnCount(const QModelIndex &parent = QModelIndex()) const;
++
++    /**
++     * Returns the rating for the item with the index \a index. 0 is
++     * returned if no item could be found.
++     */
++    static quint32 ratingForIndex(const QModelIndex& index);
++
++    /**
++     * Returns the tags for the item with the index \a index. If no
++     * tag is applied, a predefined string will be returned.
++     */
++    static QString tagsForIndex(const QModelIndex& index);
++};
++
++#endif // DOLPHINMODEL_H
+Index: apps/dolphin/src/dolphinpart.cpp
+===================================================================
+--- apps/dolphin/src/dolphinpart.cpp	(revisión: 713026)
++++ apps/dolphin/src/dolphinpart.cpp	(copia de trabajo)
+@@ -20,9 +20,9 @@
+ #include "dolphinpart.h"
+ #include "dolphinsortfilterproxymodel.h"
+ #include "dolphinview.h"
++#include "dolphinmodel.h"
+ 
+ #include <kdirlister.h>
+-#include <kdirmodel.h>
+ #include <kmessagebox.h>
+ #include <kparts/browserextension.h>
+ #include <kparts/genericfactory.h>
+@@ -53,16 +53,16 @@
+     connect(m_dirLister, SIGNAL(completed(KUrl)), this, SLOT(slotCompleted(KUrl)));
+     connect(m_dirLister, SIGNAL(canceled(KUrl)), this, SLOT(slotCanceled(KUrl)));
+ 
+-    m_dirModel = new KDirModel(this);
+-    m_dirModel->setDirLister(m_dirLister);
++    m_dolphinModel = new DolphinModel(this);
++    m_dolphinModel->setDirLister(m_dirLister);
+ 
+     m_proxyModel = new DolphinSortFilterProxyModel(this);
+-    m_proxyModel->setSourceModel(m_dirModel);
++    m_proxyModel->setSourceModel(m_dolphinModel);
+ 
+     m_view = new DolphinView(parentWidget,
+                              KUrl(),
+                              m_dirLister,
+-                             m_dirModel,
++                             m_dolphinModel,
+                              m_proxyModel);
+     setWidget(m_view);
+ 
+Index: apps/dolphin/src/treeviewsidebarpage.h
+===================================================================
+--- apps/dolphin/src/treeviewsidebarpage.h	(revisión: 713026)
++++ apps/dolphin/src/treeviewsidebarpage.h	(copia de trabajo)
+@@ -24,7 +24,7 @@
+ #include <sidebarpage.h>
+ 
+ class KDirLister;
+-class KDirModel;
++class DolphinModel;
+ 
+ class DolphinSortFilterProxyModel;
+ class SidebarTreeView;
+@@ -110,7 +110,7 @@
+ 
+ private:
+     KDirLister* m_dirLister;
+-    KDirModel* m_dirModel;
++    DolphinModel* m_dolphinModel;
+     DolphinSortFilterProxyModel* m_proxyModel;
+     SidebarTreeView* m_treeView;
+     KUrl m_leafDir;
+Index: apps/dolphin/src/kcategorizedview_p.h
+===================================================================
+--- apps/dolphin/src/kcategorizedview_p.h	(revisión: 713026)
++++ apps/dolphin/src/kcategorizedview_p.h	(copia de trabajo)
+@@ -21,7 +21,8 @@
+ #ifndef KCATEGORIZEDVIEW_P_H
+ #define KCATEGORIZEDVIEW_P_H
+ 
+-class DolphinSortFilterProxyModel;
++class KCategorizedSortFilterProxyModel;
++class KCategoryDrawer;
+ 
+ /**
+   * @internal
+@@ -122,7 +123,7 @@
+ 
+     // Basic data
+     KCategorizedView *listView;
+-    KItemCategorizer *itemCategorizer;
++    KCategoryDrawer *categoryDrawer;
+     QSize biggestItemSize;
+ 
+     // Behavior data
+@@ -140,10 +141,8 @@
+     // Cache data
+     // We cannot merge some of them into structs because it would affect
+     // performance
+-    QHash<QModelIndex, struct ElementInfo> elementsInfo; // in source model
+-    QHash<QModelIndex, QRect> elementsPosition;          // in source model
+-    QHash<QModelIndex, QModelIndex> elementDictionary;   // mapped indexes
+-    QHash<QModelIndex, QModelIndex> invertedElementDictionary;   // mapped indexes
++    QHash<int, struct ElementInfo> elementsInfo;
++    QHash<int, QRect> elementsPosition;
+     QHash<QString, QModelIndexList> categoriesIndexes;
+     QHash<QString, QRect> categoriesPosition;
+     QStringList categories;
+@@ -152,8 +151,8 @@
+     QRect lastSelectionRect;
+ 
+     // Attributes for speed reasons
+-    DolphinSortFilterProxyModel *proxyModel;
+-    QModelIndexList sourceModelIndexList;                // in source model
++    KCategorizedSortFilterProxyModel *proxyModel;
++    QModelIndexList modelIndexList;
+ };
+ 
+ #endif // KCATEGORIZEDVIEW_P_H
+Index: apps/dolphin/src/dolphindetailsview.cpp
+===================================================================
+--- apps/dolphin/src/dolphindetailsview.cpp	(revisión: 713026)
++++ apps/dolphin/src/dolphindetailsview.cpp	(copia de trabajo)
+@@ -20,6 +20,7 @@
+ 
+ #include "dolphindetailsview.h"
+ 
++#include "dolphinmodel.h"
+ #include "dolphincontroller.h"
+ #include "dolphinsettings.h"
+ #include "dolphinsortfilterproxymodel.h"
+@@ -27,8 +28,6 @@
+ 
+ #include "dolphin_detailsmodesettings.h"
+ 
+-#include <kdirmodel.h>
+-
+ #include <QApplication>
+ #include <QHeaderView>
+ #include <QRubberBand>
+@@ -122,23 +121,23 @@
+         const DetailsModeSettings* settings = DolphinSettings::instance().detailsModeSettings();
+         Q_ASSERT(settings != 0);
+         if (!settings->showDate()) {
+-            hideColumn(KDirModel::ModifiedTime);
++            hideColumn(DolphinModel::ModifiedTime);
+         }
+ 
+         if (!settings->showPermissions()) {
+-            hideColumn(KDirModel::Permissions);
++            hideColumn(DolphinModel::Permissions);
+         }
+ 
+         if (!settings->showOwner()) {
+-            hideColumn(KDirModel::Owner);
++            hideColumn(DolphinModel::Owner);
+         }
+ 
+         if (!settings->showGroup()) {
+-            hideColumn(KDirModel::Group);
++            hideColumn(DolphinModel::Group);
+         }
+ 
+         if (!settings->showType()) {
+-            hideColumn(KDirModel::Type);
++            hideColumn(DolphinModel::Type);
+         }
+     }
+ 
+@@ -163,7 +162,7 @@
+     QTreeView::mousePressEvent(event);
+ 
+     const QModelIndex index = indexAt(event->pos());
+-    if (!index.isValid() || (index.column() != KDirModel::Name)) {
++    if (!index.isValid() || (index.column() != DolphinModel::Name)) {
+         const Qt::KeyboardModifiers modifier = QApplication::keyboardModifiers();
+         if (!(modifier & Qt::ShiftModifier) && !(modifier & Qt::ControlModifier)) {
+             clearSelection();
+@@ -227,7 +226,7 @@
+     // TODO: remove this code when the issue #160611 is solved in Qt 4.4
+     setDirtyRegion(m_dropRect);
+     const QModelIndex index = indexAt(event->pos());
+-    if (!index.isValid() || (index.column() != KDirModel::Name)) {
++    if (!index.isValid() || (index.column() != DolphinModel::Name)) {
+         m_dragging = false;
+     } else {
+         m_dragging = true;
+@@ -314,7 +313,7 @@
+ void DolphinDetailsView::slotEntered(const QModelIndex& index)
+ {
+     const QPoint pos = viewport()->mapFromGlobal(QCursor::pos());
+-    const int nameColumnWidth = header()->sectionSize(KDirModel::Name);
++    const int nameColumnWidth = header()->sectionSize(DolphinModel::Name);
+     if (pos.x() < nameColumnWidth) {
+         m_controller->emitItemEntered(index);
+     }
+Index: apps/dolphin/src/dolphinviewcontainer.h
+===================================================================
+--- apps/dolphin/src/dolphinviewcontainer.h	(revisión: 713026)
++++ apps/dolphin/src/dolphinviewcontainer.h	(copia de trabajo)
+@@ -23,7 +23,6 @@
+ 
+ #include "dolphinview.h"
+ 
+-#include <kparts/part.h>
+ #include <kfileitem.h>
+ #include <kfileitemdelegate.h>
+ #include <kio/job.h>
+@@ -38,7 +37,7 @@
+ 
+ class FilterBar;
+ class KUrl;
+-class KDirModel;
++class DolphinModel;
+ class KUrlNavigator;
+ class DolphinDirLister;
+ class DolphinMainWindow;
+@@ -231,7 +230,7 @@
+     FilterBar* m_filterBar;
+     DolphinStatusBar* m_statusBar;
+ 
+-    KDirModel* m_dirModel;
++    DolphinModel* m_dolphinModel;
+     DolphinDirLister* m_dirLister;
+     DolphinSortFilterProxyModel* m_proxyModel;
+ };
+Index: apps/dolphin/src/kcategorydrawer.h
+===================================================================
+--- apps/dolphin/src/kcategorydrawer.h	(revisión: 0)
++++ apps/dolphin/src/kcategorydrawer.h	(revisión: 0)
+@@ -0,0 +1,52 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@gmail.com>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#ifndef KCATEGORYDRAWER_H
++#define KCATEGORYDRAWER_H
++
++#include <libdolphin_export.h>
++
++class QPainter;
++class QModelIndex;
++class QStyleOption;
++
++class LIBDOLPHINPRIVATE_EXPORT KCategoryDrawer
++{
++public:
++    KCategoryDrawer();
++
++    virtual ~KCategoryDrawer();
++
++    /**
++      * This method purpose is to draw a category represented by the given
++      * @param index with the given @param sortRole sorting role
++      *
++      * @note This method will be called one time per category, always with the
++      *       first element in that category
++      */
++    virtual void drawCategory(const QModelIndex &index,
++                              int sortRole,
++                              const QStyleOption &option,
++                              QPainter *painter) const;
++
++    virtual int categoryHeight(const QStyleOption &option) const;
++};
++
++#endif // KCATEGORYDRAWER_H
+Index: apps/dolphin/src/dolphinsortfilterproxymodel.h
+===================================================================
+--- apps/dolphin/src/dolphinsortfilterproxymodel.h	(revisión: 713026)
++++ apps/dolphin/src/dolphinsortfilterproxymodel.h	(copia de trabajo)
+@@ -25,7 +25,7 @@
+ #include <libdolphin_export.h>
+ 
+ /**
+- * @brief Acts as proxy model for KDirModel to sort and filter
++ * @brief Acts as proxy model for DolphinModel to sort and filter
+  *        KFileItems.
+  *
+  * A natural sorting is done. This means that items like:
+@@ -37,7 +37,10 @@
+  * - item_2.png
+  * - item_10.png
+  *
+- * It is assured that directories are always sorted before files.
++ * @note It is NOT assured that directories are always sorted before files.
++ *       For example, on a Nepomuk based sorting, it is possible to have a file
++ *       rated with 10 stars, and a directory rated with 5 stars. The file will
++ *       be shown before the directory.
+  */
+ class LIBDOLPHINPRIVATE_EXPORT DolphinSortFilterProxyModel : public KDirSortFilterProxyModel
+ {
+@@ -84,13 +87,6 @@
+     virtual bool lessThanGeneralPurpose(const QModelIndex &left,
+                                         const QModelIndex &right) const;
+ 
+-    /**
+-     * For each category, that exists due to lessThanGeneralPurpose(), the
+-     * lessThanCategoryPurpose() will be applied.
+-     */
+-    inline bool lessThanCategoryPurpose(const QModelIndex &left,
+-                                        const QModelIndex &right) const;
+-
+ signals:
+     void sortingRoleChanged();
+ 
+@@ -99,23 +95,8 @@
+                           const QModelIndex& right) const;
+ 
+ private:
+-    /**
+-     * Returns the rating for the item with the index \a index. 0 is
+-     * returned if no item could be found.
+-     */
+-    static quint32 ratingForIndex(const QModelIndex& index);
+-
+-    /**
+-     * Returns the tags for the item with the index \a index. If no
+-     * tag is applied, a predefined string will be returned.
+-     */
+-    static QString tagsForIndex(const QModelIndex& index);
+-
+-private:
+     DolphinView::Sorting m_sorting:16;
+     Qt::SortOrder m_sortOrder:16;
+-
+-    friend class DolphinItemCategorizer;
+ };
+ 
+ DolphinView::Sorting DolphinSortFilterProxyModel::sorting() const
+@@ -128,10 +109,4 @@
+     return m_sortOrder;
+ }
+ 
+-bool DolphinSortFilterProxyModel::lessThanCategoryPurpose(const QModelIndex &left,
+-                                                          const QModelIndex &right) const
+-{
+-    return lessThan(left, right);
+-}
+-
+ #endif
+Index: apps/dolphin/src/dolphincategorydrawer.h
+===================================================================
+--- apps/dolphin/src/dolphincategorydrawer.h	(revisión: 0)
++++ apps/dolphin/src/dolphincategorydrawer.h	(revisión: 0)
+@@ -0,0 +1,45 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@gmail.com>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#ifndef DOLPHINCATEGORYDRAWER_H
++#define DOLPHINCATEGORYDRAWER_H
++
++#include "kcategorydrawer.h"
++
++#include <QStyleOption>
++#include <QModelIndex>
++
++#include <libdolphin_export.h>
++
++class LIBDOLPHINPRIVATE_EXPORT DolphinCategoryDrawer
++    : public KCategoryDrawer
++{
++public:
++    DolphinCategoryDrawer();
++
++    virtual ~DolphinCategoryDrawer();
++
++    virtual void drawCategory(const QModelIndex &index, int sortRole,
++                              const QStyleOption &option, QPainter *painter) const;
++
++    virtual int categoryHeight(const QStyleOption &option) const;
++};
++
++#endif // DOLPHINCATEGORYDRAWER_H
+Index: apps/dolphin/src/viewpropertiesdialog.cpp
+===================================================================
+--- apps/dolphin/src/viewpropertiesdialog.cpp	(revisión: 713026)
++++ apps/dolphin/src/viewpropertiesdialog.cpp	(copia de trabajo)
+@@ -26,8 +26,8 @@
+ #include "dolphin_generalsettings.h"
+ #include "viewproperties.h"
+ 
++#include <config-nepomuk.h>
+ #ifdef HAVE_NEPOMUK
+-#include <config-nepomuk.h>
+ #include <nepomuk/resourcemanager.h>
+ #endif
+ 
+Index: apps/dolphin/src/treeviewsidebarpage.cpp
+===================================================================
+--- apps/dolphin/src/treeviewsidebarpage.cpp	(revisión: 713026)
++++ apps/dolphin/src/treeviewsidebarpage.cpp	(copia de trabajo)
+@@ -19,6 +19,7 @@
+ 
+ #include "treeviewsidebarpage.h"
+ 
++#include "dolphinmodel.h"
+ #include "dolphinmainwindow.h"
+ #include "dolphinsortfilterproxymodel.h"
+ #include "dolphinview.h"
+@@ -28,7 +29,6 @@
+ 
+ #include <kfileplacesmodel.h>
+ #include <kdirlister.h>
+-#include <kdirmodel.h>
+ #include <kfileitem.h>
+ 
+ #include <QItemSelection>
+@@ -39,7 +39,7 @@
+ TreeViewSidebarPage::TreeViewSidebarPage(QWidget* parent) :
+     SidebarPage(parent),
+     m_dirLister(0),
+-    m_dirModel(0),
++    m_dolphinModel(0),
+     m_proxyModel(0),
+     m_treeView(0),
+     m_leafDir()
+@@ -89,16 +89,16 @@
+         m_dirLister->setDelayedMimeTypes(true);
+         m_dirLister->setAutoErrorHandlingEnabled(false, this);
+ 
+-        Q_ASSERT(m_dirModel == 0);
+-        m_dirModel = new KDirModel(this);
+-        m_dirModel->setDirLister(m_dirLister);
+-        m_dirModel->setDropsAllowed(KDirModel::DropOnDirectory);
+-        connect(m_dirModel, SIGNAL(expand(const QModelIndex&)),
++        Q_ASSERT(m_dolphinModel == 0);
++        m_dolphinModel = new DolphinModel(this);
++        m_dolphinModel->setDirLister(m_dirLister);
++        m_dolphinModel->setDropsAllowed(DolphinModel::DropOnDirectory);
++        connect(m_dolphinModel, SIGNAL(expand(const QModelIndex&)),
+                 this, SLOT(triggerExpanding(const QModelIndex&)));
+ 
+         Q_ASSERT(m_proxyModel == 0);
+         m_proxyModel = new DolphinSortFilterProxyModel(this);
+-        m_proxyModel->setSourceModel(m_dirModel);
++        m_proxyModel->setSourceModel(m_dolphinModel);
+ 
+         Q_ASSERT(m_treeView == 0);
+         m_treeView = new SidebarTreeView(this);
+@@ -130,8 +130,8 @@
+         return;
+     }
+ 
+-    const QModelIndex dirModelIndex = m_proxyModel->mapToSource(index);
+-    KFileItem item = m_dirModel->itemForIndex(dirModelIndex);
++    const QModelIndex dolphinModelIndex = m_proxyModel->mapToSource(index);
++    KFileItem item = m_dolphinModel->itemForIndex(dolphinModelIndex);
+ 
+     emit changeSelection(QList<KFileItem>());
+     TreeViewContextMenu contextMenu(this, item);
+@@ -149,13 +149,13 @@
+         return;
+     }
+ 
+-    QModelIndex index = m_dirModel->indexForUrl(parentUrl);
++    QModelIndex index = m_dolphinModel->indexForUrl(parentUrl);
+     if (index.isValid()) {
+         QModelIndex proxyIndex = m_proxyModel->mapFromSource(index);
+         m_treeView->setExpanded(proxyIndex, true);
+ 
+         // select the item and assure that the item is visible
+-        index = m_dirModel->indexForUrl(url());
++        index = m_dolphinModel->indexForUrl(url());
+         if (index.isValid()) {
+             proxyIndex = m_proxyModel->mapFromSource(index);
+             m_treeView->scrollTo(proxyIndex);
+@@ -169,7 +169,7 @@
+ void TreeViewSidebarPage::updateActiveView(const QModelIndex& index)
+ {
+     const QModelIndex dirIndex = m_proxyModel->mapToSource(index);
+-    const KFileItem item = m_dirModel->itemForIndex(dirIndex);
++    const KFileItem item = m_dolphinModel->itemForIndex(dirIndex);
+     if (!item.isNull()) {
+         emit changeUrl(item.url());
+     }
+@@ -180,7 +180,7 @@
+ {
+     if (index.isValid()) {
+         const QModelIndex dirIndex = m_proxyModel->mapToSource(index);
+-        KFileItem item = m_dirModel->itemForIndex(dirIndex);
++        KFileItem item = m_dolphinModel->itemForIndex(dirIndex);
+         Q_ASSERT(!item.isNull());
+         if (item.isDir()) {
+             emit urlsDropped(urls, item.url());
+@@ -200,12 +200,12 @@
+ {
+     // expand all directories until the parent directory of m_leafDir
+     const KUrl parentUrl = m_leafDir.upUrl();
+-    QModelIndex dirIndex = m_dirModel->indexForUrl(parentUrl);
++    QModelIndex dirIndex = m_dolphinModel->indexForUrl(parentUrl);
+     QModelIndex proxyIndex = m_proxyModel->mapFromSource(dirIndex);
+     m_treeView->setExpanded(proxyIndex, true);
+ 
+     // assure that m_leafDir gets selected
+-    dirIndex = m_dirModel->indexForUrl(m_leafDir);
++    dirIndex = m_dolphinModel->indexForUrl(m_leafDir);
+     proxyIndex = m_proxyModel->mapFromSource(dirIndex);
+     m_treeView->scrollTo(proxyIndex);
+ 
+@@ -227,7 +227,7 @@
+         return;
+     }
+ 
+-    const QModelIndex index = m_dirModel->indexForUrl(m_leafDir);
++    const QModelIndex index = m_dolphinModel->indexForUrl(m_leafDir);
+     if (index.isValid()) {
+         // the item with the given URL is already part of the model
+         const QModelIndex proxyIndex = m_proxyModel->mapFromSource(index);
+@@ -237,7 +237,7 @@
+         // Load all sub directories that need to get expanded for making
+         // the leaf directory visible. The slot triggerExpanding() will
+         // get invoked if the expanding has been finished.
+-        m_dirModel->expandToUrl(m_leafDir);
++        m_dolphinModel->expandToUrl(m_leafDir);
+     }
+ }
+ 
+Index: apps/dolphin/src/dolphiniconsview.cpp
+===================================================================
+--- apps/dolphin/src/dolphiniconsview.cpp	(revisión: 713026)
++++ apps/dolphin/src/dolphiniconsview.cpp	(copia de trabajo)
+@@ -21,7 +21,6 @@
+ 
+ #include "dolphincontroller.h"
+ #include "dolphinsettings.h"
+-#include "dolphinitemcategorizer.h"
+ 
+ #include "dolphin_iconsmodesettings.h"
+ 
+@@ -191,6 +190,7 @@
+             event->acceptProposedAction();
+         }
+     }
++
+     KCategorizedView::dropEvent(event);
+     m_dragging = false;
+ }
+Index: apps/dolphin/src/dolphinview.cpp
+===================================================================
+--- apps/dolphin/src/dolphinview.cpp	(revisión: 713026)
++++ apps/dolphin/src/dolphinview.cpp	(copia de trabajo)
+@@ -29,7 +29,6 @@
+ #include <QScrollBar>
+ 
+ #include <kcolorscheme.h>
+-#include <kdirmodel.h>
+ #include <kdirlister.h>
+ #include <kfileitemdelegate.h>
+ #include <klocale.h>
+@@ -42,21 +41,22 @@
+ #include <konq_operations.h>
+ #include <kurl.h>
+ 
++#include "dolphinmodel.h"
+ #include "dolphincolumnview.h"
+ #include "dolphincontroller.h"
+ #include "dolphinsortfilterproxymodel.h"
+ #include "dolphindetailsview.h"
+ #include "dolphiniconsview.h"
+-#include "dolphinitemcategorizer.h"
+ #include "renamedialog.h"
+ #include "viewproperties.h"
+ #include "dolphinsettings.h"
+ #include "dolphin_generalsettings.h"
++#include "dolphincategorydrawer.h"
+ 
+ DolphinView::DolphinView(QWidget* parent,
+                          const KUrl& url,
+                          KDirLister* dirLister,
+-                         KDirModel* dirModel,
++                         DolphinModel* dolphinModel,
+                          DolphinSortFilterProxyModel* proxyModel) :
+     QWidget(parent),
+     m_active(true),
+@@ -69,7 +69,7 @@
+     m_detailsView(0),
+     m_columnView(0),
+     m_fileItemDelegate(0),
+-    m_dirModel(dirModel),
++    m_dolphinModel(dolphinModel),
+     m_dirLister(dirLister),
+     m_proxyModel(proxyModel)
+ {
+@@ -224,30 +224,20 @@
+     }
+ 
+     Q_ASSERT(m_iconsView != 0);
+-    if (categorized) {
+-        Q_ASSERT(m_iconsView->itemCategorizer() == 0);
+-        m_iconsView->setItemCategorizer(new DolphinItemCategorizer());
+-    } else {
+-        KItemCategorizer* categorizer = m_iconsView->itemCategorizer();
+-        m_iconsView->setItemCategorizer(0);
+-        delete categorizer;
+-    }
+ 
+     ViewProperties props(viewPropertiesUrl());
+     props.setCategorizedSorting(categorized);
+     props.save();
+ 
++    m_proxyModel->setCategorizedModel(categorized);
++    m_proxyModel->sort(m_proxyModel->sortColumn(), m_proxyModel->sortOrder());
++
+     emit categorizedSortingChanged();
+ }
+ 
+ bool DolphinView::categorizedSorting() const
+ {
+-    if (!supportsCategorizedSorting()) {
+-        return false;
+-    }
+-
+-    Q_ASSERT(m_iconsView != 0);
+-    return m_iconsView->itemCategorizer() != 0;
++    return m_proxyModel->isCategorizedModel();
+ }
+ 
+ bool DolphinView::supportsCategorizedSorting() const
+@@ -287,7 +277,7 @@
+ {
+     const QAbstractItemView* view = itemView();
+ 
+-    // Our view has a selection, we will map them back to the DirModel
++    // Our view has a selection, we will map them back to the DolphinModel
+     // and then fill the KFileItemList.
+     Q_ASSERT((view != 0) && (view->selectionModel() != 0));
+ 
+@@ -296,7 +286,7 @@
+ 
+     const QModelIndexList indexList = selection.indexes();
+     foreach (QModelIndex index, indexList) {
+-        KFileItem item = m_dirModel->itemForIndex(index);
++        KFileItem item = m_dolphinModel->itemForIndex(index);
+         if (!item.isNull()) {
+             itemList.append(item);
+         }
+@@ -318,8 +308,8 @@
+ 
+ KFileItem DolphinView::fileItem(const QModelIndex& index) const
+ {
+-    const QModelIndex dirModelIndex = m_proxyModel->mapToSource(index);
+-    return m_dirModel->itemForIndex(dirModelIndex);
++    const QModelIndex dolphinModelIndex = m_proxyModel->mapToSource(index);
++    return m_dolphinModel->itemForIndex(dolphinModelIndex);
+ }
+ 
+ void DolphinView::setContentsPosition(int x, int y)
+@@ -453,7 +443,8 @@
+         return;
+     }
+ 
+-    const KFileItem item = m_dirModel->itemForIndex(m_proxyModel->mapToSource(index));
++    const KFileItem item = m_dolphinModel->itemForIndex(m_proxyModel->mapToSource(index));
++
+     if (item.isNull()) {
+         return;
+     }
+@@ -479,15 +470,15 @@
+         return;
+     }
+ 
+-    const QModelIndex idx = m_dirModel->indexForItem(item);
++    const QModelIndex idx = m_dolphinModel->indexForItem(item);
+     if (idx.isValid() && (idx.column() == 0)) {
+         const QMimeData* mimeData = QApplication::clipboard()->mimeData();
+         if (KonqMimeData::decodeIsCutSelection(mimeData) && isCutItem(item)) {
+             KIconEffect iconEffect;
+             const QPixmap cutPixmap = iconEffect.apply(pixmap, K3Icon::Desktop, K3Icon::DisabledState);
+-            m_dirModel->setData(idx, QIcon(cutPixmap), Qt::DecorationRole);
++            m_dolphinModel->setData(idx, QIcon(cutPixmap), Qt::DecorationRole);
+         } else {
+-            m_dirModel->setData(idx, QIcon(pixmap), Qt::DecorationRole);
++            m_dolphinModel->setData(idx, QIcon(pixmap), Qt::DecorationRole);
+         }
+     }
+ }
+@@ -600,17 +591,7 @@
+ 
+     const bool categorized = props.categorizedSorting();
+     if (categorized != categorizedSorting()) {
+-        if (supportsCategorizedSorting()) {
+-            Q_ASSERT(m_iconsView != 0);
+-            if (categorized) {
+-                Q_ASSERT(m_iconsView->itemCategorizer() == 0);
+-                m_iconsView->setItemCategorizer(new DolphinItemCategorizer());
+-            } else {
+-                KItemCategorizer* categorizer = m_iconsView->itemCategorizer();
+-                m_iconsView->setItemCategorizer(0);
+-                delete categorizer;
+-            }
+-        }
++        m_proxyModel->setCategorizedModel(categorized);
+         emit categorizedSortingChanged();
+     }
+ 
+@@ -652,7 +633,7 @@
+     foreach(const KFileItem& item, selection) {
+         url = item.url().upUrl();
+         if (baseUrl.equals(url, KUrl::CompareWithoutTrailingSlash)) {
+-            QModelIndex index = m_proxyModel->mapFromSource(m_dirModel->indexForItem(item));
++            QModelIndex index = m_proxyModel->mapFromSource(m_dolphinModel->indexForItem(item));
+             new_selection.select(index, index);
+         }
+     }
+@@ -744,9 +725,9 @@
+     QList<CutItem>::const_iterator it = m_cutItemsCache.begin();
+     QList<CutItem>::const_iterator end = m_cutItemsCache.end();
+     while (it != end) {
+-        const QModelIndex index = m_dirModel->indexForUrl((*it).url);
++        const QModelIndex index = m_dolphinModel->indexForUrl((*it).url);
+         if (index.isValid()) {
+-            m_dirModel->setData(index, QIcon((*it).pixmap), Qt::DecorationRole);
++            m_dolphinModel->setData(index, QIcon((*it).pixmap), Qt::DecorationRole);
+         }
+         ++it;
+     }
+@@ -781,11 +762,6 @@
+     if (view != 0) {
+         m_topLayout->removeWidget(view);
+         view->close();
+-        if (view == m_iconsView) {
+-            KItemCategorizer* categorizer = m_iconsView->itemCategorizer();
+-            m_iconsView->setItemCategorizer(0);
+-            delete categorizer;
+-        }
+         view->deleteLater();
+         view = 0;
+         m_iconsView = 0;
+@@ -802,6 +778,7 @@
+     switch (m_mode) {
+     case IconsView:
+         m_iconsView = new DolphinIconsView(this, m_controller);
++        m_iconsView->setCategoryDrawer(new DolphinCategoryDrawer());
+         view = m_iconsView;
+         break;
+ 
+@@ -824,7 +801,7 @@
+     view->setModel(m_proxyModel);
+     view->setSelectionMode(QAbstractItemView::ExtendedSelection);
+ 
+-    new KMimeTypeResolver(view, m_dirModel);
++    new KMimeTypeResolver(view, m_dolphinModel);
+     m_topLayout->insertWidget(1, view);
+ 
+     connect(view->selectionModel(), SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)),
+@@ -849,7 +826,7 @@
+ 
+ bool DolphinView::isValidNameIndex(const QModelIndex& index) const
+ {
+-    return index.isValid() && (index.column() == KDirModel::Name);
++    return index.isValid() && (index.column() == DolphinModel::Name);
+ }
+ 
+ bool DolphinView::isCutItem(const KFileItem& item) const
+@@ -883,10 +860,10 @@
+     while (it != end) {
+         KFileItem* item = *it;
+         if (isCutItem(*item)) {
+-            const QModelIndex index = m_dirModel->indexForItem(*item);
++            const QModelIndex index = m_dolphinModel->indexForItem(*item);
+             // Huh? the item is already known
+-            //const KFileItem item = m_dirModel->itemForIndex(index);
+-            const QVariant value = m_dirModel->data(index, Qt::DecorationRole);
++            //const KFileItem item = m_dolphinModel->itemForIndex(index);
++            const QVariant value = m_dolphinModel->data(index, Qt::DecorationRole);
+             if (value.type() == QVariant::Icon) {
+                 const QIcon icon(qvariant_cast<QIcon>(value));
+                 QPixmap pixmap = icon.pixmap(128, 128);
+@@ -901,7 +878,7 @@
+                 // apply icon effect to the cut item
+                 KIconEffect iconEffect;
+                 pixmap = iconEffect.apply(pixmap, K3Icon::Desktop, K3Icon::DisabledState);
+-                m_dirModel->setData(index, QIcon(pixmap), Qt::DecorationRole);
++                m_dolphinModel->setData(index, QIcon(pixmap), Qt::DecorationRole);
+             }
+         }
+         ++it;
+Index: apps/dolphin/src/dolphinpart.h
+===================================================================
+--- apps/dolphin/src/dolphinpart.h	(revisión: 713026)
++++ apps/dolphin/src/dolphinpart.h	(copia de trabajo)
+@@ -24,7 +24,7 @@
+ class KFileItem;
+ class DolphinPartBrowserExtension;
+ class DolphinSortFilterProxyModel;
+-class KDirModel;
++class DolphinModel;
+ class KDirLister;
+ class DolphinView;
+ class QLineEdit;
+@@ -71,7 +71,7 @@
+ private:
+     DolphinView* m_view;
+     KDirLister* m_dirLister;
+-    KDirModel* m_dirModel;
++    DolphinModel* m_dolphinModel;
+     DolphinSortFilterProxyModel* m_proxyModel;
+     DolphinPartBrowserExtension* m_extension;
+     Q_DISABLE_COPY(DolphinPart)
+Index: apps/dolphin/src/dolphinviewcontainer.cpp
+===================================================================
+--- apps/dolphin/src/dolphinviewcontainer.cpp	(revisión: 713026)
++++ apps/dolphin/src/dolphinviewcontainer.cpp	(copia de trabajo)
+@@ -27,7 +27,6 @@
+ #include <QtCore/QTimer>
+ #include <QtGui/QScrollBar>
+ 
+-#include <kdirmodel.h>
+ #include <kfileitemdelegate.h>
+ #include <kfileplacesmodel.h>
+ #include <kglobalsettings.h>
+@@ -41,6 +40,7 @@
+ #include <konq_operations.h>
+ #include <kurl.h>
+ 
++#include "dolphinmodel.h"
+ #include "dolphincolumnview.h"
+ #include "dolphincontroller.h"
+ #include "dolphinstatusbar.h"
+@@ -50,7 +50,6 @@
+ #include "dolphindetailsview.h"
+ #include "dolphiniconsview.h"
+ #include "dolphincontextmenu.h"
+-#include "dolphinitemcategorizer.h"
+ #include "filterbar.h"
+ #include "renamedialog.h"
+ #include "kurlnavigator.h"
+@@ -71,7 +70,6 @@
+     m_view(0),
+     m_filterBar(0),
+     m_statusBar(0),
+-    m_dirModel(0),
+     m_dirLister(0),
+     m_proxyModel(0)
+ {
+@@ -96,12 +94,13 @@
+     m_dirLister->setMainWindow(this);
+     m_dirLister->setDelayedMimeTypes(true);
+ 
+-    m_dirModel = new KDirModel();
+-    m_dirModel->setDirLister(m_dirLister);
+-    m_dirModel->setDropsAllowed(KDirModel::DropOnDirectory);
++    m_dolphinModel = new DolphinModel();
++    m_dolphinModel->setDirLister(m_dirLister);
++    m_dolphinModel->setDropsAllowed(DolphinModel::DropOnDirectory);
+ 
++
+     m_proxyModel = new DolphinSortFilterProxyModel(this);
+-    m_proxyModel->setSourceModel(m_dirModel);
++    m_proxyModel->setSourceModel(m_dolphinModel);
+ 
+     connect(m_dirLister, SIGNAL(clear()),
+             this, SLOT(updateStatusBar()));
+@@ -119,7 +118,7 @@
+     m_view = new DolphinView(this,
+                              url,
+                              m_dirLister,
+-                             m_dirModel,
++                             m_dolphinModel,
+                              m_proxyModel);
+     connect(m_view, SIGNAL(urlChanged(const KUrl&)),
+             m_urlNavigator, SLOT(setUrl(const KUrl&)));
+@@ -268,8 +267,8 @@
+ 
+ KFileItem DolphinViewContainer::fileItem(const QModelIndex& index) const
+ {
+-    const QModelIndex dirModelIndex = m_proxyModel->mapToSource(index);
+-    return m_dirModel->itemForIndex(dirModelIndex);
++    const QModelIndex dolphinModelIndex = m_proxyModel->mapToSource(index);
++    return m_dolphinModel->itemForIndex(dolphinModelIndex);
+ }
+ 
+ void DolphinViewContainer::updateProgress(int percent)
+@@ -349,6 +348,21 @@
+ 
+ QString DolphinViewContainer::defaultStatusBarText() const
+ {
++    int m_fileCount = 0;
++    int m_folderCount = 0;
++
++    for (int i = 0; i < m_proxyModel->rowCount(); i++)
++    {
++        if (m_dolphinModel->itemForIndex(m_proxyModel->mapToSource(m_proxyModel->index(i, m_proxyModel->sortColumn()))).isDir())
++        {
++            m_folderCount++;
++        }
++        else
++        {
++            m_fileCount++;
++        }
++    }
++
+     return KIO::itemsSummaryString(m_fileCount + m_folderCount,
+                                    m_fileCount,
+                                    m_folderCount,
+@@ -448,6 +462,8 @@
+ #else
+     m_proxyModel->setFilterRegExp(nameFilter);
+ #endif
++
++    updateStatusBar();
+ }
+ 
+ void DolphinViewContainer::openContextMenu(const KFileItem& item,
+Index: apps/dolphin/src/kcategorydrawer.cpp
+===================================================================
+--- apps/dolphin/src/kcategorydrawer.cpp	(revisión: 0)
++++ apps/dolphin/src/kcategorydrawer.cpp	(revisión: 0)
+@@ -0,0 +1,102 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@gmail.com>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#include "kcategorydrawer.h"
++
++#include <QPainter>
++#include <QStyleOption>
++
++#include <kcategorizedsortfilterproxymodel.h>
++
++KCategoryDrawer::KCategoryDrawer()
++{
++}
++
++KCategoryDrawer::~KCategoryDrawer()
++{
++}
++
++void KCategoryDrawer::drawCategory(const QModelIndex &index,
++                                   int sortRole,
++                                   const QStyleOption &option,
++                                   QPainter *painter) const
++{
++    const QString category = index.model()->data(index, KCategorizedSortFilterProxyModel::CategoryRole).toString();
++
++    QColor color = option.palette.color(QPalette::Text);
++
++    painter->save();
++    painter->setRenderHint(QPainter::Antialiasing);
++
++    QStyleOptionButton opt;
++
++    opt.rect = option.rect;
++    opt.palette = option.palette;
++    opt.direction = option.direction;
++    opt.text = category;
++
++    if (option.state & QStyle::State_MouseOver)
++    {
++        const QPalette::ColorGroup group =
++                                          option.state & QStyle::State_Enabled ?
++                                          QPalette::Normal : QPalette::Disabled;
++
++        QLinearGradient gradient(option.rect.topLeft(),
++                                 option.rect.bottomRight());
++        gradient.setColorAt(0,
++                            option.palette.color(group,
++                                                 QPalette::Highlight).light());
++        gradient.setColorAt(1, Qt::transparent);
++
++        painter->fillRect(option.rect, gradient);
++    }
++
++    QFont painterFont = painter->font();
++    painterFont.setWeight(QFont::Bold);
++    painterFont.setPointSize(painterFont.pointSize() + 2);
++    QFontMetrics metrics(painterFont);
++    painter->setFont(painterFont);
++
++    QPainterPath path;
++    path.addRect(option.rect.left(),
++                 option.rect.bottom() - 2,
++                 option.rect.width(),
++                 2);
++
++    QLinearGradient gradient(option.rect.topLeft(),
++                             option.rect.bottomRight());
++    gradient.setColorAt(0, color);
++    gradient.setColorAt(1, Qt::transparent);
++
++    painter->setBrush(gradient);
++    painter->fillPath(path, gradient);
++
++    painter->setPen(color);
++
++    painter->drawText(option.rect, Qt::AlignVCenter | Qt::AlignLeft,
++    metrics.elidedText(category, Qt::ElideRight, option.rect.width()));
++
++    painter->restore();
++}
++
++int KCategoryDrawer::categoryHeight(const QStyleOption &option) const
++{
++    return option.fontMetrics.height() + 6 /* 4 separator; 2 gradient */;
++}
+Index: apps/dolphin/src/kcategorizedview.cpp
+===================================================================
+--- apps/dolphin/src/kcategorizedview.cpp	(revisión: 713026)
++++ apps/dolphin/src/kcategorizedview.cpp	(copia de trabajo)
+@@ -29,55 +29,14 @@
+ #include <QScrollBar>
+ #include <QPaintEvent>
+ 
+-#include <kdebug.h>
+ #include <kstyle.h>
+ 
+-#include "kitemcategorizer.h"
+-#include "dolphinsortfilterproxymodel.h"
++#include "kcategorydrawer.h"
++#include "kcategorizedsortfilterproxymodel.h"
+ 
+-class LessThan
+-{
+-public:
+-    enum Purpose
+-    {
+-        GeneralPurpose = 0,
+-        CategoryPurpose
+-    };
+-
+-    inline LessThan(const DolphinSortFilterProxyModel *proxyModel,
+-                    Purpose purpose)
+-        : proxyModel(proxyModel)
+-        , purpose(purpose)
+-    {
+-    }
+-
+-    inline bool operator()(const QModelIndex &left,
+-                           const QModelIndex &right) const
+-    {
+-        if (purpose == GeneralPurpose)
+-        {
+-            return proxyModel->sortOrder() == Qt::AscendingOrder ?
+-                   proxyModel->lessThanGeneralPurpose(left, right) :
+-                   !proxyModel->lessThanGeneralPurpose(left, right);
+-        }
+-
+-        return proxyModel->sortOrder() == Qt::AscendingOrder ?
+-               proxyModel->lessThanCategoryPurpose(left, right) :
+-               !proxyModel->lessThanCategoryPurpose(left, right);
+-    }
+-
+-private:
+-    const DolphinSortFilterProxyModel *proxyModel;
+-    const Purpose purpose;
+-};
+-
+-
+-//==============================================================================
+-
+-
+ KCategorizedView::Private::Private(KCategorizedView *listView)
+     : listView(listView)
+-    , itemCategorizer(0)
++    , categoryDrawer(0)
+     , biggestItemSize(QSize(0, 0))
+     , mouseButtonPressed(false)
+     , isDragging(false)
+@@ -116,7 +75,7 @@
+     {
+         middle = (top + bottom) / 2;
+ 
+-        index = elementDictionary[proxyModel->index(middle, 0)];
++        index = proxyModel->index(middle, 0);
+         indexVisualRect = visualRect(index);
+         // We need the whole height (not only the visualRect). This will help us to update
+         // all needed indexes correctly (ereslibre)
+@@ -136,7 +95,7 @@
+ 
+     for (int i = middle; i < proxyModel->rowCount(); i++)
+     {
+-        index = elementDictionary[proxyModel->index(i, 0)];
++        index = proxyModel->index(i, 0);
+         indexVisualRect = visualRect(index);
+ 
+         if (rect.intersects(indexVisualRect))
+@@ -157,11 +116,21 @@
+     if (!index.isValid())
+         return QRect();
+ 
+-    QString curCategory = elementsInfo[index].category;
++    QString curCategory = elementsInfo[index.row()].category;
+ 
+-    QRect retRect(listView->spacing(), listView->spacing() * 2 +
+-                  itemCategorizer->categoryHeight(listView->viewOptions()), 0, 0);
++    QRect retRect;
+ 
++    if (listView->layoutDirection() == Qt::LeftToRight)
++    {
++        retRect = QRect(listView->spacing(), listView->spacing() * 2 +
++                        categoryDrawer->categoryHeight(listView->viewOptions()), 0, 0);
++    }
++    else
++    {
++        retRect = QRect(listView->viewport()->width() - listView->spacing(), listView->spacing() * 2 +
++                        categoryDrawer->categoryHeight(listView->viewOptions()), 0, 0);
++    }
++
+     int viewportWidth = listView->viewport()->width() - listView->spacing();
+ 
+     int itemHeight;
+@@ -183,12 +152,23 @@
+     if (!elementsPerRow)
+         elementsPerRow++;
+ 
+-    int column = elementsInfo[index].relativeOffsetToCategory % elementsPerRow;
+-    int row = elementsInfo[index].relativeOffsetToCategory / elementsPerRow;
++    int column = elementsInfo[index.row()].relativeOffsetToCategory % elementsPerRow;
++    int row = elementsInfo[index.row()].relativeOffsetToCategory / elementsPerRow;
+ 
+-    retRect.setLeft(retRect.left() + column * listView->spacing() +
+-                    column * itemWidth);
++    if (listView->layoutDirection() == Qt::LeftToRight)
++    {
++        retRect.setLeft(retRect.left() + column * listView->spacing() +
++                        column * itemWidth);
++    }
++    else
++    {
++        retRect.setLeft(retRect.right() - column * listView->spacing() -
++                         column * itemWidth - itemWidth);
+ 
++        retRect.setRight(retRect.right() - column * listView->spacing() -
++                         column * itemWidth);
++    }
++
+     foreach (const QString &category, categories)
+     {
+         if (category == curCategory)
+@@ -196,13 +176,14 @@
+ 
+         float rows = (float) ((float) categoriesIndexes[category].count() /
+                               (float) elementsPerRow);
++
+         int rowsInt = categoriesIndexes[category].count() / elementsPerRow;
+ 
+         if (rows - trunc(rows)) rowsInt++;
+ 
+         retRect.setTop(retRect.top() +
+                        (rowsInt * itemHeight) +
+-                       itemCategorizer->categoryHeight(listView->viewOptions()) +
++                       categoryDrawer->categoryHeight(listView->viewOptions()) +
+                        listView->spacing() * 2);
+ 
+         if (listView->gridSize().isEmpty())
+@@ -212,7 +193,6 @@
+         }
+     }
+ 
+-
+     if (listView->gridSize().isEmpty())
+     {
+         retRect.setTop(retRect.top() + row * listView->spacing() +
+@@ -225,13 +205,14 @@
+ 
+     retRect.setWidth(itemWidth);
+ 
++    QModelIndex heightIndex = proxyModel->index(index.row(), 0);
+     if (listView->gridSize().isEmpty())
+     {
+-        retRect.setHeight(listView->sizeHintForIndex(proxyModel->mapFromSource(index)).height());
++        retRect.setHeight(listView->sizeHintForIndex(heightIndex).height());
+     }
+     else
+     {
+-        retRect.setHeight(qMin(listView->sizeHintForIndex(proxyModel->mapFromSource(index)).height(),
++        retRect.setHeight(qMin(listView->sizeHintForIndex(heightIndex).height(),
+                                listView->gridSize().height()));
+     }
+ 
+@@ -286,7 +267,7 @@
+ 
+         retRect.setTop(retRect.top() +
+                        (rowsInt * itemHeight) +
+-                       itemCategorizer->categoryHeight(listView->viewOptions()) +
++                       categoryDrawer->categoryHeight(listView->viewOptions()) +
+                        listView->spacing() * 2);
+ 
+         if (listView->gridSize().isEmpty())
+@@ -296,7 +277,7 @@
+         }
+     }
+ 
+-    retRect.setHeight(itemCategorizer->categoryHeight(listView->viewOptions()));
++    retRect.setHeight(categoryDrawer->categoryHeight(listView->viewOptions()));
+ 
+     return retRect;
+ }
+@@ -305,9 +286,9 @@
+ const QRect &KCategorizedView::Private::cacheIndex(const QModelIndex &index)
+ {
+     QRect rect = visualRectInViewport(index);
+-    elementsPosition[index] = rect;
++    elementsPosition[index.row()] = rect;
+ 
+-    return elementsPosition[index];
++    return elementsPosition[index.row()];
+ }
+ 
+ // We're sure categoriesPosition doesn't contain category
+@@ -321,9 +302,9 @@
+ 
+ const QRect &KCategorizedView::Private::cachedRectIndex(const QModelIndex &index)
+ {
+-    if (elementsPosition.contains(index)) // If we have it cached
++    if (elementsPosition.contains(index.row())) // If we have it cached
+     {                                        // return it
+-        return elementsPosition[index];
++        return elementsPosition[index.row()];
+     }
+     else                                     // Otherwise, cache it
+     {                                        // and return it
+@@ -345,9 +326,7 @@
+ 
+ QRect KCategorizedView::Private::visualRect(const QModelIndex &index)
+ {
+-    QModelIndex mappedIndex = proxyModel->mapToSource(index);
+-
+-    QRect retRect = cachedRectIndex(mappedIndex);
++    QRect retRect = cachedRectIndex(index);
+     int dx = -listView->horizontalOffset();
+     int dy = -listView->verticalOffset();
+     retRect.adjust(dx, dy, dx, dy);
+@@ -366,29 +345,34 @@
+ }
+ 
+ void KCategorizedView::Private::drawNewCategory(const QModelIndex &index,
+-                                         int sortRole,
+-                                         const QStyleOption &option,
+-                                         QPainter *painter)
++                                                int sortRole,
++                                                const QStyleOption &option,
++                                                QPainter *painter)
+ {
++    if (!index.isValid())
++    {
++        return;
++    }
++
+     QStyleOption optionCopy = option;
+-    const QString category = itemCategorizer->categoryForItem(index, sortRole);
++    const QString category = proxyModel->data(index, KCategorizedSortFilterProxyModel::CategoryRole).toString();
+ 
+     if ((category == hoveredCategory) && !mouseButtonPressed)
+     {
+         optionCopy.state |= QStyle::State_MouseOver;
+     }
+ 
+-    itemCategorizer->drawCategory(index,
+-                                  sortRole,
+-                                  optionCopy,
+-                                  painter);
++    categoryDrawer->drawCategory(index,
++                                 sortRole,
++                                 optionCopy,
++                                 painter);
+ }
+ 
+ 
+ void KCategorizedView::Private::updateScrollbars()
+ {
+-    // find the last index in the last category 
+-    QModelIndex lastIndex = categoriesIndexes.isEmpty() ? QModelIndex() : categoriesIndexes[categories.last()].last(); 
++    // find the last index in the last category
++    QModelIndex lastIndex = categoriesIndexes.isEmpty() ? QModelIndex() : categoriesIndexes[categories.last()].last();
+ 
+     int lastItemBottom = cachedRectIndex(lastIndex).top() +
+                          listView->spacing() + (listView->gridSize().isEmpty() ? 0 : listView->gridSize().height()) - listView->viewport()->height();
+@@ -455,6 +439,13 @@
+     delete d;
+ }
+ 
++void KCategorizedView::setGridSize(const QSize &size)
++{
++    QListView::setGridSize(size);
++
++    slotLayoutChanged();
++}
++
+ void KCategorizedView::setModel(QAbstractItemModel *model)
+ {
+     d->lastSelection = QItemSelection();
+@@ -462,47 +453,45 @@
+     d->forcedSelectionPosition = 0;
+     d->elementsInfo.clear();
+     d->elementsPosition.clear();
+-    d->elementDictionary.clear();
+-    d->invertedElementDictionary.clear();
+     d->categoriesIndexes.clear();
+     d->categoriesPosition.clear();
+     d->categories.clear();
+     d->intersectedIndexes.clear();
+-    d->sourceModelIndexList.clear();
++    d->modelIndexList.clear();
+     d->hovered = QModelIndex();
+     d->mouseButtonPressed = false;
+ 
+     if (d->proxyModel)
+     {
+         QObject::disconnect(d->proxyModel,
+-                            SIGNAL(rowsRemoved(QModelIndex,int,int)),
+-                            this, SLOT(rowsRemoved(QModelIndex,int,int)));
++                            SIGNAL(layoutChanged()),
++                            this, SLOT(slotLayoutChanged()));
+ 
+         QObject::disconnect(d->proxyModel,
+-                            SIGNAL(sortingRoleChanged()),
+-                            this, SLOT(slotSortingRoleChanged()));
++                            SIGNAL(dataChanged(QModelIndex,QModelIndex)),
++                            this, SLOT(slotLayoutChanged()));
+     }
+ 
+     QListView::setModel(model);
+ 
+-    d->proxyModel = dynamic_cast<DolphinSortFilterProxyModel*>(model);
++    d->proxyModel = dynamic_cast<KCategorizedSortFilterProxyModel*>(model);
+ 
+     if (d->proxyModel)
+     {
+         QObject::connect(d->proxyModel,
+-                         SIGNAL(rowsRemoved(QModelIndex,int,int)),
+-                         this, SLOT(rowsRemoved(QModelIndex,int,int)));
++                         SIGNAL(layoutChanged()),
++                         this, SLOT(slotLayoutChanged()));
+ 
+         QObject::connect(d->proxyModel,
+-                         SIGNAL(sortingRoleChanged()),
+-                         this, SLOT(slotSortingRoleChanged()));
++                         SIGNAL(dataChanged(QModelIndex,QModelIndex)),
++                         this, SLOT(slotLayoutChanged()));
+     }
+ }
+ 
+ QRect KCategorizedView::visualRect(const QModelIndex &index) const
+ {
+     if ((viewMode() != KCategorizedView::IconMode) || !d->proxyModel ||
+-        !d->itemCategorizer)
++        !d->categoryDrawer || !d->proxyModel->isCategorizedModel())
+     {
+         return QListView::visualRect(index);
+     }
+@@ -515,54 +504,55 @@
+     return d->visualRect(index);
+ }
+ 
+-KItemCategorizer *KCategorizedView::itemCategorizer() const
++KCategoryDrawer *KCategorizedView::categoryDrawer() const
+ {
+-    return d->itemCategorizer;
++    return d->categoryDrawer;
+ }
+ 
+-void KCategorizedView::setItemCategorizer(KItemCategorizer *itemCategorizer)
++void KCategorizedView::setCategoryDrawer(KCategoryDrawer *categoryDrawer)
+ {
+     d->lastSelection = QItemSelection();
+     d->currentViewIndex = QModelIndex();
+     d->forcedSelectionPosition = 0;
+     d->elementsInfo.clear();
+     d->elementsPosition.clear();
+-    d->elementDictionary.clear();
+-    d->invertedElementDictionary.clear();
+     d->categoriesIndexes.clear();
+     d->categoriesPosition.clear();
+     d->categories.clear();
+     d->intersectedIndexes.clear();
+-    d->sourceModelIndexList.clear();
++    d->modelIndexList.clear();
+     d->hovered = QModelIndex();
+     d->mouseButtonPressed = false;
+ 
+-    if (!itemCategorizer && d->proxyModel)
++    if (!categoryDrawer && d->proxyModel)
+     {
+         QObject::disconnect(d->proxyModel,
+-                            SIGNAL(rowsRemoved(QModelIndex,int,int)),
+-                            this, SLOT(rowsRemoved(QModelIndex,int,int)));
++                            SIGNAL(layoutChanged()),
++                            this, SLOT(slotLayoutChanged()));
+ 
+         QObject::disconnect(d->proxyModel,
+-                            SIGNAL(sortingRoleChanged()),
+-                            this, SLOT(slotSortingRoleChanged()));
++                            SIGNAL(dataChanged(QModelIndex,QModelIndex)),
++                            this, SLOT(slotLayoutChanged()));
+     }
+-    else if (itemCategorizer && d->proxyModel)
++    else if (categoryDrawer && d->proxyModel)
+     {
+         QObject::connect(d->proxyModel,
+-                         SIGNAL(rowsRemoved(QModelIndex,int,int)),
+-                         this, SLOT(rowsRemoved(QModelIndex,int,int)));
++                         SIGNAL(layoutChanged()),
++                         this, SLOT(slotLayoutChanged()));
+ 
+         QObject::connect(d->proxyModel,
+-                         SIGNAL(sortingRoleChanged()),
+-                         this, SLOT(slotSortingRoleChanged()));
++                         SIGNAL(dataChanged(QModelIndex,QModelIndex)),
++                         this, SLOT(slotLayoutChanged()));
+     }
+ 
+-    d->itemCategorizer = itemCategorizer;
++    d->categoryDrawer = categoryDrawer;
+ 
+-    if (itemCategorizer)
++    if (categoryDrawer)
+     {
+-        rowsInserted(QModelIndex(), 0, d->proxyModel->rowCount() - 1);
++        if (d->proxyModel)
++        {
++            rowsInserted(QModelIndex(), 0, d->proxyModel->rowCount() - 1);
++        }
+     }
+     else
+     {
+@@ -573,7 +563,7 @@
+ QModelIndex KCategorizedView::indexAt(const QPoint &point) const
+ {
+     if ((viewMode() != KCategorizedView::IconMode) || !d->proxyModel ||
+-        !d->itemCategorizer)
++        !d->categoryDrawer || !d->proxyModel->isCategorizedModel())
+     {
+         return QListView::indexAt(point);
+     }
+@@ -601,13 +591,11 @@
+     d->forcedSelectionPosition = 0;
+     d->elementsInfo.clear();
+     d->elementsPosition.clear();
+-    d->elementDictionary.clear();
+-    d->invertedElementDictionary.clear();
+     d->categoriesIndexes.clear();
+     d->categoriesPosition.clear();
+     d->categories.clear();
+     d->intersectedIndexes.clear();
+-    d->sourceModelIndexList.clear();
++    d->modelIndexList.clear();
+     d->hovered = QModelIndex();
+     d->biggestItemSize = QSize(0, 0);
+     d->mouseButtonPressed = false;
+@@ -616,7 +604,7 @@
+ void KCategorizedView::paintEvent(QPaintEvent *event)
+ {
+     if ((viewMode() != KCategorizedView::IconMode) || !d->proxyModel ||
+-        !d->itemCategorizer)
++        !d->categoryDrawer || !d->proxyModel->isCategorizedModel())
+     {
+         QListView::paintEvent(event);
+         return;
+@@ -689,7 +677,9 @@
+ 
+         if (otherOption.rect.intersects(area))
+         {
+-            d->drawNewCategory(d->categoriesIndexes[category][0],
++            QModelIndex indexToDraw = d->proxyModel->index(d->categoriesIndexes[category][0].row(), d->proxyModel->sortColumn());
++
++            d->drawNewCategory(indexToDraw,
+                                d->proxyModel->sortRole(), otherOption, &painter);
+         }
+     }
+@@ -744,7 +734,7 @@
+     d->forcedSelectionPosition = 0;
+ 
+     if ((viewMode() != KCategorizedView::IconMode) || !d->proxyModel ||
+-        !d->itemCategorizer)
++        !d->categoryDrawer || !d->proxyModel->isCategorizedModel())
+     {
+         return;
+     }
+@@ -756,7 +746,7 @@
+                                     QItemSelectionModel::SelectionFlags flags)
+ {
+     if ((viewMode() != KCategorizedView::IconMode) || !d->proxyModel ||
+-        !d->itemCategorizer)
++        !d->categoryDrawer || !d->proxyModel->isCategorizedModel())
+     {
+         QListView::setSelection(rect, flags);
+         return;
+@@ -830,7 +820,7 @@
+     QListView::mouseMoveEvent(event);
+ 
+     if ((viewMode() != KCategorizedView::IconMode) || !d->proxyModel ||
+-        !d->itemCategorizer)
++        !d->categoryDrawer || !d->proxyModel->isCategorizedModel())
+     {
+         return;
+     }
+@@ -910,7 +900,7 @@
+     QListView::mouseReleaseEvent(event);
+ 
+     if ((viewMode() != KCategorizedView::IconMode) || !d->proxyModel ||
+-        !d->itemCategorizer)
++        !d->categoryDrawer || !d->proxyModel->isCategorizedModel())
+     {
+         return;
+     }
+@@ -929,7 +919,9 @@
+             {
+                 foreach (const QModelIndex &index, d->categoriesIndexes[category])
+                 {
+-                    selection << QItemSelectionRange(d->proxyModel->mapFromSource(index));
++                    QModelIndex selectIndex = index.model()->index(index.row(), 0);
++
++                    selection << QItemSelectionRange(selectIndex);
+                 }
+ 
+                 selectionModel()->select(selection, QItemSelectionModel::Select);
+@@ -981,7 +973,7 @@
+     d->dragLeftViewport = false;
+ 
+     if ((viewMode() != KCategorizedView::IconMode) || !d->proxyModel ||
+-        !d->itemCategorizer)
++        !d->categoryDrawer || !d->proxyModel->isCategorizedModel())
+     {
+         QListView::dragMoveEvent(event);
+         return;
+@@ -1000,10 +992,11 @@
+ QModelIndex KCategorizedView::moveCursor(CursorAction cursorAction,
+                                   Qt::KeyboardModifiers modifiers)
+ {
+-    if (    (viewMode() != KCategorizedView::IconMode) || 
+-            !d->proxyModel ||
+-            !d->itemCategorizer || 
+-            d->categories.isEmpty()     
++    if ((viewMode() != KCategorizedView::IconMode) ||
++         !d->proxyModel ||
++         !d->categoryDrawer ||
++          d->categories.isEmpty() ||
++         !d->proxyModel->isCategorizedModel()
+        )
+     {
+         return QListView::moveCursor(cursorAction, modifiers);
+@@ -1040,7 +1033,7 @@
+             break;
+         }
+ 
+-        if (category == d->elementsInfo[d->proxyModel->mapToSource(current)].category)
++        if (category == d->elementsInfo[d->proxyModel->mapToSource(current).row()].category)
+         {
+             theCategory = category;
+ 
+@@ -1052,21 +1045,22 @@
+             lastCategory = category;
+         }
+     }
+-
++// ### FIXME !!!
++#if 0
+     switch (cursorAction)
+     {
+         case QAbstractItemView::MoveUp: {
+-            if (d->elementsInfo[d->proxyModel->mapToSource(current)].relativeOffsetToCategory >= elementsPerRow)
++            if (d->elementsInfo[d->proxyModel->mapToSource(current).row()].relativeOffsetToCategory >= elementsPerRow)
+             {
+-                int indexToMove = d->invertedElementDictionary[current].row();
+-                indexToMove -= qMin(((d->elementsInfo[d->proxyModel->mapToSource(current)].relativeOffsetToCategory) + d->forcedSelectionPosition), elementsPerRow - d->forcedSelectionPosition + (d->elementsInfo[d->proxyModel->mapToSource(current)].relativeOffsetToCategory % elementsPerRow));
++                int indexToMove = d->invertedElementDictionary[current.row()].row();
++                indexToMove -= qMin(((d->elementsInfo[d->proxyModel->mapToSource(current).row()].relativeOffsetToCategory) + d->forcedSelectionPosition), elementsPerRow - d->forcedSelectionPosition + (d->elementsInfo[d->proxyModel->mapToSource(current).row()].relativeOffsetToCategory % elementsPerRow));
+ 
+-                return d->elementDictionary[d->proxyModel->index(indexToMove, 0)];
++                return d->elementDictionary[indexToMove];
+             }
+             else
+             {
+                 int lastCategoryLastRow = (d->categoriesIndexes[lastCategory].count() - 1) % elementsPerRow;
+-                int indexToMove = d->invertedElementDictionary[current].row() - d->elementsInfo[d->proxyModel->mapToSource(current)].relativeOffsetToCategory;
++                int indexToMove = d->invertedElementDictionary[current.row()].row() - d->elementsInfo[d->proxyModel->mapToSource(current).row()].relativeOffsetToCategory;
+ 
+                 if (d->forcedSelectionPosition >= lastCategoryLastRow)
+                 {
+@@ -1077,22 +1071,22 @@
+                     indexToMove -= qMin((lastCategoryLastRow - d->forcedSelectionPosition + 1), d->forcedSelectionPosition + elementsPerRow + 1);
+                 }
+ 
+-                return d->elementDictionary[d->proxyModel->index(indexToMove, 0)];
++                return d->elementDictionary[indexToMove];
+             }
+         }
+ 
+         case QAbstractItemView::MoveDown: {
+-            if (d->elementsInfo[d->proxyModel->mapToSource(current)].relativeOffsetToCategory < (d->categoriesIndexes[theCategory].count() - 1 - ((d->categoriesIndexes[theCategory].count() - 1) % elementsPerRow)))
++            if (d->elementsInfo[d->proxyModel->mapToSource(current).row()].relativeOffsetToCategory < (d->categoriesIndexes[theCategory].count() - 1 - ((d->categoriesIndexes[theCategory].count() - 1) % elementsPerRow)))
+             {
+-                int indexToMove = d->invertedElementDictionary[current].row();
+-                indexToMove += qMin(elementsPerRow, d->categoriesIndexes[theCategory].count() - 1 - d->elementsInfo[d->proxyModel->mapToSource(current)].relativeOffsetToCategory);
++                int indexToMove = d->invertedElementDictionary[current.row()].row();
++                indexToMove += qMin(elementsPerRow, d->categoriesIndexes[theCategory].count() - 1 - d->elementsInfo[d->proxyModel->mapToSource(current).row()].relativeOffsetToCategory);
+ 
+-                return d->elementDictionary[d->proxyModel->index(indexToMove, 0)];
++                return d->elementDictionary[indexToMove];
+             }
+             else
+             {
+                 int afterCategoryLastRow = qMin(elementsPerRow, d->categoriesIndexes[afterCategory].count());
+-                int indexToMove = d->invertedElementDictionary[current].row() + (d->categoriesIndexes[theCategory].count() - d->elementsInfo[d->proxyModel->mapToSource(current)].relativeOffsetToCategory);
++                int indexToMove = d->invertedElementDictionary[current.row()].row() + (d->categoriesIndexes[theCategory].count() - d->elementsInfo[d->proxyModel->mapToSource(current).row()].relativeOffsetToCategory);
+ 
+                 if (d->forcedSelectionPosition >= afterCategoryLastRow)
+                 {
+@@ -1103,30 +1097,30 @@
+                     indexToMove += qMin(d->forcedSelectionPosition, elementsPerRow);
+                 }
+ 
+-                return d->elementDictionary[d->proxyModel->index(indexToMove, 0)];
++                return d->elementDictionary[indexToMove];
+             }
+         }
+ 
+         case QAbstractItemView::MoveLeft:
+-            d->forcedSelectionPosition = d->elementsInfo[d->proxyModel->mapToSource(d->elementDictionary[d->proxyModel->index(d->invertedElementDictionary[current].row() - 1, 0)])].relativeOffsetToCategory % elementsPerRow;
++            d->forcedSelectionPosition = d->elementsInfo[d->proxyModel->mapToSource(d->elementDictionary[d->proxyModel->index(d->invertedElementDictionary[current.row()].row() - 1, 0).row()]).row()].relativeOffsetToCategory % elementsPerRow;
+ 
+             if (d->forcedSelectionPosition < 0)
+                 d->forcedSelectionPosition = (d->categoriesIndexes[theCategory].count() - 1) % elementsPerRow;
+ 
+-            return d->elementDictionary[d->proxyModel->index(d->invertedElementDictionary[current].row() - 1, 0)];
++            return d->elementDictionary[d->proxyModel->index(d->invertedElementDictionary[current.row()].row() - 1, 0).row()];
+ 
+         case QAbstractItemView::MoveRight:
+-            d->forcedSelectionPosition = d->elementsInfo[d->proxyModel->mapToSource(d->elementDictionary[d->proxyModel->index(d->invertedElementDictionary[current].row() + 1, 0)])].relativeOffsetToCategory % elementsPerRow;
++            d->forcedSelectionPosition = d->elementsInfo[d->proxyModel->mapToSource(d->elementDictionary[d->proxyModel->index(d->invertedElementDictionary[current.row()].row() + 1, 0).row()]).row()].relativeOffsetToCategory % elementsPerRow;
+ 
+             if (d->forcedSelectionPosition < 0)
+                 d->forcedSelectionPosition = (d->categoriesIndexes[theCategory].count() - 1) % elementsPerRow;
+ 
+-            return d->elementDictionary[d->proxyModel->index(d->invertedElementDictionary[current].row() + 1, 0)];
++            return d->elementDictionary[d->proxyModel->index(d->invertedElementDictionary[current.row()].row() + 1, 0).row()];
+ 
+         default:
+             break;
+     }
+-
++#endif
+     return QListView::moveCursor(cursorAction, modifiers);
+ }
+ 
+@@ -1137,20 +1131,18 @@
+     QListView::rowsInserted(parent, start, end);
+ 
+     if ((viewMode() != KCategorizedView::IconMode) || !d->proxyModel ||
+-        !d->itemCategorizer)
++        !d->categoryDrawer || !d->proxyModel->isCategorizedModel())
+     {
+         d->lastSelection = QItemSelection();
+         d->currentViewIndex = QModelIndex();
+         d->forcedSelectionPosition = 0;
+         d->elementsInfo.clear();
+         d->elementsPosition.clear();
+-        d->elementDictionary.clear();
+-        d->invertedElementDictionary.clear();
+         d->categoriesIndexes.clear();
+         d->categoriesPosition.clear();
+         d->categories.clear();
+         d->intersectedIndexes.clear();
+-        d->sourceModelIndexList.clear();
++        d->modelIndexList.clear();
+         d->hovered = QModelIndex();
+         d->biggestItemSize = QSize(0, 0);
+         d->mouseButtonPressed = false;
+@@ -1172,13 +1164,11 @@
+     d->forcedSelectionPosition = 0;
+     d->elementsInfo.clear();
+     d->elementsPosition.clear();
+-    d->elementDictionary.clear();
+-    d->invertedElementDictionary.clear();
+     d->categoriesIndexes.clear();
+     d->categoriesPosition.clear();
+     d->categories.clear();
+     d->intersectedIndexes.clear();
+-    d->sourceModelIndexList.clear();
++    d->modelIndexList.clear();
+     d->hovered = QModelIndex();
+     d->biggestItemSize = QSize(0, 0);
+     d->mouseButtonPressed = false;
+@@ -1196,84 +1186,44 @@
+                                    qMax(sizeHintForIndex(d->proxyModel->index(k, 0)).height(),
+                                         d->biggestItemSize.height()));
+ 
+-        d->sourceModelIndexList <<
+-                         d->proxyModel->mapToSource(d->proxyModel->index(k, 0));
++        d->modelIndexList << d->proxyModel->index(k, d->proxyModel->sortColumn());
+     }
+ 
+-    // Sort them with the general purpose lessThan method
+-    LessThan generalLessThan(d->proxyModel,
+-                             LessThan::GeneralPurpose);
+-
+-    qStableSort(d->sourceModelIndexList.begin(), d->sourceModelIndexList.end(),
+-                generalLessThan);
+-
+     // Explore categories
+-    QString prevCategory =
+-                 d->itemCategorizer->categoryForItem(d->sourceModelIndexList[0],
+-                                                     d->proxyModel->sortRole());
++    QString prevCategory = d->proxyModel->data(d->modelIndexList[0], KCategorizedSortFilterProxyModel::CategoryRole).toString();
+     QString lastCategory = prevCategory;
+     QModelIndexList modelIndexList;
+     struct Private::ElementInfo elementInfo;
+-    foreach (const QModelIndex &index, d->sourceModelIndexList)
++    int offset = -1;
++    foreach (const QModelIndex &index, d->modelIndexList)
+     {
+-        lastCategory = d->itemCategorizer->categoryForItem(index,
+-                                                     d->proxyModel->sortRole());
++        lastCategory = d->proxyModel->data(index, KCategorizedSortFilterProxyModel::CategoryRole).toString();
+ 
+         elementInfo.category = lastCategory;
+ 
+         if (prevCategory != lastCategory)
+         {
++            offset = 0;
+             d->categoriesIndexes.insert(prevCategory, modelIndexList);
+             d->categories << prevCategory;
+             modelIndexList.clear();
+         }
++        else
++        {
++            offset++;
++        }
+ 
++        elementInfo.relativeOffsetToCategory = offset;
++
+         modelIndexList << index;
+         prevCategory = lastCategory;
+ 
+-        d->elementsInfo.insert(index, elementInfo);
++        d->elementsInfo.insert(index.row(), elementInfo);
+     }
+ 
+     d->categoriesIndexes.insert(prevCategory, modelIndexList);
+     d->categories << prevCategory;
+ 
+-    // Sort items locally in their respective categories with the category
+-    // purpose lessThan
+-    LessThan categoryLessThan(d->proxyModel,
+-                              LessThan::CategoryPurpose);
+-
+-    foreach (const QString &key, d->categories)
+-    {
+-        QModelIndexList &indexList = d->categoriesIndexes[key];
+-
+-        qStableSort(indexList.begin(), indexList.end(), categoryLessThan);
+-    }
+-
+-    // Finally, fill data information of items situation. This will help when
+-    // trying to compute an item place in the viewport
+-    int i = 0; // position relative to the category beginning
+-    int j = 0; // number of elements before current
+-    foreach (const QString &key, d->categories)
+-    {
+-        foreach (const QModelIndex &index, d->categoriesIndexes[key])
+-        {
+-            struct Private::ElementInfo &elementInfo = d->elementsInfo[index];
+-
+-            elementInfo.relativeOffsetToCategory = i;
+-
+-            d->elementDictionary.insert(d->proxyModel->index(j, 0),
+-                                        d->proxyModel->mapFromSource(index));
+-
+-            d->invertedElementDictionary.insert(d->proxyModel->mapFromSource(index),
+-                                                d->proxyModel->index(j, 0));
+-
+-            i++;
+-            j++;
+-        }
+-
+-        i = 0;
+-    }
+-
+     d->updateScrollbars();
+ }
+ 
+@@ -1282,7 +1232,7 @@
+                             int end)
+ {
+     if ((viewMode() == KCategorizedView::IconMode) && d->proxyModel &&
+-        d->itemCategorizer)
++        d->categoryDrawer && d->proxyModel->isCategorizedModel())
+     {
+         // Force the view to update all elements
+         rowsInsertedArtifficial(parent, start, end);
+@@ -1292,7 +1242,7 @@
+ void KCategorizedView::updateGeometries()
+ {
+     if ((viewMode() != KCategorizedView::IconMode) || !d->proxyModel ||
+-        !d->itemCategorizer)
++        !d->categoryDrawer || !d->proxyModel->isCategorizedModel())
+     {
+         QListView::updateGeometries();
+         return;
+@@ -1303,10 +1253,10 @@
+     QAbstractItemView::updateGeometries();
+ }
+ 
+-void KCategorizedView::slotSortingRoleChanged()
++void KCategorizedView::slotLayoutChanged()
+ {
+     if ((viewMode() == KCategorizedView::IconMode) && d->proxyModel &&
+-        d->itemCategorizer)
++        d->categoryDrawer && d->proxyModel->isCategorizedModel())
+     {
+         // Force the view to update all elements
+         rowsInsertedArtifficial(QModelIndex(), 0, d->proxyModel->rowCount() - 1);
+Index: apps/dolphin/src/kitemcategorizer.cpp
+===================================================================
+--- apps/dolphin/src/kitemcategorizer.cpp	(revisión: 713026)
++++ apps/dolphin/src/kitemcategorizer.cpp	(copia de trabajo)
+@@ -1,100 +0,0 @@
+-/**
+-  * This file is part of the KDE project
+-  * Copyright (C) 2007 Rafael Fernández López <ereslibre@gmail.com>
+-  *
+-  * This library is free software; you can redistribute it and/or
+-  * modify it under the terms of the GNU Library General Public
+-  * License as published by the Free Software Foundation; either
+-  * version 2 of the License, or (at your option) any later version.
+-  *
+-  * This library is distributed in the hope that it will be useful,
+-  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+-  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+-  * Library General Public License for more details.
+-  *
+-  * You should have received a copy of the GNU Library General Public License
+-  * along with this library; see the file COPYING.LIB.  If not, write to
+-  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+-  * Boston, MA 02110-1301, USA.
+-  */
+-
+-#include "kitemcategorizer.h"
+-
+-#include <QPainter>
+-#include <QStyleOption>
+-
+-KItemCategorizer::KItemCategorizer()
+-{
+-}
+-
+-KItemCategorizer::~KItemCategorizer()
+-{
+-}
+-
+-void KItemCategorizer::drawCategory(const QModelIndex &index,
+-                                    int sortRole,
+-                                    const QStyleOption &option,
+-                                    QPainter *painter) const
+-{
+-    const QString category = categoryForItem(index, sortRole);
+-
+-    QColor color = option.palette.color(QPalette::Text);
+-
+-    painter->save();
+-    painter->setRenderHint(QPainter::Antialiasing);
+-
+-    QStyleOptionButton opt;
+-
+-    opt.rect = option.rect;
+-    opt.palette = option.palette;
+-    opt.direction = option.direction;
+-    opt.text = category;
+-
+-    if (option.state & QStyle::State_MouseOver)
+-    {
+-        const QPalette::ColorGroup group =
+-                                          option.state & QStyle::State_Enabled ?
+-                                          QPalette::Normal : QPalette::Disabled;
+-
+-        QLinearGradient gradient(option.rect.topLeft(),
+-                                 option.rect.bottomRight());
+-        gradient.setColorAt(0,
+-                            option.palette.color(group,
+-                                                 QPalette::Highlight).light());
+-        gradient.setColorAt(1, Qt::transparent);
+-
+-        painter->fillRect(option.rect, gradient);
+-    }
+-
+-    QFont painterFont = painter->font();
+-    painterFont.setWeight(QFont::Bold);
+-    painterFont.setPointSize(painterFont.pointSize() + 2);
+-    QFontMetrics metrics(painterFont);
+-    painter->setFont(painterFont);
+-
+-    QPainterPath path;
+-    path.addRect(option.rect.left(),
+-                 option.rect.bottom() - 2,
+-                 option.rect.width(),
+-                 2);
+-
+-    QLinearGradient gradient(option.rect.topLeft(),
+-                             option.rect.bottomRight());
+-    gradient.setColorAt(0, color);
+-    gradient.setColorAt(1, Qt::transparent);
+-
+-    painter->setBrush(gradient);
+-    painter->fillPath(path, gradient);
+-
+-    painter->setPen(color);
+-
+-    painter->drawText(option.rect, Qt::AlignVCenter | Qt::AlignLeft,
+-    metrics.elidedText(category, Qt::ElideRight, option.rect.width()));
+-
+-    painter->restore();
+-}
+-
+-int KItemCategorizer::categoryHeight(const QStyleOption &option) const
+-{
+-    return option.fontMetrics.height() + 6 /* 4 separator; 2 gradient */;
+-}
+Index: apps/dolphin/src/dolphinitemcategorizer.h
+===================================================================
+--- apps/dolphin/src/dolphinitemcategorizer.h	(revisión: 713026)
++++ apps/dolphin/src/dolphinitemcategorizer.h	(copia de trabajo)
+@@ -1,40 +0,0 @@
+-/**
+-  * This file is part of the KDE project
+-  * Copyright (C) 2007 Rafael Fernández López <ereslibre@gmail.com>
+-  *
+-  * This library is free software; you can redistribute it and/or
+-  * modify it under the terms of the GNU Library General Public
+-  * License as published by the Free Software Foundation; either
+-  * version 2 of the License, or (at your option) any later version.
+-  *
+-  * This library is distributed in the hope that it will be useful,
+-  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+-  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+-  * Library General Public License for more details.
+-  *
+-  * You should have received a copy of the GNU Library General Public License
+-  * along with this library; see the file COPYING.LIB.  If not, write to
+-  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+-  * Boston, MA 02110-1301, USA.
+-  */
+-
+-#ifndef DOLPHINITEMCATEGORIZER_H
+-#define DOLPHINITEMCATEGORIZER_H
+-
+-#include <libdolphin_export.h>
+-#include <kitemcategorizer.h>
+-
+-class QModelIndex;
+-
+-class LIBDOLPHINPRIVATE_EXPORT DolphinItemCategorizer : public KItemCategorizer
+-{
+-public:
+-    DolphinItemCategorizer();
+-    virtual ~DolphinItemCategorizer();
+-    virtual QString categoryForItem(const QModelIndex &index, int sortRole) const;
+-    virtual void drawCategory(const QModelIndex &index, int sortRole,
+-                              const QStyleOption &option, QPainter *painter) const;
+-    virtual int categoryHeight(const QStyleOption &option) const;
+-};
+-
+-#endif // DOLPHINITEMCATEGORIZER_H
+Index: apps/dolphin/src/sidebartreeview.cpp
+===================================================================
+--- apps/dolphin/src/sidebartreeview.cpp	(revisión: 713026)
++++ apps/dolphin/src/sidebartreeview.cpp	(copia de trabajo)
+@@ -20,8 +20,8 @@
+ #include "sidebartreeview.h"
+ 
+ #include "dolphincontroller.h"
++#include "dolphinmodel.h"
+ 
+-#include <kdirmodel.h>
+ #include <kfileitemdelegate.h>
+ #include <QKeyEvent>
+ #include <QPainter>
+@@ -59,12 +59,12 @@
+ {
+     if (event->type() == QEvent::Polish) {
+         // hide all columns except of the 'Name' column
+-        hideColumn(KDirModel::Size);
+-        hideColumn(KDirModel::ModifiedTime);
+-        hideColumn(KDirModel::Permissions);
+-        hideColumn(KDirModel::Owner);
+-        hideColumn(KDirModel::Group);
+-        hideColumn(KDirModel::Type);
++        hideColumn(DolphinModel::Size);
++        hideColumn(DolphinModel::ModifiedTime);
++        hideColumn(DolphinModel::Permissions);
++        hideColumn(DolphinModel::Owner);
++        hideColumn(DolphinModel::Group);
++        hideColumn(DolphinModel::Type);
+         header()->hide();
+     }
+ 
+Index: apps/dolphin/src/dolphiniconsview.h
+===================================================================
+--- apps/dolphin/src/dolphiniconsview.h	(revisión: 713026)
++++ apps/dolphin/src/dolphiniconsview.h	(copia de trabajo)
+@@ -21,7 +21,6 @@
+ #define DOLPHINICONSVIEW_H
+ 
+ #include <kcategorizedview.h>
+-#include <kitemcategorizer.h>
+ 
+ #include <QSize>
+ #include <QStyleOption>
+Index: apps/dolphin/src/CMakeLists.txt
+===================================================================
+--- apps/dolphin/src/CMakeLists.txt	(revisión: 713026)
++++ apps/dolphin/src/CMakeLists.txt	(copia de trabajo)
+@@ -14,10 +14,11 @@
+     dolphindetailsview.cpp
+     dolphiniconsview.cpp
+     dolphincolumnview.cpp
+-    dolphinitemcategorizer.cpp
+     kcategorizedview.cpp
+-    kitemcategorizer.cpp
++    kcategorydrawer.cpp
++    dolphinmodel.cpp
+     dolphinsettings.cpp
++    dolphincategorydrawer.cpp
+     viewproperties.cpp
+     dolphinsortfilterproxymodel.cpp
+     renamedialog.cpp
+Index: apps/dolphin/src/dolphinview.h
+===================================================================
+--- apps/dolphin/src/dolphinview.h	(revisión: 713026)
++++ apps/dolphin/src/dolphinview.h	(copia de trabajo)
+@@ -41,7 +41,7 @@
+ class KDirLister;
+ class KFileItemDelegate;
+ class KUrl;
+-class KDirModel;
++class DolphinModel;
+ class DolphinColumnView;
+ class DolphinDetailsView;
+ class DolphinIconsView;
+@@ -116,7 +116,7 @@
+      * @param url             Specifies the content which should be shown.
+      * @param dirLister       Used directory lister. The lister is not owned
+      *                        by the view and won't get deleted.
+-     * @param dirModel        Used directory model. The model is not owned
++     * @param dolphinModel    Used directory model. The model is not owned
+      *                        by the view and won't get deleted.
+      * @param proxyModel      Used proxy model which specifies the sorting. The
+      *                        model is not owned by the view and won't get
+@@ -125,7 +125,7 @@
+     DolphinView(QWidget* parent,
+                 const KUrl& url,
+                 KDirLister* dirLister,
+-                KDirModel* dirModel,
++                DolphinModel* dolphinModel,
+                 DolphinSortFilterProxyModel* proxyModel);
+ 
+     virtual ~DolphinView();
+@@ -509,7 +509,7 @@
+ 
+     /**
+      * Returns true if the index is valid and represents
+-     * the column KDirModel::Name.
++     * the column DolphinModel::Name.
+      */
+     bool isValidNameIndex(const QModelIndex& index) const;
+ 
+@@ -563,7 +563,7 @@
+     DolphinColumnView* m_columnView;
+     KFileItemDelegate* m_fileItemDelegate;
+ 
+-    KDirModel* m_dirModel;
++    DolphinModel* m_dolphinModel;
+     KDirLister* m_dirLister;
+     DolphinSortFilterProxyModel* m_proxyModel;
+ 
+Index: apps/dolphin/src/dolphinitemcategorizer.cpp
+===================================================================
+--- apps/dolphin/src/dolphinitemcategorizer.cpp	(revisión: 713026)
++++ apps/dolphin/src/dolphinitemcategorizer.cpp	(copia de trabajo)
+@@ -1,373 +0,0 @@
+-/**
+-  * This file is part of the KDE project
+-  * Copyright (C) 2007 Rafael Fernández López <ereslibre@gmail.com>
+-  *
+-  * This library is free software; you can redistribute it and/or
+-  * modify it under the terms of the GNU Library General Public
+-  * License as published by the Free Software Foundation; either
+-  * version 2 of the License, or (at your option) any later version.
+-  *
+-  * This library is distributed in the hope that it will be useful,
+-  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+-  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+-  * Library General Public License for more details.
+-  *
+-  * You should have received a copy of the GNU Library General Public License
+-  * along with this library; see the file COPYING.LIB.  If not, write to
+-  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+-  * Boston, MA 02110-1301, USA.
+-  */
+-
+-#include "dolphinitemcategorizer.h"
+-
+-#include "dolphinview.h"
+-#include "dolphinsortfilterproxymodel.h"
+-
+-#ifdef HAVE_NEPOMUK
+-#include <config-nepomuk.h>
+-#include <nepomuk/global.h>
+-#include <nepomuk/resource.h>
+-#endif
+-
+-#include <kdatetime.h>
+-#include <kdirmodel.h>
+-#include <kfileitem.h>
+-#include <kiconloader.h>
+-#include <klocale.h>
+-#include <kurl.h>
+-#include <kuser.h>
+-#include <kmimetype.h>
+-#include <kstandarddirs.h>
+-#include <kiconeffect.h>
+-
+-#include <QList>
+-#include <QSortFilterProxyModel>
+-#include <QPainter>
+-#include <QDir>
+-
+-DolphinItemCategorizer::DolphinItemCategorizer() :
+-    KItemCategorizer()
+-{
+-}
+-
+-DolphinItemCategorizer::~DolphinItemCategorizer()
+-{
+-}
+-
+-QString DolphinItemCategorizer::categoryForItem(const QModelIndex& index,
+-                                                int sortRole) const
+-{
+-    QString retString;
+-
+-    if (!index.isValid())
+-    {
+-        return retString;
+-    }
+-
+-    const KDirModel *dirModel = qobject_cast<const KDirModel*>(index.model());
+-    KFileItem item = dirModel->itemForIndex(index);
+-
+-    switch (sortRole)
+-    {
+-        case DolphinView::SortByName:
+-        {
+-            // KDirModel checks columns to know to which role are
+-            // we talking about
+-            QModelIndex theIndex = index.model()->index(index.row(),
+-                                                        KDirModel::Name,
+-                                                        index.parent());
+-
+-            if (!theIndex.isValid()) {
+-                return retString;
+-            }
+-
+-            QVariant data = theIndex.model()->data(theIndex, Qt::DisplayRole);
+-            if (data.toString().size())
+-            {
+-                if (!item.isHidden() && data.toString().at(0).isLetter())
+-                    retString = data.toString().toUpper().at(0);
+-                else if (item.isHidden() && data.toString().at(0) == '.' &&
+-                         data.toString().at(1).isLetter())
+-                    retString = data.toString().toUpper().at(1);
+-                else if (item.isHidden() && data.toString().at(0) == '.' &&
+-                         !data.toString().at(1).isLetter())
+-                    retString = i18nc("@title:group Name", "Others");
+-                else if (item.isHidden() && data.toString().at(0) != '.')
+-                    retString = data.toString().toUpper().at(0);
+-                else if (item.isHidden())
+-                    retString = data.toString().toUpper().at(0);
+-                else
+-                {
+-                    bool validCategory = false;
+-
+-                    const QString str(data.toString().toUpper());
+-                    const QChar* currA = str.unicode();
+-                    while (!currA->isNull() && !validCategory) {
+-                        if (currA->isLetter())
+-                            validCategory = true;
+-                        else if (currA->isDigit())
+-                            return i18nc("@title:group", "Others");
+-                        else
+-                            ++currA;
+-                    }
+-
+-                    if (!validCategory)
+-                        retString = i18nc("@title:group Name", "Others");
+-                    else
+-                        retString = *currA;
+-                }
+-            }
+-            break;
+-        }
+-
+-        case DolphinView::SortByDate:
+-        {
+-            KDateTime modifiedTime = item.time(KFileItem::ModificationTime);
+-            modifiedTime = modifiedTime.toLocalZone();
+-
+-            if (modifiedTime.daysTo(KDateTime::currentLocalDateTime()) == 0)
+-                retString = i18nc("@title:group Date", "Today");
+-            else if (modifiedTime.daysTo(KDateTime::currentLocalDateTime()) == 1)
+-                retString = i18nc("@title:group Date", "Yesterday");
+-            else if (modifiedTime.daysTo(KDateTime::currentLocalDateTime()) < 7)
+-                retString = i18nc("@title:group Date", "Less than a week");
+-            else if (modifiedTime.daysTo(KDateTime::currentLocalDateTime()) < 31)
+-                retString = i18nc("@title:group Date", "Less than a month");
+-            else if (modifiedTime.daysTo(KDateTime::currentLocalDateTime()) < 365)
+-                retString = i18nc("@title:group Date", "Less than a year");
+-            else
+-                retString = i18nc("@title:group Date", "More than a year");
+-            break;
+-        }
+-
+-        case DolphinView::SortByPermissions:
+-            retString = item.permissionsString();
+-            break;
+-
+-        case DolphinView::SortByOwner:
+-            retString = item.user();
+-            break;
+-
+-        case DolphinView::SortByGroup:
+-            retString = item.group();
+-            break;
+-
+-        case DolphinView::SortBySize: {
+-            const int fileSize = !item.isNull() ? item.size() : -1;
+-            if (!item.isNull() && item.isDir()) {
+-                retString = i18nc("@title:group Size", "Folders");
+-            } else if (fileSize < 5242880) {
+-                retString = i18nc("@title:group Size", "Small");
+-            } else if (fileSize < 10485760) {
+-                retString = i18nc("@title:group Size", "Medium");
+-            } else {
+-                retString = i18nc("@title:group Size", "Big");
+-            }
+-            break;
+-        }
+-
+-        case DolphinView::SortByType:
+-            retString = item.mimeComment();
+-            break;
+-
+-#ifdef HAVE_NEPOMUK
+-        case DolphinView::SortByRating: {
+-            const quint32 rating = DolphinSortFilterProxyModel::ratingForIndex(index);
+-
+-            retString = QString::number(rating);
+-            break;
+-        }
+-
+-        case DolphinView::SortByTags: {
+-            retString = DolphinSortFilterProxyModel::tagsForIndex(index);
+-
+-            if (retString.isEmpty())
+-                retString = i18nc("@title:group Tags", "Not yet tagged");
+-
+-            break;
+-        }
+-#endif
+-    }
+-
+-    return retString;
+-}
+-
+-void DolphinItemCategorizer::drawCategory(const QModelIndex &index,
+-                                          int sortRole,
+-                                          const QStyleOption &option,
+-                                          QPainter *painter) const
+-{
+-    QRect starRect = option.rect;
+-
+-    int iconSize =  KIconLoader::global()->currentSize(K3Icon::Small);
+-    const QString category = categoryForItem(index, sortRole);
+-
+-    QColor color = option.palette.color(QPalette::Text);
+-
+-    painter->save();
+-    painter->setRenderHint(QPainter::Antialiasing);
+-
+-    QStyleOptionButton opt;
+-
+-    opt.rect = option.rect;
+-    opt.palette = option.palette;
+-    opt.direction = option.direction;
+-    opt.text = category;
+-
+-    if (option.state & QStyle::State_MouseOver)
+-    {
+-        const QPalette::ColorGroup group =
+-                                          option.state & QStyle::State_Enabled ?
+-                                          QPalette::Normal : QPalette::Disabled;
+-
+-        QLinearGradient gradient(option.rect.topLeft(),
+-                                 option.rect.bottomRight());
+-        gradient.setColorAt(0,
+-                            option.palette.color(group,
+-                                                 QPalette::Highlight).light());
+-        gradient.setColorAt(1, Qt::transparent);
+-
+-        painter->fillRect(option.rect, gradient);
+-    }
+-
+-    QFont painterFont = painter->font();
+-    painterFont.setWeight(QFont::Bold);
+-    QFontMetrics metrics(painterFont);
+-    painter->setFont(painterFont);
+-
+-    QPainterPath path;
+-    path.addRect(option.rect.left(),
+-                 option.rect.bottom() - 2,
+-                 option.rect.width(),
+-                 2);
+-
+-    QLinearGradient gradient(option.rect.topLeft(),
+-                             option.rect.bottomRight());
+-    gradient.setColorAt(0, color);
+-    gradient.setColorAt(1, Qt::transparent);
+-
+-    painter->setBrush(gradient);
+-    painter->fillPath(path, gradient);
+-
+-    opt.rect.setLeft(opt.rect.left() + (iconSize / 4));
+-    starRect.setLeft(starRect.left() + (iconSize / 4));
+-    starRect.setRight(starRect.right() + (iconSize / 4));
+-
+-    bool paintIcon = true;
+-    bool paintText = true;
+-
+-    QPixmap icon;
+-    switch (sortRole) {
+-        case DolphinView::SortByName:
+-            paintIcon = false;
+-            break;
+-
+-        case DolphinView::SortByDate:
+-            paintIcon = false;
+-            break;
+-
+-        case DolphinView::SortByPermissions:
+-            paintIcon = false; // FIXME: let's think about how to represent permissions
+-            break;
+-
+-        case DolphinView::SortByOwner: {
+-            opt.rect.setTop(option.rect.top() + (iconSize / 4));
+-            KUser user(category);
+-            if (QFile::exists(user.homeDir() + QDir::separator() + ".face.icon"))
+-            {
+-                icon = QPixmap::fromImage(QImage(user.homeDir() + QDir::separator() + ".face.icon")).scaled(iconSize, iconSize);
+-            }
+-            else
+-            {
+-                icon = KIconLoader::global()->loadIcon("user", K3Icon::Small);
+-            }
+-            break;
+-        }
+-
+-        case DolphinView::SortByGroup:
+-            paintIcon = false;
+-            break;
+-
+-        case DolphinView::SortBySize:
+-            paintIcon = false;
+-            break;
+-
+-        case DolphinView::SortByType: {
+-            opt.rect.setTop(option.rect.top() + (option.rect.height() / 2) - (iconSize / 2));
+-            const KDirModel *model = static_cast<const KDirModel*>(index.model());
+-            KFileItem item = model->itemForIndex(index);
+-            icon = KIconLoader::global()->loadIcon(KMimeType::iconNameForUrl(item.url()),
+-                                                   K3Icon::Small);
+-            break;
+-        }
+-
+-#ifdef HAVE_NEPOMUK
+-        case DolphinView::SortByRating: {
+-            paintText = false;
+-            paintIcon = false;
+-
+-            starRect.setTop(option.rect.top() + (option.rect.height() / 2) - (iconSize / 2));
+-            starRect.setSize(QSize(iconSize, iconSize));
+-
+-            QPixmap pixmap = KIconLoader::global()->loadIcon("rating", K3Icon::Small);
+-            QPixmap smallPixmap = KIconLoader::global()->loadIcon("rating", K3Icon::NoGroup, iconSize / 2);
+-            QPixmap disabledIcon = KIconLoader::global()->loadIcon("rating", K3Icon::Small);
+-
+-            QImage disabledImage = disabledIcon.toImage();
+-            KIconEffect::toGray(disabledImage, 1.0);
+-            QPixmap disabledPixmap = QPixmap::fromImage(disabledImage);
+-
+-            int rating = category.toInt();
+-
+-            for (int i = 0; i < rating - (rating % 2); i += 2) {
+-                painter->drawPixmap(starRect, pixmap);
+-                starRect.setLeft(starRect.left() + iconSize + (iconSize / 4) /* separator between stars */);
+-            }
+-
+-            if (rating && rating % 2) {
+-                starRect.setTop(option.rect.top() + (option.rect.height() / 2) - (iconSize / 4));
+-                starRect.setSize(QSize(iconSize / 2, iconSize / 2));
+-                painter->drawPixmap(starRect, smallPixmap);
+-                starRect.setTop(opt.rect.top() + (option.rect.height() / 2) - (iconSize / 2));
+-                starRect.setSize(QSize(iconSize / 2, iconSize / 2));
+-                starRect.setLeft(starRect.left() + (iconSize / 2) + (iconSize / 4));
+-                starRect.setSize(QSize(iconSize, iconSize));
+-            }
+-
+-            for (int i = rating; i < 9; i += 2) {
+-                painter->drawPixmap(starRect, disabledPixmap);
+-                starRect.setLeft(starRect.left() + iconSize + (iconSize / 4));
+-            }
+-
+-            break;
+-        }
+-
+-        case DolphinView::SortByTags:
+-            paintIcon = false;
+-            break;
+-#endif
+-    }
+-
+-    if (paintIcon) {
+-        painter->drawPixmap(QRect(opt.rect.left(), opt.rect.top(), iconSize, iconSize), icon);
+-        opt.rect.setLeft(opt.rect.left() + iconSize + (iconSize / 4));
+-    }
+-
+-    if (paintText) {
+-        opt.rect.setTop(option.rect.top() + (iconSize / 4));
+-        opt.rect.setBottom(opt.rect.bottom() - 2);
+-        painter->setPen(color);
+-
+-        painter->drawText(opt.rect, Qt::AlignVCenter | Qt::AlignLeft,
+-        metrics.elidedText(category, Qt::ElideRight, opt.rect.width()));
+-    }
+-
+-    painter->restore();
+-}
+-
+-int DolphinItemCategorizer::categoryHeight(const QStyleOption &option) const
+-{
+-    int iconSize = KIconLoader::global()->currentSize(K3Icon::Small);
+-
+-    return qMax(option.fontMetrics.height() + (iconSize / 4) * 2 + 2, iconSize + (iconSize / 4) * 2 + 2) /* 2 gradient */;
+-}
+Index: apps/dolphin/src/kcategorizedview.h
+===================================================================
+--- apps/dolphin/src/kcategorizedview.h	(revisión: 713026)
++++ apps/dolphin/src/kcategorizedview.h	(copia de trabajo)
+@@ -25,7 +25,7 @@
+ 
+ #include <libdolphin_export.h>
+ 
+-class KItemCategorizer;
++class KCategoryDrawer;
+ 
+ /**
+   * @short Item view for listing items
+@@ -50,18 +50,13 @@
+ 
+     virtual void setModel(QAbstractItemModel *model);
+ 
++    void setGridSize(const QSize &size);
++
+     virtual QRect visualRect(const QModelIndex &index) const;
+ 
+-    /**
+-      * Will return the current categorizer. If none set, this method will
+-      * return 0
+-      */
+-    KItemCategorizer *itemCategorizer() const;
++    KCategoryDrawer *categoryDrawer() const;
+ 
+-    /**
+-      * Sets the categorizer to be used. Causes the item view to repaint
+-      */
+-    void setItemCategorizer(KItemCategorizer *itemCategorizer);
++    void setCategoryDrawer(KCategoryDrawer *categoryDrawer);
+ 
+     virtual QModelIndex indexAt(const QPoint &point) const;
+ 
+@@ -108,7 +103,7 @@
+ 
+     virtual void updateGeometries();
+ 
+-    virtual void slotSortingRoleChanged();
++    virtual void slotLayoutChanged();
+ 
+ 
+ private:
+Index: apps/dolphin/src/kitemcategorizer.h
+===================================================================
+--- apps/dolphin/src/kitemcategorizer.h	(revisión: 713026)
++++ apps/dolphin/src/kitemcategorizer.h	(copia de trabajo)
+@@ -1,72 +0,0 @@
+-/**
+-  * This file is part of the KDE project
+-  * Copyright (C) 2007 Rafael Fernández López <ereslibre@gmail.com>
+-  *
+-  * This library is free software; you can redistribute it and/or
+-  * modify it under the terms of the GNU Library General Public
+-  * License as published by the Free Software Foundation; either
+-  * version 2 of the License, or (at your option) any later version.
+-  *
+-  * This library is distributed in the hope that it will be useful,
+-  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+-  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+-  * Library General Public License for more details.
+-  *
+-  * You should have received a copy of the GNU Library General Public License
+-  * along with this library; see the file COPYING.LIB.  If not, write to
+-  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+-  * Boston, MA 02110-1301, USA.
+-  */
+-
+-#ifndef KITEMCATEGORIZER_H
+-#define KITEMCATEGORIZER_H
+-
+-#include <libdolphin_export.h>
+-
+-class QString;
+-class QPainter;
+-class QModelIndex;
+-class QStyleOption;
+-
+-/**
+-  * @short Class for item categorizing on KListView
+-  *
+-  * This class is meant to be used with KListView class. Its purpose is
+-  * to decide to which category belongs a given index with the given role.
+-  * Additionally it will let you to customize the way categories are drawn,
+-  * only in the case that you want to do so
+-  *
+-  * @see KListView
+-  *
+-  * @author Rafael Fernández López <ereslibre@gmail.com>
+-  */
+-class LIBDOLPHINPRIVATE_EXPORT KItemCategorizer
+-{
+-public:
+-    KItemCategorizer();
+-
+-    virtual ~KItemCategorizer();
+-
+-    /**
+-      * This method will return the category where @param index fit on with the
+-      * given @param sortRole role
+-      */
+-    virtual QString categoryForItem(const QModelIndex &index,
+-                                    int sortRole) const = 0;
+-
+-    /**
+-      * This method purpose is to draw a category represented by the given
+-      * @param index with the given @param sortRole sorting role
+-      *
+-      * @note This method will be called one time per category, always with the
+-      *       first element in that category
+-      */
+-    virtual void drawCategory(const QModelIndex &index,
+-                              int sortRole,
+-                              const QStyleOption &option,
+-                              QPainter *painter) const;
+-
+-    virtual int categoryHeight(const QStyleOption &option) const;
+-};
+-
+-#endif // KITEMCATEGORIZER_H
+Index: apps/dolphin/src/dolphinmodel.cpp
+===================================================================
+--- apps/dolphin/src/dolphinmodel.cpp	(revisión: 0)
++++ apps/dolphin/src/dolphinmodel.cpp	(revisión: 0)
+@@ -0,0 +1,256 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@gmail.com>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#include "dolphinmodel.h"
++
++#include "dolphinsortfilterproxymodel.h"
++
++#include "kcategorizedview.h"
++
++#include <config-nepomuk.h>
++#ifdef HAVE_NEPOMUK
++#include <nepomuk/global.h>
++#include <nepomuk/resource.h>
++#include <nepomuk/tag.h>
++#endif
++
++#include <kdatetime.h>
++#include <kdirmodel.h>
++#include <kfileitem.h>
++#include <kiconloader.h>
++#include <klocale.h>
++#include <kurl.h>
++#include <kuser.h>
++#include <kmimetype.h>
++#include <kstandarddirs.h>
++#include <kpixmapeffect.h>
++
++#include <QList>
++#include <QSortFilterProxyModel>
++#include <QPainter>
++#include <QDir>
++
++DolphinModel::DolphinModel(QObject *parent)
++    : KDirModel(parent)
++{
++}
++
++DolphinModel::~DolphinModel()
++{
++}
++
++QVariant DolphinModel::data(const QModelIndex &index, int role) const
++{
++    if (role == KCategorizedSortFilterProxyModel::CategoryRole)
++    {
++        QString retString;
++
++        if (!index.isValid())
++        {
++            return retString;
++        }
++
++        const KDirModel *dirModel = qobject_cast<const KDirModel*>(index.model());
++        KFileItem item = dirModel->itemForIndex(index);
++
++        switch (index.column())
++        {
++            case KDirModel::Name:
++            {
++                // KDirModel checks columns to know to which role are
++                // we talking about
++                QModelIndex theIndex = index.model()->index(index.row(),
++                                                            KDirModel::Name,
++                                                            index.parent());
++
++                if (!theIndex.isValid()) {
++                    return retString;
++                }
++
++                QVariant data = theIndex.model()->data(theIndex, Qt::DisplayRole);
++                if (data.toString().size())
++                {
++                    if (!item.isHidden() && data.toString().at(0).isLetter())
++                        retString = data.toString().toUpper().at(0);
++                    else if (item.isHidden() && data.toString().at(0) == '.' &&
++                            data.toString().at(1).isLetter())
++                        retString = data.toString().toUpper().at(1);
++                    else if (item.isHidden() && data.toString().at(0) == '.' &&
++                            !data.toString().at(1).isLetter())
++                        retString = i18nc("@title:group Name", "Others");
++                    else if (item.isHidden() && data.toString().at(0) != '.')
++                        retString = data.toString().toUpper().at(0);
++                    else if (item.isHidden())
++                        retString = data.toString().toUpper().at(0);
++                    else
++                    {
++                        bool validCategory = false;
++
++                        const QString str(data.toString().toUpper());
++                        const QChar* currA = str.unicode();
++                        while (!currA->isNull() && !validCategory) {
++                            if (currA->isLetter())
++                                validCategory = true;
++                            else if (currA->isDigit())
++                                return i18nc("@title:group", "Others");
++                            else
++                                ++currA;
++                        }
++
++                        if (!validCategory)
++                            retString = i18nc("@title:group Name", "Others");
++                        else
++                            retString = *currA;
++                    }
++                }
++                break;
++            }
++
++            case KDirModel::Size: {
++                const int fileSize = !item.isNull() ? item.size() : -1;
++                if (!item.isNull() && item.isDir()) {
++                    retString = i18nc("@title:group Size", "Folders");
++                } else if (fileSize < 5242880) {
++                    retString = i18nc("@title:group Size", "Small");
++                } else if (fileSize < 10485760) {
++                    retString = i18nc("@title:group Size", "Medium");
++                } else {
++                    retString = i18nc("@title:group Size", "Big");
++                }
++                break;
++            }
++
++            case KDirModel::ModifiedTime:
++            {
++                KDateTime modifiedTime;
++                modifiedTime.setTime_t(item.time(KIO::UDSEntry::UDS_MODIFICATION_TIME));
++                modifiedTime = modifiedTime.toLocalZone();
++
++                if (modifiedTime.daysTo(KDateTime::currentLocalDateTime()) == 0)
++                    retString = i18nc("@title:group Date", "Today");
++                else if (modifiedTime.daysTo(KDateTime::currentLocalDateTime()) == 1)
++                    retString = i18nc("@title:group Date", "Yesterday");
++                else if (modifiedTime.daysTo(KDateTime::currentLocalDateTime()) < 7)
++                    retString = i18nc("@title:group Date", "Less than a week");
++                else if (modifiedTime.daysTo(KDateTime::currentLocalDateTime()) < 31)
++                    retString = i18nc("@title:group Date", "Less than a month");
++                else if (modifiedTime.daysTo(KDateTime::currentLocalDateTime()) < 365)
++                    retString = i18nc("@title:group Date", "Less than a year");
++                else
++                    retString = i18nc("@title:group Date", "More than a year");
++                break;
++            }
++
++            case KDirModel::Permissions:
++                retString = item.permissionsString();
++                break;
++
++            case KDirModel::Owner:
++                retString = item.user();
++                break;
++
++            case KDirModel::Group:
++                retString = item.group();
++                break;
++
++            case KDirModel::Type:
++                retString = item.mimeComment();
++                break;
++
++#ifdef HAVE_NEPOMUK
++            case DolphinModel::Rating: {
++                const quint32 rating = ratingForIndex(index);
++
++                retString = QString::number(rating);
++                break;
++            }
++
++            case DolphinModel::Tags: {
++                retString = tagsForIndex(index);
++
++                if (retString.isEmpty())
++                    retString = i18nc("@title:group Tags", "Not yet tagged");
++
++                break;
++            }
++#endif
++        }
++
++        return retString;
++    }
++
++    return KDirModel::data(index, role);
++}
++
++int DolphinModel::columnCount(const QModelIndex &parent) const
++{
++    return KDirModel::columnCount(parent) + (ExtraColumnCount - ColumnCount);
++}
++
++quint32 DolphinModel::ratingForIndex(const QModelIndex& index)
++{
++#ifdef HAVE_NEPOMUK
++    quint32 rating = 0;
++
++    const DolphinModel* dolphinModel = static_cast<const DolphinModel*>(index.model());
++    KFileItem item = dolphinModel->itemForIndex(index);
++    if (!item.isNull()) {
++        const Nepomuk::Resource resource(item.url().url(), Nepomuk::NFO::File());
++        rating = resource.rating();
++    }
++    return rating;
++#else
++    Q_UNUSED(index);
++    return 0;
++#endif
++}
++
++QString DolphinModel::tagsForIndex(const QModelIndex& index)
++{
++#ifdef HAVE_NEPOMUK
++    QString tagsString;
++
++    const DolphinModel* dolphinModel = static_cast<const DolphinModel*>(index.model());
++    KFileItem item = dolphinModel->itemForIndex(index);
++    if (!item.isNull()) {
++        const Nepomuk::Resource resource(item.url().url(), Nepomuk::NFO::File());
++        const QList<Nepomuk::Tag> tags = resource.tags();
++        QStringList stringList;
++        foreach (const Nepomuk::Tag& tag, tags) {
++            stringList.append(tag.label());
++        }
++        stringList.sort();
++
++        foreach (const QString& str, stringList) {
++            tagsString += str;
++            tagsString += ", ";
++        }
++
++        if (!tagsString.isEmpty()) {
++            tagsString.resize(tagsString.size() - 2);
++        }
++    }
++
++    return tagsString;
++#else
++    Q_UNUSED(index);
++    return QString();
++#endif
++}

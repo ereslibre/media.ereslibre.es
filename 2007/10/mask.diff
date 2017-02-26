@@ -1,0 +1,12 @@
+Index: /home/geo/kdesvn/qt-copy/src/gui/itemviews/qabstractitemview.cpp
+===================================================================
+--- /home/geo/kdesvn/qt-copy/src/gui/itemviews/qabstractitemview.cpp	(revisión: 720762)
++++ /home/geo/kdesvn/qt-copy/src/gui/itemviews/qabstractitemview.cpp	(copia de trabajo)
+@@ -2980,6 +2980,7 @@ void QAbstractItemView::startDrag(Qt::Dr
+             return;
+         QRect rect;
+         QPixmap pixmap = d->renderToPixmap(indexes, &rect);
++        pixmap.setMask(pixmap.createMaskFromColor(Qt::white, Qt::MaskInColor));
+         rect.adjust(horizontalOffset(), verticalOffset(), 0, 0);
+         QDrag *drag = new QDrag(this);
+         drag->setPixmap(pixmap);

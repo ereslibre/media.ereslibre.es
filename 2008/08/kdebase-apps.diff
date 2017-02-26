@@ -1,0 +1,53 @@
+diff --git a/apps/lib/konq/konqmimedata.cpp b/apps/lib/konq/konqmimedata.cpp
+index 04d8a7f..aa3b4f8 100644
+--- a/apps/lib/konq/konqmimedata.cpp
++++ b/apps/lib/konq/konqmimedata.cpp
+@@ -19,6 +19,7 @@
+ 
+ #include "konqmimedata.h"
+ #include <QtCore/QMimeData>
++#include <kstringhandler.h>
+ #include <kdebug.h>
+ 
+ void KonqMimeData::populateMimeData( QMimeData* mimeData,
+@@ -68,19 +69,31 @@ bool KonqMimeData::decodeIsCutSelection( const QMimeData *mimeData )
+     }
+ }
+ 
++bool lessThan( const KUrl &left, const KUrl &right )
++{
++    return left.url().compare( right.url() ) < 0;
++}
++
+ KUrl::List KonqMimeData::simplifiedUrlList( const KUrl::List &urls )
+ {
++    if (!urls.count()) {
++        return urls;
++    }
++
+     KUrl::List ret( urls );
+-    KUrl::List::const_iterator it = urls.begin();
+-    while ( it != urls.end() ) {
+-        KUrl::List::const_iterator it2 = urls.begin();
+-        while ( it2 != urls.end() ) {
+-            if ( it != it2 && it->isParentOf( *it2 ) ) {
+-                ret.removeAll( *it2 );
+-            }
+-            ++it2;
++    qSort( ret.begin(), ret.end(), lessThan );
++
++    KUrl::List::iterator it = ret.begin();
++    KUrl url = *it;
++    ++it;
++    while ( it != ret.end() ) {
++        if ( url.isParentOf( *it ) ) {
++            it = ret.erase( it );
++        } else {
++            url = *it;
++            ++it;
+         }
+-        ++it;
+     }
++
+     return ret;
+ }

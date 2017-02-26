@@ -1,0 +1,29 @@
+diff --git a/kfile/kfileplacesmodel.cpp b/kfile/kfileplacesmodel.cpp
+index 83fb122..6db73c1 100644
+--- a/kfile/kfileplacesmodel.cpp
++++ b/kfile/kfileplacesmodel.cpp
+@@ -32,6 +32,7 @@
+ #include <kuser.h>
+ #include <kstandarddirs.h>
+ #include <kcomponentdata.h>
++#include <kglobalsettings.h>
+ #include <kicon.h>
+ #include <kmimetype.h>
+ #include <kdebug.h>
+@@ -100,6 +101,16 @@ KFilePlacesModel::KFilePlacesModel(QObject *parent)
+         KFilePlacesItem::createSystemBookmark(d->bookmarkManager,
+                                         i18nc("Home Directory", "Home"), KUrl(KUser().homeDir()), "user-home");
+         KFilePlacesItem::createSystemBookmark(d->bookmarkManager,
++                                        i18nc("Documents Directory", "Documents"), KUrl(KGlobalSettings::documentPath()), "folder-txt");
++        KFilePlacesItem::createSystemBookmark(d->bookmarkManager,
++                                        i18nc("Pictures Directory", "Pictures"), KUrl(KGlobalSettings::picturesPath()), "folder-image");
++        KFilePlacesItem::createSystemBookmark(d->bookmarkManager,
++                                        i18nc("Music Directory", "Music"), KUrl(KGlobalSettings::musicPath()), "folder-sound");
++        KFilePlacesItem::createSystemBookmark(d->bookmarkManager,
++                                        i18nc("Videos Directory", "Videos"), KUrl(KGlobalSettings::videosPath()), "folder-video");
++        KFilePlacesItem::createSystemBookmark(d->bookmarkManager,
++                                        i18nc("Downloads Directory", "Downloads"), KUrl(KGlobalSettings::downloadPath()), "folder-downloads");
++        KFilePlacesItem::createSystemBookmark(d->bookmarkManager,
+                                         i18n("Network"), KUrl("remote:/"), "network-workgroup");
+ #ifdef Q_OS_WIN
+ 	//C:/ as root for windows...forward slashes are valid too and are used in much/most of the KDE code on Windows

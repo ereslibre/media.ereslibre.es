@@ -1,0 +1,22 @@
+diff --git a/apps/konqueror/src/konqviewmanager.cpp b/apps/konqueror/src/konqviewmanager.cpp
+index e9669fa..cd9734e 100644
+--- a/apps/konqueror/src/konqviewmanager.cpp
++++ b/apps/konqueror/src/konqviewmanager.cpp
+@@ -1003,8 +1003,6 @@ void KonqViewManager::setActivePart( KParts::Part *part, bool immediate )
+     if (m_pMainWindow && m_pMainWindow->currentView())
+       m_pMainWindow->currentView()->setLocationBarURL(m_pMainWindow->locationBarURL());
+ 
+-    KParts::PartManager::setActivePart( part );
+-
+     if (part && part->widget())
+         part->widget()->setFocus();
+ 
+@@ -1022,6 +1020,8 @@ void KonqViewManager::setActivePart( KParts::Part *part, bool immediate )
+         m_activePartChangedTimer->stop();
+         emitActivePartChanged();
+     }
++
++    KParts::PartManager::setActivePart( part );
+ }
+ 
+ void KonqViewManager::slotActivePartChanged ( KParts::Part *newPart )

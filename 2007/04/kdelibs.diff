@@ -1,0 +1,487 @@
+Index: kdeui/CMakeLists.txt
+===================================================================
+--- kdeui/CMakeLists.txt	(revisión: 650082)
++++ kdeui/CMakeLists.txt	(copia de trabajo)
+@@ -90,6 +90,7 @@ set(kdeui_LIB_SRCS
+  icons/kicon.cpp
+  icons/kiconloader.cpp
+  icons/kicontheme.cpp
++ itemviews/klistview.cpp
+  itemviews/klistwidget.cpp
+  itemviews/klistwidgetsearchline.cpp
+  itemviews/ktreewidgetsearchline.cpp
+@@ -307,6 +308,8 @@ install( FILES
+  icons/kicon.h
+  icons/kiconloader.h
+  icons/kicontheme.h
++ itemviews/klistview.h
++ itemviews/kitemcategorizer.h
+  itemviews/kextendableitemdelegate.h
+  itemviews/klistwidget.h
+  itemviews/klistwidgetsearchline.h
+Index: kdeui/itemviews/klistview.cpp
+===================================================================
+--- kdeui/itemviews/klistview.cpp	(revisión: 0)
++++ kdeui/itemviews/klistview.cpp	(revisión: 0)
+@@ -0,0 +1,304 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@gmail.com>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++// NOTE: rectForIndex() not virtual on QListView !! relevant ?
++
++#include <QPainter>
++#include <QScrollBar>
++#include <QPaintEvent>
++#include <QSortFilterProxyModel>
++
++#include <kdebug.h>
++
++#include "klistview.h"
++#include "klistview_p.h"
++#include "kitemcategorizer.h"
++
++KListView::Private::Private(KListView *listView)
++    : listView(listView)
++    , modelSortCapable(false)
++    , itemCategorizer(0)
++{
++}
++
++KListView::Private::~Private()
++{
++}
++
++QModelIndexList KListView::Private::intersectionSet(const QRect &rect)
++{
++    QModelIndexList modelIndexList;
++
++    QModelIndex index;
++    for (int i = 0; i < listView->model()->rowCount(); i++)
++    {
++        index = listView->model()->index(i, 0);
++
++        if (rect.intersects(listView->visualRect(index)))
++            modelIndexList.append(index);
++    }
++
++    return modelIndexList;
++}
++
++KListView::KListView(QWidget *parent)
++    : QListView(parent)
++    , d(new Private(this))
++{
++}
++
++KListView::~KListView()
++{
++    delete d;
++}
++
++void KListView::setModel(QAbstractItemModel *model)
++{
++    const QSortFilterProxyModel *proxyModel = qobject_cast<const QSortFilterProxyModel*>(model);
++
++    d->modelSortCapable = (proxyModel != 0);
++
++    QListView::setModel(model);
++}
++
++QRect KListView::visualRect(const QModelIndex &index) const
++{
++    // TODO: improve me (right to left languages...)
++
++    if ((viewMode() == KListView::ListMode) || !d->modelSortCapable ||
++        !d->itemCategorizer)
++    {
++        return QListView::visualRect(index);
++    }
++
++    const QSortFilterProxyModel *proxyModel = qobject_cast<const QSortFilterProxyModel*>(model());
++
++    QRect retRect(0, 0, 0, 0);
++    int viewportWidth = viewport()->width();
++    int dx = -horizontalOffset();
++    int dy = -verticalOffset();
++
++    if (verticalScrollBar() && !verticalScrollBar()->isHidden())
++        viewportWidth -= verticalScrollBar()->width();
++
++    int i = 0;
++    QSize itemSize(0, 0);
++    QSize currentItemSize;
++    QString prevCategory;
++    QModelIndex searchIndex;
++    // TODO: optimize this, i'm pretty sure it is possible
++    do
++    {
++        searchIndex = model()->index(i, 0);
++        i++;
++
++        if (searchIndex.isValid())
++        {
++            currentItemSize = sizeHintForIndex(searchIndex);
++
++            if (prevCategory != d->itemCategorizer->categoryForItem(searchIndex, proxyModel->sortRole()))
++            {
++                prevCategory = d->itemCategorizer->categoryForItem(searchIndex, proxyModel->sortRole());
++                retRect.setLeft(spacing());
++                retRect.setTop(retRect.top() + itemSize.height() + spacing() +
++                               categoryHeight(viewOptions()));
++            }
++            else
++            {
++                if (retRect.left() + itemSize.width() +
++                    currentItemSize.width() + spacing() > viewportWidth)
++                {
++                    // Item exceeded viewport's width, new row
++                    retRect.setLeft(spacing());
++                    retRect.setTop(retRect.top() + itemSize.height() + spacing());
++                }
++                else
++                {
++                    // Still have horizontal room, go on the next position
++                    retRect.setLeft(retRect.left() + itemSize.width() + spacing());
++                }
++            }
++
++            itemSize = sizeHintForIndex(searchIndex);
++        }
++    }
++    while ((searchIndex.isValid()) && (searchIndex != index));
++
++    retRect.setWidth(itemSize.width());
++    retRect.setHeight(itemSize.height());
++
++    retRect.adjust(dx, dy, dx, dy);
++
++    return retRect;
++}
++
++KItemCategorizer *KListView::itemCategorizer() const
++{
++    return d->itemCategorizer;
++}
++
++void KListView::setItemCategorizer(KItemCategorizer *itemCategorizer)
++{
++    d->itemCategorizer = itemCategorizer;
++}
++
++QModelIndex KListView::indexAt(const QPoint &point) const
++{
++    QModelIndex index;
++
++    if ((viewMode() == KListView::ListMode) || !d->modelSortCapable ||
++        !d->itemCategorizer)
++    {
++        return QListView::indexAt(point);
++    }
++
++    QModelIndexList item = d->intersectionSet(QRect(point, point));
++
++    if (item.count() == 1)
++        index = item[0];
++
++    d->hovered = index;
++
++    return index;
++}
++
++int KListView::sizeHintForRow(int row) const
++{
++    if ((viewMode() == KListView::ListMode) || !d->modelSortCapable ||
++        !d->itemCategorizer)
++    {
++        return QListView::sizeHintForRow(row);
++    }
++
++    QModelIndex index = model()->index(0, 0);
++
++    if (!index.isValid())
++        return 0;
++
++    return sizeHintForIndex(index).height() + categoryHeight(viewOptions()) +
++           spacing();
++}
++
++/*QSize KListView::sizeHint() const
++{
++    return QSize(3000, 3000);
++}*/
++
++void KListView::drawNewCategory(const QString &category,
++                                const QStyleOptionViewItem &option,
++                                QPainter *painter)
++{
++    painter->drawText(option.rect.topLeft(), category);
++}
++
++int KListView::categoryHeight(const QStyleOptionViewItem &option) const
++{
++    return option.fontMetrics.height();
++}
++
++void KListView::paintEvent(QPaintEvent *event)
++{
++    if ((viewMode() == KListView::ListMode) || !d->modelSortCapable ||
++        !d->itemCategorizer)
++    {
++        QListView::paintEvent(event);
++        return;
++    }
++
++    if (!itemDelegate())
++        return;
++
++    QStyleOptionViewItemV3 option = viewOptions();
++    QPainter painter(viewport());
++    QRect area = event->rect();
++    const QSortFilterProxyModel *proxyModel = qobject_cast<const QSortFilterProxyModel*>(model());
++    const bool focus = (hasFocus() || viewport()->hasFocus()) &&
++                        currentIndex().isValid();
++    const QStyle::State state = option.state;
++    const bool enabled = (state & QStyle::State_Enabled) != 0;
++
++    QModelIndex index;
++    QString prevCategory;
++    for (int i = 0; i < model()->rowCount(); i++)
++    {
++        index = model()->index(i, 0);
++        option.state = state;
++        option.rect = visualRect(index);
++        if (selectionModel() && selectionModel()->isSelected(index))
++            option.state |= QStyle::State_Selected;
++        if (enabled)
++        {
++            QPalette::ColorGroup cg;
++            if ((model()->flags(index) & Qt::ItemIsEnabled) == 0)
++            {
++                option.state &= ~QStyle::State_Enabled;
++                cg = QPalette::Disabled;
++            }
++            else
++            {
++                cg = QPalette::Normal;
++            }
++            option.palette.setCurrentColorGroup(cg);
++        }
++        if (focus && currentIndex() == index)
++        {
++            option.state |= QStyle::State_HasFocus;
++            if (this->state() == EditingState)
++                option.state |= QStyle::State_Editing;
++        }
++
++        if (index == d->hovered)
++            option.state |= QStyle::State_MouseOver;
++        else
++            option.state &= ~QStyle::State_MouseOver;
++
++        if (prevCategory != d->itemCategorizer->categoryForItem(index, proxyModel->sortRole()))
++        {
++            prevCategory = d->itemCategorizer->categoryForItem(index, proxyModel->sortRole());
++            drawNewCategory(prevCategory, option, &painter);
++        }
++        itemDelegate(index)->paint(&painter, option, index);
++    }
++}
++
++void KListView::setSelection(const QRect &rect,
++                             QItemSelectionModel::SelectionFlags flags)
++{
++    // TODO: implement me
++
++    if ((viewMode() == KListView::ListMode) || !d->modelSortCapable ||
++        !d->itemCategorizer)
++    {
++        QListView::setSelection(rect, flags);
++        return;
++    }
++
++    QModelIndex index;
++    for (int i = 0; i < model()->rowCount(); i++)
++    {
++        index = model()->index(i, 0);
++        if (rect.intersects(visualRect(index)))
++        {
++            kDebug() << "interseccion con: " << index.model()->data(index, Qt::DisplayRole).toString() << endl;
++        }
++    }
++
++    //selectionModel()->select(selection, flags);
++}
+Index: kdeui/itemviews/klistview_p.h
+===================================================================
+--- kdeui/itemviews/klistview_p.h	(revisión: 0)
++++ kdeui/itemviews/klistview_p.h	(revisión: 0)
+@@ -0,0 +1,38 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@gmail.com>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#ifndef __KLISTVIEW_P_H__
++#define __KLISTVIEW_P_H__
++
++class KListView::Private
++{
++public:
++    Private(KListView *listView);
++    ~Private();
++
++    QModelIndexList intersectionSet(const QRect &rect);
++
++    KListView *listView;
++    QModelIndex hovered;
++    bool modelSortCapable;
++    KItemCategorizer *itemCategorizer;
++};
++
++#endif // __KLISTVIEW_P_H__
+Index: kdeui/itemviews/klistview.h
+===================================================================
+--- kdeui/itemviews/klistview.h	(revisión: 0)
++++ kdeui/itemviews/klistview.h	(revisión: 0)
+@@ -0,0 +1,61 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@gmail.com>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#ifndef __KLISTVIEW_H__
++#define __KLISTVIEW_H__
++
++#include <QListView>
++
++#include <kdeui_export.h>
++
++class KItemCategorizer;
++
++class KDEUI_EXPORT KListView
++    : public QListView
++{
++public:
++    KListView(QWidget *parent = 0);
++    ~KListView();
++
++    void setModel(QAbstractItemModel *model);
++    QRect visualRect(const QModelIndex &index) const;
++
++    KItemCategorizer *itemCategorizer() const;
++    void setItemCategorizer(KItemCategorizer *itemCategorizer);
++
++    virtual QModelIndex indexAt(const QPoint &point) const;
++    virtual int sizeHintForRow(int row) const;
++//    virtual QSize sizeHint() const;
++
++protected:
++    virtual void drawNewCategory(const QString &category,
++                                 const QStyleOptionViewItem &option,
++                                 QPainter *painter);
++    virtual int categoryHeight(const QStyleOptionViewItem &option) const;
++    virtual void paintEvent(QPaintEvent *event);
++    virtual void setSelection(const QRect &rect,
++                              QItemSelectionModel::SelectionFlags flags);
++
++private:
++    class Private;
++    Private *d;
++};
++
++#endif // __KLISTVIEW_H__
+Index: kdeui/itemviews/kitemcategorizer.h
+===================================================================
+--- kdeui/itemviews/kitemcategorizer.h	(revisión: 0)
++++ kdeui/itemviews/kitemcategorizer.h	(revisión: 0)
+@@ -0,0 +1,43 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2007 Rafael Fernández López <ereslibre@gmail.com>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#ifndef __KITEMCATEGORIZER_H__
++#define __KITEMCATEGORIZER_H__
++
++#include <kdeui_export.h>
++
++class QString;
++class QModelIndex;
++
++class KDEUI_EXPORT KItemCategorizer
++{
++public:
++    KItemCategorizer()
++    {
++    }
++
++    virtual ~KItemCategorizer()
++    {
++    }
++
++    virtual QString categoryForItem(const QModelIndex &index, int role) = 0;
++};
++
++#endif

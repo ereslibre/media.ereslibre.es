@@ -1,0 +1,97 @@
+diff --git a/kfile/kfilewidget.cpp b/kfile/kfilewidget.cpp
+index f40852f..ef05abf 100644
+--- a/kfile/kfilewidget.cpp
++++ b/kfile/kfilewidget.cpp
+@@ -31,6 +31,7 @@
+ #include "kfilebookmarkhandler_p.h"
+ #include "kurlcombobox.h"
+ #include "kurlnavigator.h"
++#include "kfilepreviewgenerator.h"
+ #include <config-kfile.h>
+ 
+ #include <kactioncollection.h>
+@@ -59,6 +60,7 @@
+ #include <QtGui/QLabel>
+ #include <QtGui/QLineEdit>
+ #include <QtGui/QSplitter>
++#include <QtGui/QAbstractProxyModel>
+ #include <QtCore/QFSFileEngine>
+ #include <kshell.h>
+ #include <kmessagebox.h>
+@@ -89,7 +91,8 @@ public:
+           hasDefaultFilter(false),
+           inAccept(false),
+           dummyAdded(false),
+-          confirmOverwrite(false)
++          confirmOverwrite(false),
++          previewGenerator(0)
+     {
+     }
+ 
+@@ -171,6 +174,7 @@ public:
+     void _k_fileCompletion( const QString& );
+     void _k_toggleSpeedbar( bool );
+     void _k_toggleBookmarks( bool );
++    void _k_toggleInlinePreviews( bool );
+     void _k_slotAutoSelectExtClicked();
+     void _k_placesViewSplitterMoved(int, int);
+     void _k_activateUrlNavigator();
+@@ -263,6 +267,8 @@ public:
+                      // blank item added when loaded
+ 
+     bool confirmOverwrite : 1;
++
++    KFilePreviewGenerator *previewGenerator;
+ };
+ 
+ K_GLOBAL_STATIC(KUrl, lastDirectory) // to set the start path
+@@ -434,6 +440,14 @@ KFileWidget::KFileWidget( const KUrl& startDir, QWidget *parent )
+     coll->action( "preview" )->setShortcut( QKeySequence(Qt::Key_F11) );
+     menu->addAction( coll->action( "preview" ));
+ 
++    // support for inline previews
++    KToggleAction *inlinePreview = new KToggleAction( KIcon( "preview" ),
++                                                      i18n( "Inline preview" ), this );
++    menu->addAction( inlinePreview );
++
++    connect( inlinePreview, SIGNAL(toggled(bool)),
++             SLOT(_k_toggleInlinePreviews(bool)) );
++
+     menu->setDelayed( false );
+     connect( menu->menu(), SIGNAL( aboutToShow() ),
+              d->ops, SLOT( updateSelectionDependentActions() ));
+@@ -1460,7 +1474,11 @@ void KFileWidget::showEvent(QShowEvent* event)
+     if ( !d->hasView ) { // delayed view-creation
+         d->ops->setView(KFile::Default);
+         d->ops->view()->setSizePolicy( QSizePolicy( QSizePolicy::Maximum, QSizePolicy::Maximum ) );
++        d->ops->view()->setIconSize(QSize(48,48));
+         d->hasView = true;
++        d->previewGenerator = new KFilePreviewGenerator(d->ops->view(),
++                                                        static_cast<QAbstractProxyModel*>(d->ops->view()->model()));
++        d->previewGenerator->setPreviewShown(true);
+     }
+     d->ops->clearHistory();
+ 
+@@ -2124,6 +2142,10 @@ void KFileWidgetPrivate::_k_toggleBookmarks(bool show)
+     static_cast<KToggleAction *>(q->actionCollection()->action("toggleBookmarks"))->setChecked( show );
+ }
+ 
++void KFileWidgetPrivate::_k_toggleInlinePreviews( bool show )
++{
++}
++
+ // static
+ KUrl KFileWidget::getStartUrl( const KUrl& startDir,
+                                QString& recentDirClass )
+diff --git a/kfile/kfilewidget.h b/kfile/kfilewidget.h
+index 8af907f..a811c3f 100644
+--- a/kfile/kfilewidget.h
++++ b/kfile/kfilewidget.h
+@@ -459,6 +459,7 @@ private:
+     Q_PRIVATE_SLOT(d, void _k_fileCompletion(const QString&))
+     Q_PRIVATE_SLOT(d, void _k_toggleSpeedbar(bool))
+     Q_PRIVATE_SLOT(d, void _k_toggleBookmarks(bool))
++    Q_PRIVATE_SLOT(d, void _k_toggleInlinePreviews(bool))
+     Q_PRIVATE_SLOT(d, void _k_slotAutoSelectExtClicked())
+     Q_PRIVATE_SLOT(d, void _k_placesViewSplitterMoved(int, int))
+     Q_PRIVATE_SLOT(d, void _k_activateUrlNavigator())

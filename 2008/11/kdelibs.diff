@@ -1,0 +1,13 @@
+diff --git a/kdeui/widgets/kmainwindow.cpp b/kdeui/widgets/kmainwindow.cpp
+index a3133d4..0a88640 100644
+--- a/kdeui/widgets/kmainwindow.cpp
++++ b/kdeui/widgets/kmainwindow.cpp
+@@ -897,7 +897,7 @@ void KMainWindow::restoreWindowSize( const KConfigGroup & config )
+             int state = ( size.width() > desk.width() ? NET::MaxHoriz : 0 )
+                         | ( size.height() > desk.height() ? NET::MaxVert : 0 );
+             if(( state & NET::Max ) == NET::Max )
+-                ; // no resize
++                resize(size.width(), size.height());
+             else if(( state & NET::MaxHoriz ) == NET::MaxHoriz )
+                 resize( width(), size.height());
+             else if(( state & NET::MaxVert ) == NET::MaxVert )

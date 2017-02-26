@@ -1,0 +1,13 @@
+Index: src/gui/text/qtexthtmlparser.cpp
+===================================================================
+--- src/gui/text/qtexthtmlparser.cpp	(revisión: 745183)
++++ src/gui/text/qtexthtmlparser.cpp	(copia de trabajo)
+@@ -1031,7 +1031,7 @@ void QTextHtmlParserNode::initializeProp
+                     && !attributes.at(i + 1).isEmpty()) {
+                     hasHref = true;
+                     charFormat.setUnderlineStyle(QTextCharFormat::SingleUnderline);
+-                    charFormat.setForeground(Qt::blue);
++                    charFormat.setForeground(QApplication::palette().link());
+                 }
+             }
+ 

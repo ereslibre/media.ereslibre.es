@@ -1,0 +1,126 @@
+Index: kdeui/kernel/kglobalsettings.h
+===================================================================
+--- kdeui/kernel/kglobalsettings.h	(revisión: 775050)
++++ kdeui/kernel/kglobalsettings.h	(copia de trabajo)
+@@ -408,6 +408,24 @@ public:
+     static bool showIconsOnPushButtons();
+ 
+     /**
++     * This function determines if the user wishes builtin animations to
++     * be skipped or not.
++     *
++     * @return Returns true if user wants builtin animations to be enabled.
++     *
++     * @since 4.1
++     */
++    static bool animationsEnabled();
++
++    /**
++     * This function should determine depending on the desktop state if
++     * animations should be enabled by default or not.
++     *
++     * @since 4.1
++     */
++    static bool animationsEnabledDefault();
++
++    /**
+      * This function determines if the user wishes to see previews
+      * for the selected url
+      *
+Index: kdeui/kernel/kglobalsettings.cpp
+===================================================================
+--- kdeui/kernel/kglobalsettings.cpp	(revisión: 775050)
++++ kdeui/kernel/kglobalsettings.cpp	(copia de trabajo)
+@@ -86,6 +86,7 @@ static QFont *_taskbarFont = 0;
+ static QFont *_largeFont = 0;
+ static QFont *_smallestReadableFont = 0;
+ //static QColor *_buttonBackground = 0;
++static bool _animationsEnabled = false;
+ 
+ static KGlobalSettings::KMouseSettings *s_mouseSettings = 0;
+ 
+@@ -126,17 +127,21 @@ class KGlobalSettings::Private
+          */
+         static void initPaths();
+         /**
+-         * drop cached values for fonts (called by KApplication)
++         * drop cached values for fonts
+          */
+         static void rereadFontSettings();
+         /**
+-         * drop cached values for paths (called by KApplication)
++         * drop cached values for paths
+          */
+         static void rereadPathSettings();
+         /**
+-         * drop cached values for mouse settings (called by KApplication)
++         * drop cached values for mouse settings
+          */
+         static void rereadMouseSettings();
++        /**
++         * drop cached values for settings that aren't in any of the previous groups
++         */
++        static void rereadOtherSettings();
+ 
+         KGlobalSettings *q;
+ };
+@@ -152,6 +157,7 @@ KGlobalSettings::KGlobalSettings()
+ {
+     d->kdisplaySetStyle();
+     d->kdisplaySetFont();
++    d->rereadOtherSettings();
+     d->propagateSettings(SETTINGS_QT);
+ 
+     QDBusConnection::sessionBus().connect( QString(), "/KGlobalSettings", "org.kde.KGlobalSettings",
+@@ -736,6 +742,29 @@ bool KGlobalSettings::showIconsOnPushBut
+                        KDE_DEFAULT_ICON_ON_PUSHBUTTON);
+ }
+ 
++bool KGlobalSettings::animationsEnabled()
++{
++    // This variable stores whether _animationsEnabled has the default value because it has not been
++    // loaded yet, or if it has been loaded from the user settings or defaults and contains a valid
++    // value.
++    static bool _animationsEnabledInitialized = false;
++
++    if (!_animationsEnabledInitialized) {
++        _animationsEnabledInitialized = true;
++        Private::rereadOtherSettings();
++    }
++
++    return _animationsEnabled;
++}
++
++bool KGlobalSettings::animationsEnabledDefault()
++{
++    // For now, let always enable animations by default. The plan is to make
++    // this code a bit smarter. (ereslibre)
++
++    return true;
++}
++
+ bool KGlobalSettings::showFilePreview(const KUrl &url)
+ {
+     KConfigGroup g(KGlobal::config(), "PreviewSettings");
+@@ -799,6 +828,7 @@ void KGlobalSettings::Private::_k_slotNo
+             KGlobalSettings::Private::rereadMouseSettings();
+         }
+         propagateSettings(category);
++        rereadOtherSettings();
+         break;
+     }
+     case IconChanged:
+@@ -988,6 +1018,13 @@ void KGlobalSettings::Private::kdisplayS
+ }
+ 
+ 
++void KGlobalSettings::Private::rereadOtherSettings()
++{
++    KConfigGroup g( KGlobal::config(), "KDE-Global GUI Settings" );
++    _animationsEnabled = g.readEntry("EnableBuiltinEffects", KGlobalSettings::animationsEnabledDefault());
++}
++
++
+ void KGlobalSettings::Private::applyCursorTheme()
+ {
+ #if defined(Q_WS_X11) && defined(HAVE_XCURSOR)

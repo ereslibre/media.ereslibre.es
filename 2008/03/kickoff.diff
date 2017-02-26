@@ -1,0 +1,163 @@
+Index: workspace/libs/plasma/delegate.cpp
+===================================================================
+--- workspace/libs/plasma/delegate.cpp	(revision 791453)
++++ workspace/libs/plasma/delegate.cpp	(working copy)
+@@ -190,7 +190,7 @@
+ 
+ void Delegate::paint(QPainter *painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
+ {
+-    const bool hover = option.state & (QStyle::State_Selected|QStyle::State_MouseOver|QStyle::State_HasFocus);
++    const bool hover = option.state & QStyle::State_MouseOver;
+ 
+     QRect contentRect = option.rect;
+     contentRect.setBottom(contentRect.bottom() - 1);
+@@ -233,73 +233,9 @@
+     QFont titleFont(option.font);
+ 
+     if (hover) {
+-        painter->save();
+-        painter->setRenderHint(QPainter::Antialiasing);
+-
+-        const int column = index.column();
+-        const int columns = index.model()->columnCount();
+-        const int roundedRadius = 5;
+-
+-        // use a slightly translucent version of the palette's highlight color
+-        // for the background
+-        QColor backgroundColor = option.palette.color(QPalette::Highlight);
+-        backgroundColor.setAlphaF(0.2);
+-
+-        QColor backgroundColor2 = option.palette.color(QPalette::Highlight);
+-        backgroundColor.setAlphaF(0.5);
+-
+-        QRect highlightRect = option.rect.adjusted(2, 2, -2, -2);
+-
+-        QPen outlinePen(backgroundColor, 2);
+-
+-        if (column == 0) {
+-            //clip right (or left for rtl languages) to make the connection with the next column
+-            if (columns > 1) {
+-                if (option.direction == Qt::LeftToRight) {
+-                    painter->setClipRect(option.rect.adjusted(0, 0, ITEM_RIGHT_MARGIN, 0));
+-                    highlightRect.adjust(0, 0, ITEM_RIGHT_MARGIN+roundedRadius, 0);
+-                } else {
+-                    painter->setClipRect(option.rect.adjusted(-ITEM_LEFT_MARGIN, 0, 0, 0));
+-                    highlightRect.adjust(-ITEM_LEFT_MARGIN-roundedRadius, 0, 0, 0);
+-                }
+-            }
+-
+-            QLinearGradient gradient(highlightRect.topLeft(), highlightRect.topRight());
+-
+-            //reverse the gradient
+-            if (option.direction == Qt::RightToLeft) {
+-                gradient.setStart(highlightRect.topRight());
+-                gradient.setFinalStop(highlightRect.topLeft());
+-            }
+-
+-            gradient.setColorAt(0, backgroundColor);
+-
+-            gradient.setColorAt(((qreal)titleRect.width()/3.0) / (qreal)highlightRect.width(), backgroundColor2);
+-
+-            gradient.setColorAt(0.7, backgroundColor);
+-
+-            outlinePen.setBrush(gradient);
+-
+-        //last column, clip left (right for rtl)
+-        } else if (column == columns-1) {
+-            if (option.direction == Qt::LeftToRight) {
+-                painter->setClipRect(option.rect.adjusted(-ITEM_LEFT_MARGIN, 0, 0, 0));
+-                highlightRect.adjust(-ITEM_LEFT_MARGIN-roundedRadius, 0, 0, 0);
+-            } else {
+-                painter->setClipRect(option.rect.adjusted(0, 0, ITEM_RIGHT_MARGIN, 0));
+-                highlightRect.adjust(0, 0, ITEM_RIGHT_MARGIN+roundedRadius, 0);
+-            }
+-
+-        //column < columns-1; clip both ways
+-        } else {
+-            painter->setClipRect(option.rect.adjusted(-ITEM_LEFT_MARGIN, 0, ITEM_RIGHT_MARGIN, 0));
+-            highlightRect.adjust(-ITEM_LEFT_MARGIN-roundedRadius, 0, ITEM_RIGHT_MARGIN+roundedRadius, 0);
+-        }
+-
+-        painter->setPen(outlinePen);
+-        painter->drawPath(Plasma::roundedRectangle(highlightRect, roundedRadius));
+-
+-        painter->restore();
++        QStyleOptionViewItemV4 viewOption(option);
++        viewOption.viewItemPosition = QStyleOptionViewItemV4::OnlyOne;
++        QApplication::style()->drawPrimitive(QStyle::PE_PanelItemViewItem, &viewOption, painter, 0);
+     }
+ 
+     // draw icon
+@@ -329,17 +265,24 @@
+ 
+     // draw title
+     if (hover) {
+-      titleFont.setBold(true);
++        titleFont.setBold(true);
++        painter->setPen(option.palette.highlightedText().color());
++        painter->save();
+     }
+     painter->setFont(titleFont);
+     painter->drawText(titleRect, Qt::AlignLeft|Qt::AlignVCenter, titleText);
++    if (hover) {
++        painter->restore();
++    }
+ 
+-    if (hover || !uniqueTitle) {
+-        // draw sub-title
+-        painter->setPen(QPen(KColorScheme(QPalette::Active).foreground(KColorScheme::InactiveText), 1));
+-        painter->setFont(subTitleFont);
+-        painter->drawText(subTitleRect, Qt::AlignLeft|Qt::AlignVCenter, "  " + subTitleText);
++    // draw sub-title
++    if (hover) {
++        painter->setPen(KColorScheme(QPalette::Active).shade(option.palette.highlightedText().color(), KColorScheme::MidlightShade));
++    } else {
++        painter->setPen(KColorScheme(QPalette::Active).shade(option.palette.text().color(), KColorScheme::DarkShade));
+     }
++    painter->setFont(subTitleFont);
++    painter->drawText(subTitleRect, Qt::AlignLeft|Qt::AlignVCenter, "  " + subTitleText);
+ 
+     painter->restore();
+ 
+Index: workspace/plasma/applets/kickoff/ui/flipscrollview.cpp
+===================================================================
+--- workspace/plasma/applets/kickoff/ui/flipscrollview.cpp	(revision 791453)
++++ workspace/plasma/applets/kickoff/ui/flipscrollview.cpp	(working copy)
+@@ -507,7 +507,7 @@
+         setDirtyRegion(d->backArrowRect());
+     } else {
+         const QModelIndex itemUnderMouse = indexAt(event->pos());
+-        if (itemUnderMouse != d->hoveredIndex && itemUnderMouse.isValid()) {
++        if (itemUnderMouse != d->hoveredIndex) {
+             update(itemUnderMouse);
+             update(d->hoveredIndex);
+ 
+@@ -572,12 +572,11 @@
+         if (model()->hasChildren(index)) {
+             painter.save();
+             painter.setPen(Qt::NoPen);
+-
+             // there is an assumption made here that the delegate will fill the background
+             // with the selected color or some similar color which contrasts well with the
+             // highlighted text color
+-            if (option.state & (QStyle::State_Selected|QStyle::State_MouseOver)) {
+-                painter.setBrush(palette().highlight());
++            if (option.state & QStyle::State_MouseOver) {
++                painter.setBrush(palette().highlightedText());
+             } else {
+                 painter.setBrush(palette().text());
+             }
+Index: workspace/plasma/applets/kickoff/ui/urlitemview.cpp
+===================================================================
+--- workspace/plasma/applets/kickoff/ui/urlitemview.cpp	(revision 791453)
++++ workspace/plasma/applets/kickoff/ui/urlitemview.cpp	(working copy)
+@@ -466,8 +466,7 @@
+ void UrlItemView::mouseMoveEvent(QMouseEvent *event)
+ {
+     const QModelIndex itemUnderMouse = indexAt(event->pos());
+-    if (itemUnderMouse != d->hoveredIndex && itemUnderMouse.isValid() &&
+-        state() == NoState) {
++    if (itemUnderMouse != d->hoveredIndex && state() == NoState) {
+         update(itemUnderMouse);
+         update(d->hoveredIndex);
+ 

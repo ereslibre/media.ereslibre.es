@@ -1,0 +1,16 @@
+diff --git a/apps/dolphin/src/dolphinmodel.cpp b/apps/dolphin/src/dolphinmodel.cpp
+index d215729..1ee2fb0 100644
+--- a/apps/dolphin/src/dolphinmodel.cpp
++++ b/apps/dolphin/src/dolphinmodel.cpp
+@@ -403,9 +403,9 @@ QVariant DolphinModel::sortRoleData(const QModelIndex& index) const
+ 
+     case KDirModel::Type:
+         if (item.isDir())
+-            retVariant = QString(); // when sorting we want folders to be placed first
++            retVariant = -1; // when sorting we want folders to be placed first
+         else
+-            retVariant = item.mimeComment();
++            retVariant = item.determineMimeType()->offset();
+         break;
+ 
+ #ifdef HAVE_NEPOMUK

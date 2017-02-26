@@ -1,0 +1,178 @@
+diff --git a/kdeui/tests/kxmlgui_unittest.cpp b/kdeui/tests/kxmlgui_unittest.cpp
+index ddf0f42..4b6524f 100644
+--- a/kdeui/tests/kxmlgui_unittest.cpp
++++ b/kdeui/tests/kxmlgui_unittest.cpp
+@@ -22,9 +22,10 @@
+ #include "kxmlgui_unittest.h"
+ #include <kactioncollection.h>
+ #include <QMenu>
+-#include <QMainWindow>
+ #include <kxmlguibuilder.h>
+ #include <kxmlguiclient.h>
++#include <ktoolbar.h>
++#include <kmainwindow.h>
+ #include <ktemporaryfile.h>
+ #include "kxmlgui_unittest.moc"
+ #include <kxmlguiversionhandler_p.h>
+@@ -313,6 +314,9 @@ void KXmlGui_UnitTest::testMergingSeparators()
+         "  <Action name=\"closedtabs\"/>\n"
+         " </Menu>\n"
+         "</MenuBar>\n"
++        "<ToolBar hidden=\"true\" name=\"mainToolBar\">\n"
++        "  <Action name=\"go_up\"/>\n"
++        "</ToolBar>\n"
+         "</gui>\n";
+ 
+ 
+@@ -320,7 +324,8 @@ void KXmlGui_UnitTest::testMergingSeparators()
+     createActions(hostClient.actionCollection(),
+                   QStringList() << "go_up" << "go_back" << "go_forward" << "go_home"
+                   << "go_history" << "go_most_often");
+-    QMainWindow mainWindow;
++    KMainWindow mainWindow;
++    mainWindow.setAutoSaveSettings();
+     KXMLGUIBuilder builder(&mainWindow);
+     KXMLGUIFactory factory(&builder);
+     factory.addClient(&hostClient);
+@@ -330,6 +335,14 @@ void KXmlGui_UnitTest::testMergingSeparators()
+     QMenu* goMenu = qobject_cast<QMenu *>(goMenuW);
+     QVERIFY(goMenu);
+ 
++    QWidget* mainToolBarW = factory.container("mainToolBar", &hostClient);
++    QVERIFY(mainToolBarW);
++    KToolBar* mainToolBar = qobject_cast<KToolBar *>(mainToolBarW);
++    QVERIFY(mainToolBar);
++    QVERIFY(mainToolBar->isHidden());
++    mainWindow.setAutoSaveSettings(); // like KXmlGuiWindow::finalizeGUI currently does
++//     QVERIFY(mainToolBar->isHidden());     // FAIL!
++
+     //debugActions(goMenu->actions());
+     checkActions(goMenu->actions(), QStringList()
+                  << "go_up"
+diff --git a/kdeui/widgets/kmainwindow.cpp b/kdeui/widgets/kmainwindow.cpp
+index 9e0b84d..28c3b7e 100644
+--- a/kdeui/widgets/kmainwindow.cpp
++++ b/kdeui/widgets/kmainwindow.cpp
+@@ -681,6 +681,8 @@ bool KMainWindow::readPropertiesInternal( KConfig *config, int number )
+ {
+     K_D(KMainWindow);
+ 
++    d->letDirtySettings = false;
++
+     if ( number == 1 )
+         readGlobalProperties( config );
+ 
+@@ -702,6 +704,9 @@ bool KMainWindow::readPropertiesInternal( KConfig *config, int number )
+     s.setNum(number);
+     KConfigGroup grp(config, s);
+     readProperties(grp);
++
++    d->letDirtySettings = true;
++
+     return true;
+ }
+ 
+@@ -1012,7 +1017,7 @@ bool KMainWindow::event( QEvent* ev )
+ #endif
+     case QEvent::Resize:
+         if ( d->autoSaveWindowSize )
+-        d->setSettingsDirty(KMainWindowPrivate::CompressCalls);
++            d->setSettingsDirty(KMainWindowPrivate::CompressCalls);
+         break;
+     case QEvent::Polish:
+         d->polish(this);
+diff --git a/kdeui/xmlgui/kxmlguiwindow.cpp b/kdeui/xmlgui/kxmlguiwindow.cpp
+index 298ead8..8e7778f 100644
+--- a/kdeui/xmlgui/kxmlguiwindow.cpp
++++ b/kdeui/xmlgui/kxmlguiwindow.cpp
+@@ -77,6 +77,7 @@ class KXmlGuiWindowPrivate : public KMainWindowPrivate {
+ public:
+     bool showHelpMenu:1;
+     bool saveFlag:1;
++    bool notSavedYet:1;
+     QSize defaultSize;
+ 
+     KDEPrivate::ToolBarHandler *toolBarHandler;
+@@ -91,6 +92,7 @@ KXmlGuiWindow::KXmlGuiWindow( QWidget* parent, Qt::WFlags f )
+     K_D(KXmlGuiWindow);
+     d->showHelpMenu = true;
+     d->saveFlag = false;
++    d->notSavedYet = false;
+     d->toolBarHandler = 0;
+     d->showStatusBarAction = 0;
+     d->factory = 0;
+@@ -134,6 +136,25 @@ bool KXmlGuiWindow::event( QEvent* ev )
+     return ret;
+ }
+ 
++void KXmlGuiWindow::readProperties(const KConfigGroup &cg)
++{
++    K_D(KXmlGuiWindow);
++
++    const KConfigGroup autoSaveGroup = autoSaveConfigGroup();
++    if (d->saveFlag && autoSaveGroup.isValid()) { // setupGUI was called with 'Save' flag
++        d->notSavedYet = true;
++        resetAutoSaveSettings();
++    }
++
++    KMainWindow::readProperties(cg);
++
++    if (d->saveFlag && autoSaveGroup.isValid()) {
++        setAutoSaveSettings(autoSaveGroup);
++    } else if (d->saveFlag) {
++        setAutoSaveSettings();
++    }
++}
++
+ void KXmlGuiWindow::setHelpMenuEnabled(bool showHelpMenu)
+ {
+     K_D(KXmlGuiWindow);
+@@ -201,6 +222,7 @@ void KXmlGuiWindow::setupGUI( const QSize & defaultSize, StandardWindowOptions o
+     }
+ 
+     d->saveFlag = bool(options & Save);
++    d->notSavedYet = d->saveFlag;
+     d->defaultSize = defaultSize;
+ 
+     if( options & Create ){
+@@ -312,7 +334,7 @@ void KXmlGuiWindow::finalizeGUI( bool /*force*/ )
+ {
+     K_D(KXmlGuiWindow);
+ 
+-    if (d->saveFlag) {
++    if (d->notSavedYet) {
+         if (initialGeometrySet()) {
+           // Do nothing...
+         }
+@@ -322,10 +344,15 @@ void KXmlGuiWindow::finalizeGUI( bool /*force*/ )
+         else if (isHidden()) {
+           adjustSize();
+         }
+-        setAutoSaveSettings();
++        const KConfigGroup cg = autoSaveConfigGroup();
++        if (cg.isValid()) {
++            setAutoSaveSettings(cg);
++        } else {
++            setAutoSaveSettings();
++        }
+         // We only pretend to call this one time. If setupGUI(... | Save | ...) is called this will
+-        // be set again to true.
+-        d->saveFlag = false;
++        // be set again to true, or readProperties is called.
++        d->notSavedYet = false;
+         return; // no need to call to applyMainWindowSettings, since setAutoSaveSettings already
+                 // does it
+     }
+diff --git a/kdeui/xmlgui/kxmlguiwindow.h b/kdeui/xmlgui/kxmlguiwindow.h
+index 3cb441a..cb4a130 100644
+--- a/kdeui/xmlgui/kxmlguiwindow.h
++++ b/kdeui/xmlgui/kxmlguiwindow.h
+@@ -335,6 +335,8 @@ protected:
+      */
+     virtual bool event( QEvent * event );
+ 
++    virtual void readProperties( const KConfigGroup & );
++
+ protected Q_SLOTS:
+    /**
+     * Rebuilds the GUI after KEditToolbar changed the toolbar layout.

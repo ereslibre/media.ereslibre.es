@@ -1,0 +1,184 @@
+diff --git a/kdeui/widgets/kcapacitybar.cpp b/kdeui/widgets/kcapacitybar.cpp
+index 267f23d..75904ec 100644
+--- a/kdeui/widgets/kcapacitybar.cpp
++++ b/kdeui/widgets/kcapacitybar.cpp
+@@ -153,20 +153,20 @@ void KCapacityBar::drawCapacityBar(QPainter *p, const QRect &rect) const
+     }
+ 
+     QPainterPath outline;
+-    outline.moveTo(ROUND_MARGIN / 4 + 1, 0);
+-    outline.lineTo(drawRect.width() - ROUND_MARGIN / 4 - 1, 0);
+-    outline.quadTo(drawRect.width() + ROUND_MARGIN / 2, drawRect.height() / 2, drawRect.width() - ROUND_MARGIN / 4 - 1, drawRect.height());
+-    outline.lineTo(ROUND_MARGIN / 4 + 1, drawRect.height());
+-    outline.quadTo(-ROUND_MARGIN / 2, drawRect.height() / 2, ROUND_MARGIN / 4 + 1, 0);
++    outline.moveTo(rect.left() + ROUND_MARGIN / 4 + 1, rect.top());
++    outline.lineTo(rect.left() + drawRect.width() - ROUND_MARGIN / 4 - 1, rect.top());
++    outline.quadTo(rect.left() + drawRect.width() + ROUND_MARGIN / 2, drawRect.height() / 2 + rect.top(), rect.left() + drawRect.width() - ROUND_MARGIN / 4 - 1, drawRect.height() + rect.top());
++    outline.lineTo(rect.left() + ROUND_MARGIN / 4 + 1, drawRect.height() + rect.top());
++    outline.quadTo(-ROUND_MARGIN / 2 + rect.left(), drawRect.height() / 2 + rect.top(), rect.left() + ROUND_MARGIN / 4 + 1, rect.top());
+     const QColor fillColor = KColorScheme::shade(palette().window().color(), KColorScheme::DarkShade);
+     p->fillPath(outline, QColor(fillColor.red(), fillColor.green(), fillColor.blue(), 50));
+ 
+     QRadialGradient bottomGradient(QPointF(rect.width() / 2, drawRect.bottom() + 1), rect.width() / 2);
+     bottomGradient.setColorAt(0, KColorScheme::shade(palette().window().color(), KColorScheme::LightShade));
+     bottomGradient.setColorAt(1, Qt::transparent);
+-    p->fillRect(QRect(0, drawRect.bottom(), rect.width(), 1), bottomGradient);
++    p->fillRect(QRect(rect.left(), drawRect.bottom() + rect.top(), rect.width(), 1), bottomGradient);
+ 
+-    p->translate(2, 1);
++    p->translate(rect.left() + 2, rect.top() + 1);
+ 
+     drawRect.setWidth(drawRect.width() - 4);
+     drawRect.setHeight(drawRect.height() - 2);
+@@ -247,7 +247,7 @@ void KCapacityBar::drawCapacityBar(QPainter *p, const QRect &rect) const
+                     stopped = true;
+                     break;
+                 }
+-                p->fillRect(QRect(start, verticalSpacing, slotWidth, drawRect.height() - verticalSpacing * 2), fillInternalBar);
++                p->fillRect(QRect(rect.left() + start, rect.top() + verticalSpacing, slotWidth, drawRect.height() - verticalSpacing * 2), fillInternalBar);
+                 start += slotWidth + spacing;
+             }
+ 
+@@ -275,7 +275,7 @@ void KCapacityBar::drawCapacityBar(QPainter *p, const QRect &rect) const
+     const QColor fillTopColor = KColorScheme::shade(palette().window().color(), KColorScheme::LightShade);
+     topGradient.setColorAt(0, QColor(fillTopColor.red(), fillTopColor.green(), fillTopColor.blue(), 127));
+     topGradient.setColorAt(1, Qt::transparent);
+-    p->fillRect(QRect(0, drawRect.top(), rect.width(), 2), topGradient);
++    p->fillRect(QRect(rect.left(), rect.top() + drawRect.top(), rect.width(), 2), topGradient);
+     p->restore();
+ 
+     p->save();
+diff --git a/kfile/kfileplacesview.cpp b/kfile/kfileplacesview.cpp
+index f81e402..da87ff4 100644
+--- a/kfile/kfileplacesview.cpp
++++ b/kfile/kfileplacesview.cpp
+@@ -23,8 +23,9 @@
+ #include <QtCore/QTimer>
+ #include <QtGui/QMenu>
+ #include <QtGui/QPainter>
+-#include <QtGui/QStyledItemDelegate>
++#include <QtGui/QAbstractItemDelegate>
+ #include <QtGui/QKeyEvent>
++#include <QtGui/QApplication>
+ 
+ #include <kdebug.h>
+ 
+@@ -38,6 +39,8 @@
+ #include <kio/job.h>
+ #include <kio/jobuidelegate.h>
+ #include <kjob.h>
++#include <kcapacitybar.h>
++#include <kdiskfreespaceinfo.h>
+ #include <solid/storageaccess.h>
+ #include <solid/storagedrive.h>
+ #include <solid/storagevolume.h>
+@@ -47,7 +50,7 @@
+ #include "kfileplaceeditdialog.h"
+ #include "kfileplacesmodel.h"
+ 
+-class KFilePlacesViewDelegate : public QStyledItemDelegate
++class KFilePlacesViewDelegate : public QAbstractItemDelegate
+ {
+ public:
+     KFilePlacesViewDelegate(KFilePlacesView *parent);
+@@ -81,17 +84,20 @@ private:
+     qreal m_disappearingOpacity;
+ 
+     bool m_showHoverIndication;
++    
++    KCapacityBar capacityBar;
+ };
+ 
+ KFilePlacesViewDelegate::KFilePlacesViewDelegate(KFilePlacesView *parent) :
+-    QStyledItemDelegate(parent),
++    QAbstractItemDelegate(parent),
+     m_view(parent),
+     m_iconSize(48),
+     m_appearingIconSize(0),
+     m_appearingOpacity(0.0),
+     m_disappearingIconSize(0),
+     m_disappearingOpacity(0.0),
+-    m_showHoverIndication(true)
++    m_showHoverIndication(true),
++    capacityBar(KCapacityBar::DrawTextInline)
+ {
+ }
+ 
+@@ -102,22 +108,28 @@ KFilePlacesViewDelegate::~KFilePlacesViewDelegate()
+ QSize KFilePlacesViewDelegate::sizeHint(const QStyleOptionViewItem &option,
+                                         const QModelIndex &index) const
+ {
+-    QSize size = QStyledItemDelegate::sizeHint(option, index);
+     int iconSize = m_iconSize;
+     if (m_appearingItems.contains(index)) {
+         iconSize = m_appearingIconSize;
+     } else if (m_disappearingItems.contains(index)) {
+         iconSize = m_disappearingIconSize;
+     }
++    
++    const KFilePlacesModel *filePlacesModel = static_cast<const KFilePlacesModel*>(index.model());
++    Solid::Device device = filePlacesModel->deviceForIndex(index);
++    int deviceBarHeight = 0;
++    if (filePlacesModel->isDevice(index) && device.is<Solid::StorageAccess>() &&
++        device.as<Solid::StorageAccess>()->isAccessible()) {
++        deviceBarHeight = 6;
++    }
+ 
+-    size.setHeight(iconSize + KDialog::marginHint());
+-    return size;
++    return QSize(option.rect.width(), iconSize + KDialog::marginHint() + deviceBarHeight);
+ }
+ 
+ void KFilePlacesViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
+ {
+     painter->save();
+-
++    
+     if (m_appearingItems.contains(index)) {
+         painter->setOpacity(m_appearingOpacity);
+     } else if (m_disappearingItems.contains(index)) {
+@@ -125,11 +137,42 @@ void KFilePlacesViewDelegate::paint(QPainter *painter, const QStyleOptionViewIte
+     }
+ 
+     QStyleOptionViewItemV4 opt = option;
+-    opt.decorationSize = QSize(m_iconSize, m_iconSize);
++    QApplication::style()->drawPrimitive(QStyle::PE_PanelItemViewItem, &opt, painter);
++    const KFilePlacesModel *placesModel = static_cast<const KFilePlacesModel*>(index.model());
++    bool isDevice = false;
++    int lessPixels = 0;
++    Solid::Device device;
++    if (placesModel->isDevice(index)) {
++        device = placesModel->deviceForIndex(index);
++        if (device.is<Solid::StorageAccess>() && device.as<Solid::StorageAccess>()->isAccessible()) {
++            isDevice = true;
++            lessPixels = 8;
++        }
++    }
+     if (!m_showHoverIndication) {
+         opt.state &= ~QStyle::State_MouseOver;
+     }
+-    QStyledItemDelegate::paint(painter, opt, index);
++
++    QIcon icon = index.model()->data(index, Qt::DecorationRole).value<QIcon>();
++    QPixmap pm = icon.pixmap(m_iconSize, m_iconSize);
++    QPoint point(option.rect.left() + 8, option.rect.top() + (option.rect.height() - m_iconSize) / 2);
++    painter->drawPixmap(point, pm);
++
++    QRect rectText(m_iconSize + 16 + option.rect.left(), option.rect.top(), option.rect.width() - m_iconSize - 16, option.rect.height() - lessPixels);
++    if (option.state & QStyle::State_Selected) {
++        painter->setPen(option.palette.highlightedText().color());
++    }
++    painter->drawText(rectText, Qt::AlignLeft | Qt::AlignVCenter, option.fontMetrics.elidedText(index.model()->data(index).toString(), Qt::ElideRight, rectText.width()));
++
++    if (isDevice) {
++        QRect capacityRect(rectText.x(), rectText.top() + rectText.height() / 2 + 8, rectText.width() - 8, 6);
++        Solid::StorageAccess *storage = device.as<Solid::StorageAccess>();
++        KDiskFreeSpaceInfo info = KDiskFreeSpaceInfo::freeSpaceInfo(storage->filePath());
++        if (info.size()) {
++            capacityBar.setValue((info.used() * 100) / info.size());
++            capacityBar.drawCapacityBar(painter, capacityRect);
++        }
++    }
+ 
+     painter->restore();
+ }

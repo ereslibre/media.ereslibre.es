@@ -1,0 +1,220 @@
+Index: kdefx/kstyle.cpp
+===================================================================
+--- kdefx/kstyle.cpp	(revisión: 658535)
++++ kdefx/kstyle.cpp	(copia de trabajo)
+@@ -199,6 +199,8 @@ KStyle::KStyle() : clickedLabel(0)
+     setWidgetLayoutProp(WT_Window, Window::ButtonWidth, 16);
+     setWidgetLayoutProp(WT_Window, Window::ButtonSpace, 2);
+     setWidgetLayoutProp(WT_Window, Window::ButtonToTextSpace, 3);
++
++    setWidgetLayoutProp(WT_Category, Category::ContentsMargin, 5);
+ }
+ 
+ KStyle::~KStyle()
+@@ -432,6 +434,35 @@ void KStyle::drawKStylePrimitive(WidgetT
+             break;
+         }
+ 
++        case WT_Category:
++        {
++            if (KStyle::TextOption *textOpt = extractOption<KStyle::TextOption*>(kOpt))
++            {
++                QFont painterFont = p->font();
++                painterFont.setWeight(QFont::Bold);
++                QFontMetrics metrics(painterFont);
++                p->setFont(painterFont);
++
++                QPainterPath path;
++                path.addRect(opt->rect.left(),
++                             opt->rect.bottom() - 2,
++                             opt->rect.width(),
++                             2);
++
++                QLinearGradient gradient(opt->rect.topLeft(),
++                                        opt->rect.bottomRight());
++                gradient.setColorAt(0, pal.color(QPalette::Button));
++                gradient.setColorAt(1, pal.color(QPalette::Light));
++
++                p->setBrush(gradient);
++                p->fillPath(path, gradient);
++
++                p->drawText(opt->rect, textOpt->hAlign, textOpt->text);
++            }
++
++            break;
++        }
++
+         default:
+             break;
+     }
+@@ -820,7 +851,7 @@ void KStyle::drawPrimitive(PrimitiveElem
+     QCommonStyle::drawPrimitive(elem, option, painter, widget);
+ }
+ 
+-void KStyle::drawControl(ControlElement element, const QStyleOption* option, QPainter* p, const QWidget* widget) const
++void KStyle::drawControl(QStyle::ControlElement element, const QStyleOption* option, QPainter* p, const QWidget* widget) const
+ {
+     //Extract the stuff we need out of the option
+     State flags = option->state;
+@@ -1910,7 +1941,6 @@ void KStyle::drawControl(ControlElement 
+     QCommonStyle::drawControl(element, option, p, widget);
+ }
+ 
+-
+ int KStyle::styleHint (StyleHint hint, const QStyleOption* option, const QWidget* widget, QStyleHintReturn* returnData) const
+ {
+     switch (hint)
+@@ -3545,11 +3575,17 @@ QSize KStyle::sizeFromContents(ContentsT
+                 return expandDim(QSize(w, h), WT_Header, Header::ContentsMargin, option, widget);
+             }
+         }
++
++        /*case KStyle::CT_Category:
++        {
++            return expandDim(QSize(option->rect.width(), option->rect.height()), WT_Category, Category::ContentsMargin, option, widget);
++        }*/
++
+         default:
+             break;
+     }
+ 
+-    return QCommonStyle::sizeFromContents(type, option, contentsSize, widget);
++    return QCommonStyle::sizeFromContents((QStyle::ContentsType) type, option, contentsSize, widget);
+ }
+ 
+ bool KStyle::eventFilter(QObject *obj, QEvent *ev)
+@@ -3610,5 +3646,32 @@ bool KStyle::eventFilter(QObject *obj, Q
+     return false;
+ }
+ 
++void KStyle::drawControl (KStyle::ControlElement elem, const QStyleOption* option, QPainter* p, const QWidget* widget) const
++{
++    //Extract the stuff we need out of the option
++    State flags = option->state;
++    QRect      r     = option->rect;
++    QPalette   pal   = option->palette;
++
++    switch(elem)
++    {
++        case CE_Category:
++        {
++            if (const QStyleOptionButton *button = qstyleoption_cast<const QStyleOptionButton*>(option))
++            {
++                TextOption textOpt;
++                textOpt.hAlign = Qt::AlignLeft;
++                textOpt.text = button->text;
++
++                drawKStylePrimitive(WT_Category, Category::Title, option, r, pal, flags, p, widget, &textOpt);
++            }
++            return;
++        }
++
++        default:
++            break;
++    }
++}
++
+ 
+ // kate: indent-width 4; replace-tabs on; tab-width 4; space-indent on;
+Index: kdefx/kstyle.h
+===================================================================
+--- kdefx/kstyle.h	(revisión: 658535)
++++ kdefx/kstyle.h	(copia de trabajo)
+@@ -38,6 +38,7 @@
+ #include <kdefx_export.h>
+ 
+ #include <QtGui/QCommonStyle>
++#include <QtGui/QStyleOption>
+ #include <QtGui/QColorGroup>
+ #include <QtGui/QStyleFactoryInterface>
+ 
+@@ -88,6 +89,11 @@ public:
+     KStyle();
+     ~KStyle();
+ 
++
++    enum ControlElement {
++        CE_Category = 0xf0000001
++    };
++
+ protected:
+     /** @name Helper Methods
+     * These are methods helping with QRect handling, for example.
+@@ -396,10 +402,10 @@ protected:
+         WT_ToolButton,      ///< @sa ToolButton
+         WT_ToolBoxTab,      ///< @sa ToolBoxTab
+         WT_Window,          ///< @sa Window
++        WT_Category,        ///< @sa Category
+         WT_Limit = 0xFFFF ///< For enum extensibility
+     };
+ 
+-                
+     /**
+      These constants describe how to access various fields of a margin property.
+      For example, to set an additional top margin of 2 pixels, use
+@@ -1422,6 +1428,30 @@ protected:
+             ButtonHelp      ///< context help button, passes TitleButtonOption
+         };
+     };
++
++    /**
++     * @brief Describes categories in KListView.
++     *
++     * @sa WT_Category
++     */
++    struct Category
++    {
++        /**
++         * @sa setWidgetLayoutProp()
++         */
++        enum LayoutProps
++        {
++            ContentsMargin ///< space between the text and the margin
++        };
++
++        /**
++         * @sa drawKStylePrimitive()
++         */
++        enum Primitive
++        {
++            Title,       ///< category title
++        };
++    };
+ //@}
+ 
+     ///Interface for the style to configure various metrics that KStyle has customizable.
+@@ -1533,17 +1563,17 @@ public:
+  * the implementation from QCommonStyle.
+  */
+ //@{
+-    void drawControl      (ControlElement   elem, const QStyleOption* opt, QPainter* p, const QWidget* w) const;
++    void drawControl (QStyle::ControlElement elem, const QStyleOption* opt, QPainter* p, const QWidget* w) const;
+     void drawPrimitive    (PrimitiveElement elem, const QStyleOption* opt, QPainter* p, const QWidget* w) const;
+     int  pixelMetric      (PixelMetric    metric, const QStyleOption* opt = 0, const QWidget* w = 0) const;
+     QRect subElementRect  (SubElement    subRect, const QStyleOption* opt, const QWidget* w) const;
+-    QSize sizeFromContents(ContentsType     type, const QStyleOption* opt,
++    QSize sizeFromContents (ContentsType type, const QStyleOption* opt,
+                                                 const QSize& contentsSize, const QWidget* w) const;
+     int   styleHint       (StyleHint        hint, const QStyleOption* opt, const QWidget* w,
+                                                                QStyleHintReturn* returnData) const;
+     QRect subControlRect (ComplexControl control, const QStyleOptionComplex* opt,
+                                                     SubControl subControl, const QWidget* w) const;
+-    SubControl hitTestComplexControl(ComplexControl cc, const QStyleOptionComplex* opt,
++    SubControl hitTestComplexControl (ComplexControl cc, const QStyleOptionComplex* opt,
+                                              const QPoint& pt, const QWidget* w) const;
+     void       drawComplexControl   (ComplexControl cc, const QStyleOptionComplex* opt,
+                                              QPainter *p,      const QWidget* w) const;
+@@ -1569,6 +1599,13 @@ public:
+                                    const QStyleOption *opt) const;
+     bool eventFilter(QObject *, QEvent *);
+ //@}
++
++public:
++/** @name Adapted Methods
++ * These are methods similar to the QStyle's ones, but extended to be able to
++ * accept more elements.
++ */
++    virtual void drawControl (KStyle::ControlElement elem, const QStyleOption* opt, QPainter* p, const QWidget* w) const;
+ };
+ 
+ template<typename T>

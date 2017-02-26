@@ -1,0 +1,99 @@
+Index: kparts/browserrun.cpp
+===================================================================
+--- kparts/browserrun.cpp	(revisión: 754930)
++++ kparts/browserrun.cpp	(copia de trabajo)
+@@ -220,11 +220,11 @@
+     QString mimeType( _mimeType );
+     Q_ASSERT( !hasFinished() ); // only come here if the mimetype couldn't be embedded
+     // Support for saving remote files.
++
+     if ( mimeType != "inode/directory" && // dirs can't be saved
+-         !KRun::url().isLocalFile() )
++         !KRun::url().isLocalFile() &&
++         !isTextExecutable(mimeType) )
+     {
+-        if ( isTextExecutable(mimeType) )
+-            mimeType = QLatin1String("text/plain"); // view, don't execute
+         kDebug(1000) << "BrowserRun: ask for saving";
+         KService::Ptr offer = KMimeTypeTrader::self()->preferredService(mimeType, "Application");
+         // ... -> ask whether to save
+@@ -263,15 +263,15 @@
+                 KIO::Job *job = KIO::file_copy( KRun::url(), destURL, 0600, KIO::Overwrite );
+                 job->ui()->setWindow(d->m_window);
+                 connect( job, SIGNAL(result(KJob *)),
+-                         this, SLOT(slotCopyToTempFileResult(KJob *)) );
++                        this, SLOT(slotCopyToTempFileResult(KJob *)) );
+                 return Delayed; // We'll continue after the job has finished
+             }
+         }
+     }
+ 
+     // Check if running is allowed
+-    if ( !d->m_bTrustedSource && // ... and untrusted source...
+-         !allowExecution( mimeType, KRun::url() ) ) // ...and the user said no (for executables etc.)
++    if ( d->m_bTrustedSource ||
++         allowExecution( mimeType, KRun::url() ) )
+     {
+         setFinished( true );
+         return Handled;
+Index: kio/kio/kdesktopfileactions.cpp
+===================================================================
+--- kio/kio/kdesktopfileactions.cpp	(revisión: 754930)
++++ kio/kio/kdesktopfileactions.cpp	(copia de trabajo)
+@@ -57,12 +57,21 @@
+ 
+     if ( cfg.hasDeviceType() )
+         return runFSDevice( u, cfg );
+-    else if ( cfg.hasApplicationType() )
++    else if ( cfg.hasApplicationType() ||
++              (cfg.hasServiceType() &&
++               cfg.desktopGroup().hasKey("Exec") ) )
+         return runApplication( u, u.path() );
+     else if ( cfg.hasLinkType() )
+         return runLink( u, cfg );
+ 
+-    QString tmp = i18n("The desktop entry of type\n%1\nis unknown.",  cfg.readType() );
++    QString tmp;
++
++    if ( cfg.hasServiceType() )
++        tmp = i18n( "The desktop entry file %1 is not going to be executed "
++                    "because it has no executable information.", u.path() );
++    else
++        tmp = i18n( "The desktop entry of type\n%1\nis unknown.",  cfg.readType() );
++
+     KMessageBoxWrapper::error( 0, tmp);
+ 
+     return false;
+Index: kdecore/config/kdesktopfile.cpp
+===================================================================
+--- kdecore/config/kdesktopfile.cpp	(revisión: 754930)
++++ kdecore/config/kdesktopfile.cpp	(copia de trabajo)
+@@ -251,6 +251,11 @@
+   return readType() == QLatin1String("Application");
+ }
+ 
++bool KDesktopFile::hasServiceType() const
++{
++  return readType() == QLatin1String("Service");
++}
++
+ bool KDesktopFile::hasMimeTypeType() const
+ {
+   return readType() == QLatin1String("MimeType");
+Index: kdecore/config/kdesktopfile.h
+===================================================================
+--- kdecore/config/kdesktopfile.h	(revisión: 754930)
++++ kdecore/config/kdesktopfile.h	(copia de trabajo)
+@@ -171,6 +171,12 @@
+   bool hasApplicationType() const;
+ 
+   /**
++   * Checks whether there is an entry "Type=Service".
++   * @return true if there is a "Type=Service" entry
++   */
++  bool hasServiceType() const;
++
++  /**
+    * Checks whether there is an entry "Type=MimeType".
+    * @return true if there is a "Type=MimeType" entry
+    */

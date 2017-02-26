@@ -1,0 +1,25 @@
+diff --git a/okular/ui/sidebar.cpp b/okular/ui/sidebar.cpp
+index 7663658..6618f3b 100644
+--- a/okular/ui/sidebar.cpp
++++ b/okular/ui/sidebar.cpp
+@@ -26,6 +26,7 @@
+ 
+ #include <klocale.h>
+ #include <kmenu.h>
++#include <kiconloader.h>
+ 
+ #include "settings.h"
+ 
+@@ -607,9 +608,9 @@ void Sidebar::listContextMenu( const QPoint &pos )
+     sizeAct->setChecked( itssize == curSize ); \
+     sizeGroup->addAction( sizeAct ); \
+ }
+-    ADD_SIZE_ACTION( i18n( "Small Icons" ), 22 )
+-    ADD_SIZE_ACTION( i18n( "Normal Icons" ), 32 )
+-    ADD_SIZE_ACTION( i18n( "Large Icons" ), 48 )
++    ADD_SIZE_ACTION( i18n( "Small Icons" ), ( int ) KIconLoader::SizeSmallMedium )
++    ADD_SIZE_ACTION( i18n( "Normal Icons" ), ( int ) KIconLoader::SizeMedium )
++    ADD_SIZE_ACTION( i18n( "Large Icons" ), ( int ) KIconLoader::SizeLarge )
+ #undef ADD_SIZE_ACTION
+     connect( sizeGroup, SIGNAL( triggered( QAction* ) ), this, SLOT( iconSizeChanged( QAction* ) ) );
+     menu.exec( mapToGlobal( pos ) );

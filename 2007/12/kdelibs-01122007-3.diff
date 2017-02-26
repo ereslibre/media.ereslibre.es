@@ -1,0 +1,241 @@
+Index: kio/kio/kdirmodel.cpp
+===================================================================
+--- kio/kio/kdirmodel.cpp	(revisión: 743481)
++++ kio/kio/kdirmodel.cpp	(copia de trabajo)
+@@ -125,7 +125,7 @@ public:
+     // Returns (0,0) if there is no node for this url.
+     // If returnLastParent is set, then return the last known parent if there is no node for this url
+     // (special case for expandToUrl)
+-    QPair<int /*row*/, KDirModelNode*> nodeForUrl(const KUrl& url, bool returnLastParent = false) const;
++    QPair<int /*row*/, KDirModelNode*> nodeForUrl(const KUrl& url, bool returnLastParent = false);
+     KDirModelNode* nodeForIndex(const QModelIndex& index) const;
+     QModelIndex indexForNode(KDirModelNode* node, int rowNumber = -1 /*unknown*/) const;
+     bool isDir(KDirModelNode* node) const {
+@@ -145,12 +145,12 @@ public:
+ // we need to get the parent KFileItem in _k_slotNewItems, and then we can use a QHash<KFileItem,KDirModelNode*> cache.
+ // (well there isn't a parent kfileitem, rather a parent url... hmm, back to square one with hashes-of-urls..)
+ // For now we'll assume "child url = parent url + filename"
+-QPair<int /*row*/, KDirModelNode*> KDirModelPrivate::nodeForUrl(const KUrl& _url, bool returnLastParent) const // O(n*m)
++QPair<int /*row*/, KDirModelNode*> KDirModelPrivate::nodeForUrl(const KUrl& _url, bool returnLastParent) // O(n*m)
+ {
+     KUrl url(_url);
+     url.adjustPath(KUrl::RemoveTrailingSlash);
+ 
+-    //kDebug(7008) << url;
++    kDebug(7008) << "What we want is: " << url;
+ 
+     if (url == m_dirLister->url())
+         return qMakePair(0, static_cast<KDirModelNode *>(m_rootNode));
+@@ -165,33 +165,46 @@ QPair<int /*row*/, KDirModelNode*> KDirM
+ 
+     for (;;) {
+         Q_ASSERT( urlStr.startsWith(nodeUrl.url()) );
++
+         bool foundChild = false;
+         QList<KDirModelNode *>::const_iterator it = dirNode->m_childNodes.begin();
+         const QList<KDirModelNode *>::const_iterator end = dirNode->m_childNodes.end();
+         int row = 0;
++
++        //Q_ASSERT(it != end);
++        kDebug() << "THE ELEMENTS ARE " << dirNode->m_childNodes.count();
++
+         for ( ; it != end ; ++it, ++row ) {
+             const KUrl u = (*it)->item().url();
++            kDebug(7008) << "Trying with " << u.url() << " while lookin for " << _url;
+             if ( u == url ) {
+-                //kDebug(7008) << "Found! " << u;
++                kDebug(7008) << "Found! " << u;
+                 return qMakePair(row, *it);
+             }
+-            if ( urlStr.startsWith(u.url()+'/') ) {
+-                //kDebug(7008) << "going into " << node->item().url();
++            kDebug(7008) << "WTF LOOKIN FOR " << urlStr << " AND COMPARING WITH " << u.url()+'/';
++            if ( urlStr.startsWith(u.url()) ) {
++                kDebug(7008) << "going into " << u.url()+'/';
+                 Q_ASSERT( isDir(*it) );
++                QModelIndex sonIndex = indexForNode(*it, row);
++                emit q->expand(sonIndex);
++                m_urlsBeingFetched[dirNode].append((*it)->item().url().url()+'/');
++                while (q->canFetchMore(sonIndex)) {
++                    q->fetchMore(sonIndex);
++                }
+                 dirNode = static_cast<KDirModelDirNode *>( *it );
+                 foundChild = true;
+                 break;
+             }
+         }
+         if (!foundChild) {
+-            //kDebug(7008) << "child equal or starting with " << url << " not found";
++            kDebug(7008) << "child equal or starting with " << url << " not found";
+             if (returnLastParent)
+                 return qMakePair(-1 /*not implemented*/, static_cast<KDirModelNode*>(dirNode));
+             else
+                 return qMakePair(0, static_cast<KDirModelNode*>(0));
+         }
+         nodeUrl = dirNode->item().url();
+-        //kDebug(7008) << " " << nodeUrl;
++        kDebug(7008) << " " << nodeUrl;
+     }
+     // NOTREACHED
+     //return qMakePair(0, static_cast<KDirModelNode*>(0));
+@@ -308,7 +321,7 @@ void KDirModelPrivate::_k_slotNewItems(c
+     q->beginInsertRows( index, newRowCount - newItemsCount, newRowCount - 1 ); // parent, first, last
+ 
+     const KUrl::List urlsBeingFetched = m_urlsBeingFetched.value(dirNode);
+-    //kDebug(7008) << "urlsBeingFetched for dir" << dirNode << dir << ":" << urlsBeingFetched;
++    kDebug(7008) << "urlsBeingFetched for dir" << dirNode << dir << ":" << urlsBeingFetched;
+ 
+     KFileItemList::const_iterator it = items.begin();
+     KFileItemList::const_iterator end = items.end();
+@@ -328,8 +341,8 @@ void KDirModelPrivate::_k_slotNewItems(c
+                     Q_ASSERT(parentIndex.isValid());
+                     emit q->expand(parentIndex);
+                     if (dirUrl != urlFetched) {
+-                        q->fetchMore(parentIndex);
+                         m_urlsBeingFetched[node].append(urlFetched);
++                        q->fetchMore(parentIndex);
+                     }
+                 }
+             }
+@@ -582,7 +595,7 @@ QModelIndex KDirModel::indexForItem( con
+ QModelIndex KDirModel::indexForUrl(const KUrl& url) const
+ {
+     const QPair<int, KDirModelNode*> result = d->nodeForUrl(url); // O(n*m) (m is the depth from the root)
+-    if (!result.second) {
++    if ((result.first == -1) || !result.second) {
+         kWarning(7007) << url << "not found";
+         return QModelIndex();
+     }
+@@ -708,8 +721,8 @@ void KDirModel::fetchMore( const QModelI
+         return;
+     dirNode->setPopulated( true );
+ 
+-    //const KUrl url = parentItem.url();
+-    //kDebug(7008) << "listing" << url;
++    const KUrl url = parentItem.url();
++    kDebug(7008) << "listing" << url;
+     d->m_dirLister->openUrl(parentItem.url(), KDirLister::Keep | KDirLister::Reload);
+ }
+ 
+@@ -732,10 +745,13 @@ void KDirModel::setDropsAllowed(DropsAll
+ 
+ void KDirModel::expandToUrl(const KUrl& url)
+ {
++    kDebug(7008);
++
+     const QPair<int, KDirModelNode*> result = d->nodeForUrl(url, true /*return last parent*/); // O(n*m)
+ 
+-    if (!result.second) // doesn't seem related to our base url?
++    if ((result.first == -1) || !result.second) // doesn't seem related to our base url?
+         return;
++
+     if (!(result.second->item().isNull()) && result.second->item().url() == url) {
+         // We have it already, nothing to do
+         kDebug(7008) << "have it already item=" <<url /*result.second->item()*/;
+Index: kfile/kfiletreeview.cpp
+===================================================================
+--- kfile/kfiletreeview.cpp	(revisión: 743481)
++++ kfile/kfiletreeview.cpp	(copia de trabajo)
+@@ -26,13 +26,14 @@
+ #include <kdirlister.h>
+ #include <kdirmodel.h>
+ #include <kfileitemdelegate.h>
++#include <kdirsortfilterproxymodel.h>
+ #include <kurl.h>
+ 
+ class KFileTreeView::Private
+ {
+     public:
+         Private(KFileTreeView *parent)
+-            : mParent(parent)
++            : q(parent)
+         {
+         }
+ 
+@@ -42,8 +43,9 @@ class KFileTreeView::Private
+         void _k_currentChanged(const QModelIndex&, const QModelIndex&);
+         void _k_expanded(const QModelIndex&);
+ 
+-        KFileTreeView *mParent;
++        KFileTreeView *q;
+         KDirModel *mModel;
++        KDirSortFilterProxyModel *pModel;
+ };
+ 
+ KUrl KFileTreeView::Private::urlForIndex(const QModelIndex &index) const
+@@ -55,34 +57,40 @@ KUrl KFileTreeView::Private::urlForIndex
+ 
+ void KFileTreeView::Private::_k_activated(const QModelIndex &index)
+ {
+-    const KUrl url = urlForIndex(index);
++    const KUrl url = urlForIndex(pModel->mapToSource(index));
+     if (url.isValid())
+-        emit mParent->activated(url);
++        emit q->activated(url);
+ }
+ 
+ void KFileTreeView::Private::_k_currentChanged(const QModelIndex &currentIndex, const QModelIndex&)
+ {
+-    const KUrl url = urlForIndex(currentIndex);
++    const KUrl url = urlForIndex(pModel->mapToSource(currentIndex));
+     if (url.isValid())
+-        emit mParent->currentChanged(url);
++        emit q->currentChanged(url);
+ }
+ 
+ void KFileTreeView::Private::_k_expanded(const QModelIndex &index)
+ {
+-    mParent->selectionModel()->clearSelection();
+-    mParent->selectionModel()->setCurrentIndex(index, QItemSelectionModel::SelectCurrent);
+-    mParent->scrollTo(index);
++    QModelIndex targetIndex = pModel->mapFromSource(index);
++
++    q->selectionModel()->clearSelection();
++    q->selectionModel()->setCurrentIndex(targetIndex, QItemSelectionModel::SelectCurrent);
++    q->scrollTo(targetIndex, QAbstractItemView::PositionAtTop);
+ }
+ 
+ KFileTreeView::KFileTreeView(QWidget *parent)
+     : QTreeView(parent), d(new Private(this))
+ {
+-    d->mModel = new KDirModel(this);
++    KDirModel *dirModel = new KDirModel(this);
++    dirModel->dirLister()->openUrl(KUrl(QDir::root().absolutePath()));
+ 
+-    setModel(d->mModel);
+-    setItemDelegate(new KFileItemDelegate(this));
++    d->mModel = dirModel;
+ 
+-    d->mModel->dirLister()->openUrl(KUrl(QDir::root().absolutePath()), KDirLister::Keep);
++    d->pModel = new KDirSortFilterProxyModel(this);
++    d->pModel->setSourceModel(dirModel);
++
++    setModel(d->pModel);
++    setItemDelegate(new KFileItemDelegate(this));
+ 
+     connect(this, SIGNAL(activated(const QModelIndex&)),
+             this, SLOT(_k_activated(const QModelIndex&)));
+@@ -99,7 +107,7 @@ KFileTreeView::~KFileTreeView()
+ 
+ KUrl KFileTreeView::currentUrl() const
+ {
+-    return d->urlForIndex(currentIndex());
++    return d->urlForIndex(d->pModel->mapToSource(currentIndex()));
+ }
+ 
+ KUrl KFileTreeView::selectedUrl() const
+@@ -149,12 +157,13 @@ void KFileTreeView::setShowHiddenFiles(b
+ 
+ void KFileTreeView::setCurrentUrl(const KUrl &url)
+ {
+-    QModelIndex index = d->mModel->indexForUrl(url);
++    QModelIndex index = d->pModel->mapFromSource(d->mModel->indexForUrl(url));
+ 
+     if (!index.isValid()) {
+         d->mModel->expandToUrl(url);
+         return;
+     }
++
+     selectionModel()->clearSelection();
+     selectionModel()->setCurrentIndex(index, QItemSelectionModel::SelectCurrent);
+     scrollTo(index);

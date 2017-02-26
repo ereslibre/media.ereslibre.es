@@ -1,0 +1,85 @@
+Index: kio/kio/kdirmodel.cpp
+===================================================================
+--- kio/kio/kdirmodel.cpp	(revisión: 743843)
++++ kio/kio/kdirmodel.cpp	(copia de trabajo)
+@@ -30,6 +30,7 @@
+ #include <QFile>
+ #include <QFileInfo>
+ #include <QDir>
++#include <QEventLoop>
+ #include <sys/types.h>
+ 
+ class KDirModelNode;
+@@ -125,7 +126,7 @@ public:
+     // Returns (0,0) if there is no node for this url.
+     // If returnLastParent is set, then return the last known parent if there is no node for this url
+     // (special case for expandToUrl)
+-    QPair<int /*row*/, KDirModelNode*> nodeForUrl(const KUrl& url, bool returnLastParent = false) const;
++    QPair<int /*row*/, KDirModelNode*> nodeForUrl(const KUrl& url, bool returnLastParent = false);
+     KDirModelNode* nodeForIndex(const QModelIndex& index) const;
+     QModelIndex indexForNode(KDirModelNode* node, int rowNumber = -1 /*unknown*/) const;
+     bool isDir(KDirModelNode* node) const {
+@@ -145,7 +146,7 @@ public:
+ // we need to get the parent KFileItem in _k_slotNewItems, and then we can use a QHash<KFileItem,KDirModelNode*> cache.
+ // (well there isn't a parent kfileitem, rather a parent url... hmm, back to square one with hashes-of-urls..)
+ // For now we'll assume "child url = parent url + filename"
+-QPair<int /*row*/, KDirModelNode*> KDirModelPrivate::nodeForUrl(const KUrl& _url, bool returnLastParent) const // O(n*m)
++QPair<int /*row*/, KDirModelNode*> KDirModelPrivate::nodeForUrl(const KUrl& _url, bool returnLastParent) // O(n*m)
+ {
+     KUrl url(_url);
+     url.adjustPath(KUrl::RemoveTrailingSlash);
+@@ -178,8 +179,31 @@ QPair<int /*row*/, KDirModelNode*> KDirM
+             if ( urlStr.startsWith(u.url()+'/') ) {
+                 //kDebug(7008) << "going into " << node->item().url();
+                 Q_ASSERT( isDir(*it) );
++                QModelIndex sonIndex = indexForNode(*it, row);
++                emit q->expand(sonIndex);
++                m_urlsBeingFetched[dirNode].append((*it)->item().url().url()+'/');
+                 dirNode = static_cast<KDirModelDirNode *>( *it );
++                const bool wasPopulated = dirNode->isPopulated();
++
++                // we need to wait until KDirLister has finished listing to
++                // continue exploring the tree. This assures us we do not hit
++                // a not fetched item when looking for the asked path.
++                QEventLoop eventLoop;
++                if (!wasPopulated) {
++                    QObject::connect(m_dirLister, SIGNAL(completed()),
++                                     &eventLoop, SLOT(quit()));
++                    QObject::connect(m_dirLister, SIGNAL(canceled()),
++                                     &eventLoop, SLOT(quit()));
++                }
++
++                q->fetchMore(sonIndex);
+                 foundChild = true;
++
++                // do the waiting if necessary
++                if (!wasPopulated) {
++                    eventLoop.exec(QEventLoop::WaitForMoreEvents);
++                }
++
+                 break;
+             }
+         }
+@@ -328,8 +352,8 @@ void KDirModelPrivate::_k_slotNewItems(c
+                     Q_ASSERT(parentIndex.isValid());
+                     emit q->expand(parentIndex);
+                     if (dirUrl != urlFetched) {
+-                        q->fetchMore(parentIndex);
+                         m_urlsBeingFetched[node].append(urlFetched);
++                        q->fetchMore(parentIndex);
+                     }
+                 }
+             }
+@@ -734,8 +758,11 @@ void KDirModel::expandToUrl(const KUrl& 
+ {
+     const QPair<int, KDirModelNode*> result = d->nodeForUrl(url, true /*return last parent*/); // O(n*m)
+ 
+-    if (!result.second) // doesn't seem related to our base url?
++    // TODO: remove the (result.first == -1) check when nodeForUrl returns a valid
++    //       value for the row when returnLastParent is true for that call.
++    if ((result.first == -1) || !result.second) // doesn't seem related to our base url?
+         return;
++
+     if (!(result.second->item().isNull()) && result.second->item().url() == url) {
+         // We have it already, nothing to do
+         kDebug(7008) << "have it already item=" <<url /*result.second->item()*/;

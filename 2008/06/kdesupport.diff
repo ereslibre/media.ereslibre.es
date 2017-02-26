@@ -1,0 +1,36 @@
+diff --git a/strigi/src/streamanalyzer/endanalyzers/rpmendanalyzer.cpp b/strigi/src/streamanalyzer/endanalyzers/rpmendanalyzer.cpp
+index 956cad4..7f997e9 100644
+--- a/strigi/src/streamanalyzer/endanalyzers/rpmendanalyzer.cpp
++++ b/strigi/src/streamanalyzer/endanalyzers/rpmendanalyzer.cpp
+@@ -23,8 +23,10 @@
+ #include "subinputstream.h"
+ #include "analysisresult.h"
+ #include "fieldtypes.h"
+-
++#include "analyzerconfiguration.h"
++#include <iostream>
+ using namespace Strigi;
++using namespace std;
+ 
+ void
+ RpmEndAnalyzerFactory::registerFields(FieldRegister& reg) {
+@@ -45,8 +47,17 @@ RpmEndAnalyzer::analyze(AnalysisResult& idx, InputStream* in) {
+     }
+     idx.addValue(factory->typeField, "http://freedesktop.org/standards/xesam/1.0/core#SoftwarePackage");
+     while (s) {
+-        idx.indexChild(rpm.entryInfo().filename, rpm.entryInfo().mtime,
+-            s);
++        // check if we're done
++        int64_t max = idx.config().maximalStreamReadLength(idx);
++        if (max != -1 && in->position() <= max) {
++            return 0;
++        }
++        // check if the analysis has been aborted
++        if (!idx.config().indexMore()) {
++            return 0;
++        }
++        idx.indexChild(rpm.entryInfo().filename, rpm.entryInfo().mtime, s);
++
+         s = rpm.nextEntry();
+     }
+     if (rpm.status() == Error) {

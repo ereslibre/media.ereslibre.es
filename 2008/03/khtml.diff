@@ -1,0 +1,83 @@
+Index: khtml/rendering/render_form.cpp
+===================================================================
+--- khtml/rendering/render_form.cpp	(revisión: 785103)
++++ khtml/rendering/render_form.cpp	(copia de trabajo)
+@@ -589,17 +589,6 @@ void LineEditWidget::clearHistoryActivat
+ 
+ void LineEditWidget::paintEvent( QPaintEvent *pe )
+ {
+-    //Always paint our background color
+-    QRect r = rect();
+-    if (hasFrame()) {
+-        int margin = style()->pixelMetric(QStyle::PM_DefaultFrameWidth);
+-        r = QRect(QPoint(margin, margin), QSize(width() - 2*margin, height() - 2*margin));
+-    }
+-
+-    QPainter p(this);
+-    p.fillRect(r, palette().brush(QPalette::Base));
+-    p.end();
+-
+     KLineEdit::paintEvent( pe );
+ }
+ 
+Index: khtml/rendering/render_replaced.cpp
+===================================================================
+--- khtml/rendering/render_replaced.cpp	(revisión: 785103)
++++ khtml/rendering/render_replaced.cpp	(copia de trabajo)
+@@ -31,6 +31,7 @@
+ 
+ #include <assert.h>
+ #include <QtGui/QWidget>
++#include <QtGui/QBitmap>
+ #include <QtGui/QPainter>
+ #include <QtGui/QActionEvent>
+ #include <QtGui/QApplication>
+@@ -593,6 +594,7 @@ static void copyWidget(const QRect& r, Q
+         if (!widget->size().isValid())
+             return;
+         pm = PaintBuffer::grab(widget->size());
++        Q_ASSERT( !pm->paintingActive() );
+         QPainter pp(pm);
+         pp.setCompositionMode(QPainter::CompositionMode_Clear);
+         pp.eraseRect(r);
+@@ -604,11 +606,31 @@ static void copyWidget(const QRect& r, Q
+ 
+     setInPaintEventFlag( widget, false );
+ 
+-    widget->render( d, (buffered ? QPoint(0,0) : thePoint) + r.topLeft(), r);
++    // The next code into braces will fill the rect where the widget will be drawn with a
++    // transparent color. That way, if the widget contains transparent pixels, we will show
++    // the actual background content of the page. (ereslibre)
++    {
++        QPixmap &pixmap = static_cast<QPixmap&>(*d);
++        pixmap.setMask(pixmap.createMaskFromColor(Qt::transparent, Qt::MaskOutColor));
++        bool endPainter = false;
++        if (!p->isActive()) {
++            endPainter = true;
++            Q_ASSERT( !d->paintingActive() );
++            p->begin(d);
++        }
++        p->fillRect(r, Qt::transparent);
++        if (endPainter) {
++            p->end();
++        }
++    }
++
++    Q_ASSERT( !d->paintingActive() );
++    widget->render( d, (buffered ? QPoint(0,0) : thePoint) + r.topLeft(), r, QWidget::DrawChildren );
+ 
+     setInPaintEventFlag( widget );
+ 
+     if (!buffered) {
++        Q_ASSERT( !x->paintingActive() );
+         p->begin(x);
+         p->setWorldTransform(t);
+         p->setWindow(w);
+@@ -621,6 +643,7 @@ static void copyWidget(const QRect& r, Q
+             p->setOpacity(op);
+         p->setPen(pen);
+         p->setBrush(brush);
++        p->end();
+     } else {
+         // transfer results
+         QPoint off(r.x(), r.y());

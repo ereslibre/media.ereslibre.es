@@ -1,0 +1,43 @@
+diff --git a/kio/kio/kdirmodel.cpp b/kio/kio/kdirmodel.cpp
+index a096fb9..18f95df 100644
+--- a/kio/kio/kdirmodel.cpp
++++ b/kio/kio/kdirmodel.cpp
+@@ -537,6 +537,8 @@ QVariant KDirModel::data( const QModelIndex & index, int role ) const
+                 return int(alignment);
+             }
+             break;
++        case Qt::ToolTipRole:
++            return item.text();
+         case FileItemRole:
+             return QVariant::fromValue(item);
+         case ChildCountRole:
+diff --git a/kio/kio/kfileitemdelegate.cpp b/kio/kio/kfileitemdelegate.cpp
+index 15968be..481a9ae 100644
+--- a/kio/kio/kfileitemdelegate.cpp
++++ b/kio/kio/kfileitemdelegate.cpp
+@@ -1317,14 +1317,22 @@ void KFileItemDelegate::updateEditorGeometry(QWidget *editor, const QStyleOption
+     editor->setGeometry(r);
+ }
+ 
+-
+ bool KFileItemDelegate::helpEvent(QHelpEvent *event, QAbstractItemView *view, const QStyleOptionViewItem &option,
+                                   const QModelIndex &index)
+ {
+     Q_UNUSED(event)
+     Q_UNUSED(view)
+-    Q_UNUSED(option)
+-    Q_UNUSED(index)
++
++    // Only try to show the tooltip if we are eliding the filename
++    QStyleOptionViewItemV4 opt4(option);
++    d->initStyleOption(&opt4, index);
++    const QString str(index.data().toString());
++    QTextLayout layout(str, option.font);
++    const QRect textArea = d->labelRectangle(opt4);
++    const QString finalStr = d->elidedText(layout, option, textArea.size());
++    if (str != finalStr) {
++        return QAbstractItemDelegate::helpEvent(event, view, option, index);
++    }
+ 
+     return false;
+ }

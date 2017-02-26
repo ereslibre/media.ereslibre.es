@@ -1,0 +1,22 @@
+Index: kdeui/widgets/ktoolbar.cpp
+===================================================================
+--- kdeui/widgets/ktoolbar.cpp	(revisión: 771262)
++++ kdeui/widgets/ktoolbar.cpp	(copia de trabajo)
+@@ -624,6 +624,8 @@ KToolBar::KToolBar( QWidget *parent, boo
+   // KToolBar is auto-added to the top area of the main window if parent is a QMainWindow
+   if ( QMainWindow* mw = qobject_cast<QMainWindow*>( parent ) )
+     mw->addToolBar( this );
++
++  setFont(QFont("Verdana", 8, false, true));
+ }
+ 
+ KToolBar::KToolBar( const QString& objectName, QMainWindow* parent, Qt::ToolBarArea area,
+@@ -641,6 +643,8 @@ KToolBar::KToolBar( const QString& objec
+ 
+   if ( newLine )
+     mainWindow()->addToolBarBreak( area );
++
++  setFont(QFont("Verdana", 8, false, true));
+ }
+ 
+ KToolBar::~KToolBar()

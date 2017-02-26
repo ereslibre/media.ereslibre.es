@@ -1,0 +1,248 @@
+Index: kate/plugins/wordcompletion/docwordcompletion.h
+===================================================================
+--- kate/plugins/wordcompletion/docwordcompletion.h	(revisión: 697484)
++++ kate/plugins/wordcompletion/docwordcompletion.h	(copia de trabajo)
+@@ -74,11 +74,26 @@
+                             const QStringList &args = QStringList() );
+     virtual ~DocWordCompletionPlugin(){kDebug()<<"~DocWordCompletionPlugin";}
+ 
++    static DocWordCompletionPlugin *self() { return plugin; }
++
+     void addView (KTextEditor::View *view);
+     void removeView (KTextEditor::View *view);
+ 
++    void readConfig();
++    void writeConfig();
++
++    virtual void readConfig (KConfig *) {}
++    virtual void writeConfig (KConfig *) {}
++
++    uint treshold() const { return m_treshold; }
++    void setTreshold( uint t ) { m_treshold = t; }
++    bool autoPopupEnabled() const { return m_autopopup; }
++    void setAutoPopupEnabled( bool enable ) { m_autopopup = enable; }
+   private:
++    static DocWordCompletionPlugin *plugin;
+     QList<class DocWordCompletionPluginView*> m_views;
++    uint m_treshold;
++    bool m_autopopup;
+     DocWordCompletionModel *m_dWCompletionModel;
+ 
+ };
+Index: kate/plugins/wordcompletion/docwordcompletion_config.cpp
+===================================================================
+--- kate/plugins/wordcompletion/docwordcompletion_config.cpp	(revisión: 697484)
++++ kate/plugins/wordcompletion/docwordcompletion_config.cpp	(copia de trabajo)
+@@ -19,6 +19,7 @@
+   */
+ 
+ #include "docwordcompletion_config.h"
++#include "docwordcompletion.h"
+ 
+ #include <QtGui/QBoxLayout>
+ #include <QtGui/QLabel>
+@@ -31,8 +32,8 @@
+ #include <kgenericfactory.h>
+ 
+ K_EXPORT_COMPONENT_FACTORY( \
+-    kcm_ktexteditor_docwordcompletion, \
+-    KGenericFactory<DocWordCompletionConfig>("kcm_ktexteditor_docwordcompletion"))
++    ktexteditor_docwordcompletion_config, \
++    KGenericFactory<DocWordCompletionConfig>("ktexteditor_docwordcompletion_config"))
+ 
+ DocWordCompletionConfig::DocWordCompletionConfig(QWidget *parent, const QStringList &args)
+     : KCModule(KGenericFactory<DocWordCompletionConfig>::componentData(), parent, args)
+@@ -85,18 +86,36 @@
+ 
+ void DocWordCompletionConfig::save()
+ {
+-    KConfigGroup cg(KGlobal::config(), "DocWordCompletion Plugin");
+-    cg.writeEntry("autopopup", cbAutoPopup->isChecked());
+-    cg.writeEntry("treshold", sbAutoPopup->value());
++    if (DocWordCompletionPlugin::self())
++    {
++        DocWordCompletionPlugin::self()->setTreshold(sbAutoPopup->value());
++        DocWordCompletionPlugin::self()->setAutoPopupEnabled(cbAutoPopup->isChecked());
++        DocWordCompletionPlugin::self()->writeConfig();
++    }
++    else
++    {
++        KConfigGroup cg(KGlobal::config(), "DocWordCompletion Plugin");
++        cg.writeEntry("treshold", sbAutoPopup->value());
++        cg.writeEntry("autopopup", cbAutoPopup->isChecked());
++    }
+ 
+     emit changed(false);
+ }
+ 
+ void DocWordCompletionConfig::load()
+ {
+-    KConfigGroup cg(KGlobal::config(), "DocWordCompletion Plugin");
+-    sbAutoPopup->setValue(cg.readEntry("treshold", 3));
+-    cbAutoPopup->setChecked(cg.readEntry("autopopup", true));
++    if (DocWordCompletionPlugin::self())
++    {
++        DocWordCompletionPlugin::self()->readConfig();
++        sbAutoPopup->setValue(DocWordCompletionPlugin::self()->treshold());
++        cbAutoPopup->setChecked(DocWordCompletionPlugin::self()->autoPopupEnabled());
++    }
++    else
++    {
++        KConfigGroup cg(KGlobal::config(), "DocWordCompletion Plugin");
++        sbAutoPopup->setValue(cg.readEntry("treshold", 3));
++        cbAutoPopup->setChecked(cg.readEntry("autopopup", true));
++    }
+ 
+     emit changed(false);
+ }
+Index: kate/plugins/wordcompletion/docwordcompletion.cpp
+===================================================================
+--- kate/plugins/wordcompletion/docwordcompletion.cpp	(revisión: 697484)
++++ kate/plugins/wordcompletion/docwordcompletion.cpp	(copia de trabajo)
+@@ -160,21 +160,19 @@
+ //END DocWordCompletionModel
+ 
+ //BEGIN DocWordCompletionPlugin
++DocWordCompletionPlugin *DocWordCompletionPlugin::plugin = 0;
+ K_EXPORT_COMPONENT_FACTORY( ktexteditor_docwordcompletion, KGenericFactory<DocWordCompletionPlugin>( "ktexteditor_docwordcompletion", "ktexteditor_plugins" ) )
+ DocWordCompletionPlugin::DocWordCompletionPlugin( QObject *parent,
+                             const QStringList& /*args*/ )
+   : KTextEditor::Plugin ( parent )
+ {
++  plugin = this;
+   m_dWCompletionModel = new DocWordCompletionModel( this );
+   readConfig();
+ }
+ 
+ void DocWordCompletionPlugin::addView(KTextEditor::View *view)
+ {
+-  KConfigGroup cg(KGlobal::config(), "DocWordCompletion Plugin");
+-  uint m_treshold = cg.readEntry("treshold", 3);
+-  bool m_autopopup = cg.readEntry("autopopup", true);
+-
+   DocWordCompletionPluginView *nview = new DocWordCompletionPluginView (m_treshold, m_autopopup, view, m_dWCompletionModel );
+   m_views.append (nview);
+ }
+@@ -189,6 +187,20 @@
+        delete nview;
+     }
+ }
++
++void DocWordCompletionPlugin::readConfig()
++{
++  KConfigGroup cg(KGlobal::config(), "DocWordCompletion Plugin" );
++  m_treshold = cg.readEntry( "treshold", 3 );
++  m_autopopup = cg.readEntry( "autopopup", true );
++}
++
++void DocWordCompletionPlugin::writeConfig()
++{
++  KConfigGroup cg(KGlobal::config(), "DocWordCompletion Plugin" );
++  cg.writeEntry("autopopup", m_autopopup );
++  cg.writeEntry("treshold", m_treshold );
++}
+ //END
+ 
+ //BEGIN DocWordCompletionPluginView
+Index: kate/plugins/wordcompletion/CMakeLists.txt
+===================================================================
+--- kate/plugins/wordcompletion/CMakeLists.txt	(revisión: 697484)
++++ kate/plugins/wordcompletion/CMakeLists.txt	(copia de trabajo)
+@@ -1,7 +1,7 @@
+ 
+ ########### next target ###############
+ 
+-set(ktexteditor_docwordcompletion_PART_SRCS docwordcompletion.cpp )
++set(ktexteditor_docwordcompletion_PART_SRCS docwordcompletion.cpp docwordcompletion_config.cpp )
+ 
+ kde4_add_plugin(ktexteditor_docwordcompletion ${ktexteditor_docwordcompletion_PART_SRCS} )
+ 
+@@ -9,22 +9,9 @@
+ 
+ install(TARGETS ktexteditor_docwordcompletion DESTINATION ${PLUGIN_INSTALL_DIR} )
+ 
+-########### next target ###############
+-
+-set(kcm_ktexteditor_docwordcompletion_PART_SRCS docwordcompletion_config.cpp )
+-
+-kde4_add_plugin(kcm_ktexteditor_docwordcompletion ${kcm_ktexteditor_docwordcompletion_PART_SRCS} )
+-
+-target_link_libraries(kcm_ktexteditor_docwordcompletion ${KDE4_KDECORE_LIBS} ktexteditor )
+-
+-install(TARGETS kcm_ktexteditor_docwordcompletion DESTINATION ${PLUGIN_INSTALL_DIR} )
+-
+-
+ ########### install files ###############
+ 
+-install( FILES ktexteditor_docwordcompletion.desktop
+-               ktexteditor_docwordcompletion_config.desktop DESTINATION  ${SERVICES_INSTALL_DIR} )
++install(FILES docwordcompletionui.rc  DESTINATION  ${DATA_INSTALL_DIR}/ktexteditor_docwordcompletion )
+ 
+-
+-
+-
++install(FILES ktexteditor_docwordcompletion.desktop
++              ktexteditor_docwordcompletion_config.desktop DESTINATION  ${SERVICES_INSTALL_DIR} )
+Index: kate/plugins/wordcompletion/ktexteditor_docwordcompletion_config.desktop
+===================================================================
+--- kate/plugins/wordcompletion/ktexteditor_docwordcompletion_config.desktop	(revisión: 697484)
++++ kate/plugins/wordcompletion/ktexteditor_docwordcompletion_config.desktop	(copia de trabajo)
+@@ -3,8 +3,8 @@
+ Type=Service
+ ServiceTypes=KCModule
+ 
+-X-KDE-Library=kcm_ktexteditor_docwordcompletion
+-X-KDE-FactoryName=kcm_ktexteditor_docwordcompletion
++X-KDE-Library=ktexteditor_docwordcompletion
++X-KDE-FactoryName=ktexteditor_docwordcompletion_config
+ X-KDE-ParentComponents=ktexteditordocwordcompletion
+ 
+ Name=Behavior
+Index: security/crypto/crypto.cpp
+===================================================================
+--- security/crypto/crypto.cpp	(revisión: 697484)
++++ security/crypto/crypto.cpp	(copia de trabajo)
+@@ -98,7 +98,7 @@
+ using namespace KNetwork;
+ 
+ typedef KGenericFactory<KCryptoConfig, QWidget> KryptoFactory;
+-K_EXPORT_COMPONENT_FACTORY( crypto, KryptoFactory("kcmcrypto") )
++K_EXPORT_COMPONENT_FACTORY( kcm_crypto, KryptoFactory("kcmcrypto") )
+ 
+ CipherItem::CipherItem( Q3ListView *view, const QString& cipher, int bits,
+ 			int maxBits, KCryptoConfig *module )
+Index: security/crypto/crypto.desktop
+===================================================================
+--- security/crypto/crypto.desktop	(revisión: 697484)
++++ security/crypto/crypto.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ Exec=kcmshell crypto
+ DocPath=kcontrol/crypto/index.html
+ 
+-X-KDE-Library=crypto
++X-KDE-Library=kcm_crypto
+ X-KDE-ParentApp=kcontrol
+ 
+ Name=Crypto
+Index: kutils/kcmoduleinfo.cpp
+===================================================================
+--- kutils/kcmoduleinfo.cpp	(revisión: 697484)
++++ kutils/kcmoduleinfo.cpp	(copia de trabajo)
+@@ -71,8 +71,6 @@
+   icon = service->icon();
+   fileName = service->desktopEntryPath();
+   lib = service->library();
+-  if( !lib.startsWith( QLatin1String( "kcm_" ) ) )
+-    lib = QLatin1String( "kcm_" ) + lib;
+   keywords = service->keywords();
+ }
+ 
+@@ -134,7 +132,7 @@
+ 
+   // factory handle
+   tmp = service->property("X-KDE-FactoryName", QVariant::String);
+-  handle = tmp.isValid() ? tmp.toString() : lib.right( lib.length() - 4 ); // lib without kcm_ prefix
++  handle = tmp.isValid() ? tmp.toString() : lib;
+ 
+ }
+ 

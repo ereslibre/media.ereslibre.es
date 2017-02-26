@@ -1,0 +1,251 @@
+Index: apps/konqueror/src/konqmainwindow.cpp
+===================================================================
+--- apps/konqueror/src/konqmainwindow.cpp	(revisión: 804083)
++++ apps/konqueror/src/konqmainwindow.cpp	(copia de trabajo)
+@@ -127,6 +127,7 @@
+ #include <kacceleratormanager.h>
+ #include <kuser.h>
+ #include <kxmlguifactory.h>
++#include <kservicetypetrader.h>
+ #include <netwm.h>
+ #include <sonnet/configdialog.h>
+ #ifdef KDE_MALLINFO_MALLOC
+@@ -522,7 +523,32 @@
+   }
+   else if ( !KProtocolInfo::isKnownProtocol( url ) && url.protocol() != "about" )
+   {
+-      KMessageBox::error(0, i18n("Protocol not supported\n%1", url.protocol()));
++      // We know that the protocol provided by the user can't be handled. That
++      // can happen because of two reasons: a) The protocol is actually wrong,
++      // b) The protocol is a web shortcut, and this one is disabled.
++      //
++      // For a better error handling and error notifying for the user, lets
++      // check if there is any search provider which keys match the provided
++      // protocol. If that's the case, we inform the user the protocol provided
++      // probably was meant to be a web shortcut, but that one is disabled at
++      // the moment, and how the user can enable it. (ereslibre)
++
++      const KService::List offers = KServiceTypeTrader::self()->query("SearchProvider");
++
++      bool found = false;
++      foreach (const KService::Ptr &ptr, offers) {
++        if (ptr->property("Keys").toStringList().contains(url.protocol())) {
++            found = true;
++            break;
++        }
++      }
++
++      if (found) {
++        KMessageBox::error(0, i18n("Protocol not supported\n%1\n\nIf the provided protocol was intended to be a web shortcut, please, make sure that web shortcuts feature is enabled as well as the checkbox that provides the shortcut \"%2\" is enabled on the Konqueror configuration dialog, in \"Web Shortcuts\" page", url.protocol(), url.protocol()));
++      } else {
++        KMessageBox::error(0, i18n("Protocol not supported\n%1", url.protocol()));
++      }
++
+       return;
+   }
+ 
+Index: runtime/kurifilter-plugins/ikws/kuriikwsfiltereng.cpp
+===================================================================
+--- runtime/kurifilter-plugins/ikws/kuriikwsfiltereng.cpp	(revisión: 804083)
++++ runtime/kurifilter-plugins/ikws/kuriikwsfiltereng.cpp	(copia de trabajo)
+@@ -76,10 +76,14 @@
+     {
+       SearchProvider *provider = SearchProvider::findByKey(key);
+ 
+-      if (provider)
++      if (provider && isSearchEngineEnabled(provider->desktopEntryName(), key))
+       {
+         result = formatResult(provider->query(), provider->charset(),
+                               QString(), search.mid(pos+1), true);
++      }
++
++      if (provider)
++      {
+         delete provider;
+       }
+     }
+@@ -96,16 +100,20 @@
+   if (m_bWebShortcutsEnabled && !m_defaultSearchEngine.isEmpty())
+   {
+     // Make sure we ignore supported protocols, e.g. "smb:", "http:"
+-    int pos = typedString.indexOf(':');
++    int pos = typedString.indexOf(m_cKeywordDelimiter);
+ 
+-    if (pos == -1 || !KProtocolInfo::isKnownProtocol(typedString.left(pos)))
++    if (pos == -1)
+     {
+       SearchProvider *provider = SearchProvider::findByDesktopName(m_defaultSearchEngine);
+ 
+-      if (provider)
++      if (provider && isSearchEngineEnabled(provider->desktopEntryName(), QString()))
+       {
+         result = formatResult (provider->query(), provider->charset(),
+                                QString(), typedString, true);
++      }
++
++      if (provider)
++      {
+         delete provider;
+       }
+     }
+@@ -377,6 +385,17 @@
+   return newurl;
+ }
+ 
++bool KURISearchFilterEngine::isSearchEngineEnabled(const QString& searchEngine,
++                                                   const QString& key) const
++{
++  KConfig config( "kuriikwsfilterrc", KConfig::NoGlobals );
++  KConfigGroup group = config.group("General");
++  QStringList favoriteSearchEngines = group.readEntry("FavoriteSearchEngines", QStringList());
++
++  return (!key.isEmpty() && favoriteSearchEngines.contains(searchEngine)) ||
++         (key.isEmpty() && (group.readEntry("DefaultSearchEngine", QString()) == searchEngine));
++}
++
+ QString KURISearchFilterEngine::formatResult( const QString& url,
+                                               const QString& cset1,
+                                               const QString& cset2,
+Index: runtime/kurifilter-plugins/ikws/kuriikwsfiltereng.h
+===================================================================
+--- runtime/kurifilter-plugins/ikws/kuriikwsfiltereng.h	(revisión: 804083)
++++ runtime/kurifilter-plugins/ikws/kuriikwsfiltereng.h	(copia de trabajo)
+@@ -33,36 +33,38 @@
+ {
+ public:
+   typedef QMap <QString, QString> SubstMap;
+-  
++
+   KURISearchFilterEngine();
+   ~KURISearchFilterEngine() {}
+ 
+   QByteArray name() const;
+-  
++
+   QString webShortcutQuery (const QString&) const;
+-  
++
+   QString autoWebSearchQuery (const QString&) const;
+-  
++
+   bool verbose() const { return m_bVerbose; }
+ 
+   void loadConfig();
+-  
++
+   static KURISearchFilterEngine *self();
+ 
+ protected:
+   QString formatResult (const QString& url, const QString& cset1, const QString& cset2,
+                         const QString& query, bool isMalformed) const;
+-  
++
+   QString formatResult (const QString& url, const QString& cset1, const QString& cset2,
+                         const QString& query, bool isMalformed, SubstMap& map) const;
+ 
+ private:
+-  QStringList modifySubstitutionMap (SubstMap& map, const QString& query) const;  
+-  
+-  QString substituteQuery (const QString& url, SubstMap &map, 
++  QStringList modifySubstitutionMap (SubstMap& map, const QString& query) const;
++
++  QString substituteQuery (const QString& url, SubstMap &map,
+                            const QString& userquery, const int encodingMib) const;
+-  
+-  bool m_bVerbose;  
++
++  bool isSearchEngineEnabled(const QString& searchEngine, const QString& key) const;
++
++  bool m_bVerbose;
+   bool m_bWebShortcutsEnabled;
+   char m_cKeywordDelimiter;
+ 
+Index: runtime/kurifilter-plugins/ikws/ikwsopts.cpp
+===================================================================
+--- runtime/kurifilter-plugins/ikws/ikwsopts.cpp	(revisión: 804083)
++++ runtime/kurifilter-plugins/ikws/ikwsopts.cpp	(copia de trabajo)
+@@ -83,11 +83,34 @@
+     m_dlg = new FilterOptionsUI (this);
+     mainLayout->addWidget(m_dlg);
+ 
+-    m_dlg->lvSearchProviders->header()->setLabel(0, KIcon("bookmarks"),i18n("Name"));
++    m_dlg->lvSearchProviders->header()->setLabel(0, i18n("Name"));
+     m_dlg->lvSearchProviders->setSorting(0);
+ 
+-    // Load the options
+-    load();
++    // Connect all the signals/slots...
++    connect(m_dlg->cbEnableShortcuts, SIGNAL(toggled(bool)), this,
++            SLOT(setWebShortcutState()));
++    connect(m_dlg->cbEnableShortcuts, SIGNAL(toggled(bool)), this,
++            SLOT(configChanged()));
++
++    connect(m_dlg->lvSearchProviders, SIGNAL(selectionChanged(Q3ListViewItem *)),
++           this, SLOT(updateSearchProvider()));
++    connect(m_dlg->lvSearchProviders, SIGNAL(doubleClicked(Q3ListViewItem *)),
++           this, SLOT(changeSearchProvider()));
++    connect(m_dlg->lvSearchProviders, SIGNAL(returnPressed(Q3ListViewItem *)),
++           this, SLOT(changeSearchProvider()));
++    connect(m_dlg->lvSearchProviders, SIGNAL(executed(Q3ListViewItem *)),
++           this, SLOT(checkFavoritesChanged()));
++    connect(m_dlg->lvSearchProviders, SIGNAL(pressed(Q3ListViewItem *)),
++           this, SLOT(checkFavoritesChanged()));
++
++    connect(m_dlg->cmbDefaultEngine, SIGNAL(currentIndexChanged(int)), this,
++            SLOT(configChanged()));
++    connect(m_dlg->cmbDelimiter, SIGNAL(currentIndexChanged(int)), this,
++            SLOT(configChanged()));
++
++    connect(m_dlg->pbNew, SIGNAL(clicked()), this, SLOT(addSearchProvider()));
++    connect(m_dlg->pbChange, SIGNAL(clicked()), this, SLOT(changeSearchProvider()));
++    connect(m_dlg->pbDelete, SIGNAL(clicked()), this, SLOT(deleteSearchProvider()));
+ }
+ 
+ QString FilterOptions::quickHelp() const
+@@ -137,32 +160,6 @@
+ 
+     if (m_dlg->lvSearchProviders->childCount())
+       m_dlg->lvSearchProviders->setSelected(m_dlg->lvSearchProviders->firstChild(), true);
+-
+-    // Connect all the signals/slots...
+-    connect(m_dlg->cbEnableShortcuts, SIGNAL(toggled(bool)), this,
+-            SLOT(setWebShortcutState()));
+-    connect(m_dlg->cbEnableShortcuts, SIGNAL(toggled(bool)), this,
+-            SLOT(configChanged()));
+-
+-    connect(m_dlg->lvSearchProviders, SIGNAL(selectionChanged(Q3ListViewItem *)),
+-           this, SLOT(updateSearchProvider()));
+-    connect(m_dlg->lvSearchProviders, SIGNAL(doubleClicked(Q3ListViewItem *)),
+-           this, SLOT(changeSearchProvider()));
+-    connect(m_dlg->lvSearchProviders, SIGNAL(returnPressed(Q3ListViewItem *)),
+-           this, SLOT(changeSearchProvider()));
+-    connect(m_dlg->lvSearchProviders, SIGNAL(executed(Q3ListViewItem *)),
+-           this, SLOT(checkFavoritesChanged()));
+-    connect(m_dlg->lvSearchProviders, SIGNAL(pressed(Q3ListViewItem *)),
+-           this, SLOT(checkFavoritesChanged()));
+-
+-    connect(m_dlg->cmbDefaultEngine, SIGNAL(currentIndexChanged(int)), this,
+-            SLOT(configChanged()));
+-    connect(m_dlg->cmbDelimiter, SIGNAL(currentIndexChanged(int)), this,
+-            SLOT(configChanged()));
+-
+-    connect(m_dlg->pbNew, SIGNAL(clicked()), this, SLOT(addSearchProvider()));
+-    connect(m_dlg->pbChange, SIGNAL(clicked()), this, SLOT(changeSearchProvider()));
+-    connect(m_dlg->pbDelete, SIGNAL(clicked()), this, SLOT(deleteSearchProvider()));
+ }
+ 
+ char FilterOptions::delimiter ()
+Index: workspace/kcontrol/style/kcmstyle.cpp
+===================================================================
+--- workspace/kcontrol/style/kcmstyle.cpp	(revisión: 804083)
++++ workspace/kcontrol/style/kcmstyle.cpp	(copia de trabajo)
+@@ -229,7 +229,9 @@
+ 	// -------------------
+ 	QGridLayout *effectsLayout = new QGridLayout( );
+ 	QLabel* lbl = new QLabel( i18n("Graphical User Interface:"), page2 );
++    lbl->setVisible(false);
+ 	comboGraphicEffectsLevel = new KComboBox( page2 );
++    comboGraphicEffectsLevel->setVisible(false);
+ 	comboGraphicEffectsLevel->setObjectName( "cbGraphicEffectsLevel" );
+ 	comboGraphicEffectsLevel->setEditable( false );
+ 	comboGraphicEffectsLevel->addItem(i18n("Low display resolution and Low CPU"), KGlobalSettings::NoEffects);

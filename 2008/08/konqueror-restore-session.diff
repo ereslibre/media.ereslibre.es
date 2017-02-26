@@ -1,0 +1,25 @@
+diff --git a/apps/konqueror/src/konqmainwindow.cpp b/apps/konqueror/src/konqmainwindow.cpp
+index e76b016..9ce8706 100644
+--- a/apps/konqueror/src/konqmainwindow.cpp
++++ b/apps/konqueror/src/konqmainwindow.cpp
+@@ -4825,7 +4825,7 @@ void KonqMainWindow::readProperties( const KConfigGroup& configGroup )
+     const QString xmluiFile = configGroup.readEntry("XMLUIFile","konqueror.rc");
+     setXMLFile(xmluiFile);
+ 
+-    m_pViewManager->loadViewProfileFromGroup( configGroup, QString() /*no profile name*/ );
++    m_pViewManager->loadViewProfileFromGroup( configGroup, configGroup.readEntry("Profile", QString()) );
+     // read window settings
+     applyMainWindowSettings( configGroup, true );
+ }
+diff --git a/apps/konqueror/src/konqviewmanager.cpp b/apps/konqueror/src/konqviewmanager.cpp
+index baf284f..1049588 100644
+--- a/apps/konqueror/src/konqviewmanager.cpp
++++ b/apps/konqueror/src/konqviewmanager.cpp
+@@ -834,6 +834,7 @@ void KonqViewManager::saveViewProfileToGroup(KConfigGroup & profileGroup, KonqFr
+ 
+     profileGroup.writeEntry( "FullScreen", m_pMainWindow->fullScreenMode());
+     profileGroup.writeEntry("XMLUIFile", m_pMainWindow->xmlFile());
++    profileGroup.writeEntry("Profile", m_currentProfile);
+ 
+     m_pMainWindow->saveMainWindowSettings(profileGroup);
+ }

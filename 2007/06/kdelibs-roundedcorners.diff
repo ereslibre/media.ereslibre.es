@@ -1,0 +1,114 @@
+Index: kio/kio/kfileitemdelegate.cpp
+===================================================================
+--- kio/kio/kfileitemdelegate.cpp	(revisión: 677095)
++++ kio/kio/kfileitemdelegate.cpp	(copia de trabajo)
+@@ -30,6 +30,7 @@
+ #include <QImage>
+ #include <QPainterPath>
+ #include <QTextLayout>
++#include <QListView>
+ 
+ #include <kglobal.h>
+ #include <klocale.h>
+@@ -89,6 +90,7 @@ class KFileItemDelegate::Private
+         inline QSize subtractMargin(const QSize &size, MarginType type) const;
+         QString itemSize(const QModelIndex &index, const KFileItem &item) const;
+         QString information(const QStyleOptionViewItem &option, const QModelIndex &index, const KFileItem &item) const;
++        bool isListView(const QStyleOptionViewItem &option) const;
+ 
+     public:
+         KFileItemDelegate::AdditionalInformation additionalInformation;
+@@ -199,7 +201,7 @@ QString KFileItemDelegate::Private::item
+ QString KFileItemDelegate::Private::information(const QStyleOptionViewItem &option, const QModelIndex &index,
+                                                 const KFileItem &item) const
+ {
+-    if (additionalInformation == KFileItemDelegate::NoInformation || item.isNull() || !verticalLayout(option))
++    if (additionalInformation == KFileItemDelegate::NoInformation || item.isNull() || !isListView(option))
+         return QString();
+ 
+     switch (additionalInformation)
+@@ -403,11 +405,19 @@ void KFileItemDelegate::Private::setLayo
+ QSize KFileItemDelegate::Private::displaySizeHint(const QStyleOptionViewItem &option,
+                                                   const QModelIndex &index) const
+ {
++    KFileItem item = fileItem(index);
+     QString label = q->display(index);
+-    const int maxWidth = verticalLayout(option) && wordWrapText(option) ?
+-            option.decorationSize.width() + 10 : 32757;
++    int maxWidth   = 32757;
+ 
+-    KFileItem item = fileItem(index);
++    QTextLayout layout;
++    setLayoutOptions(layout, option, index, item);
++
++    QFontMetrics fm(layout.font());
++    int nominalWidth = qMax(option.decorationSize.height() + fm.lineSpacing(),
++                            option.decorationSize.width() + 10);
++
++    if (verticalLayout(option) && wordWrapText(option))
++        maxWidth = nominalWidth;
+ 
+     // To compute the nominal size for the label + info, we'll just append
+     // the information string to the label
+@@ -415,10 +425,7 @@ QSize KFileItemDelegate::Private::displa
+     if (!info.isEmpty())
+         label += QString(QChar::LineSeparator) + info;
+ 
+-    QTextLayout layout;
+-    setLayoutOptions(layout, option, index, item);
+-
+-    QSize size = layoutText(layout, label, maxWidth);
++    QSize size = layoutText(layout, label, maxWidth).expandedTo(QSize(nominalWidth, 0));
+     return addMargin(size, TextMargin);
+ }
+ 
+@@ -560,6 +567,20 @@ bool KFileItemDelegate::Private::alterna
+ }
+ 
+ 
++bool KFileItemDelegate::Private::isListView(const QStyleOptionViewItem &option) const
++{
++#if QT_VERSION >= 0x040300
++    const QStyleOptionViewItemV3 *optv3 = qstyleoption_cast<const QStyleOptionViewItemV3*>(&option);
++    if ((optv3 && qobject_cast<const QListView*>(optv3->widget)) || verticalLayout(option))
++        return true;
++#else
++    if (verticalLayout(option))
++        return true;
++#endif
++
++    return false;
++}
++
+ 
+ 
+ // ---------------------------------------------------------------------------
+@@ -868,15 +889,21 @@ void KFileItemDelegate::paint(QPainter *
+ 
+     if (brush.style() != Qt::NoBrush)
+     {
+-        // If the selection rectangle should only cover the text label
++        QPainterPath path;
++        QRect r;
++
+         if (!option.showDecorationSelected)
+-        {
+-            const QRect r = d->addMargin(textBoundingRect, Private::TextMargin);
+-            const QPainterPath path = d->roundedRectangle(r, 5);
+-            painter->fillPath(path, brush);
+-        }
++            r = d->addMargin(textBoundingRect, Private::TextMargin);
++        else
++            r = option.rect;
++
++        // Always draw rounded selection rectangles in list views
++        if (d->isListView(option))
++            path = d->roundedRectangle(r, 5);
+         else
+-            painter->fillRect(option.rect, brush);
++            path.addRect(r);
++
++        painter->fillPath(path, brush);
+     }
+ 
+ 

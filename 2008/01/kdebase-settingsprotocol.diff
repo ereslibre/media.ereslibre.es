@@ -1,0 +1,203 @@
+Index: runtime/kcontrol/menus/kde-settings-looknfeel.directory
+===================================================================
+--- runtime/kcontrol/menus/kde-settings-looknfeel.directory	(revisión: 755475)
++++ runtime/kcontrol/menus/kde-settings-looknfeel.directory	(copia de trabajo)
+@@ -72,4 +72,4 @@
+ Name[xh]=Ubonakalo Nemixholo
+ Name[zh_CN]=外观和主题
+ Name[zh_TW]=外觀與主題
+-Icon=looknfeel
++Icon=preferences-desktop-theme
+Index: runtime/kcontrol/menus/kde-settings-system.directory
+===================================================================
+--- runtime/kcontrol/menus/kde-settings-system.directory	(revisión: 755475)
++++ runtime/kcontrol/menus/kde-settings-system.directory	(copia de trabajo)
+@@ -72,4 +72,4 @@
+ Name[xh]=Umphathi Wendlela yokusebenza
+ Name[zh_CN]=系统管理
+ Name[zh_TW]=系統管理
+-Icon=kcmsystem
++Icon=preferences-system
+Index: runtime/kcontrol/menus/kde-settings-components.directory
+===================================================================
+--- runtime/kcontrol/menus/kde-settings-components.directory	(revisión: 755475)
++++ runtime/kcontrol/menus/kde-settings-components.directory	(copia de trabajo)
+@@ -71,4 +71,4 @@
+ Name[xh]=Izinto ze KDE
+ Name[zh_CN]=KDE 组件
+ Name[zh_TW]=KDE 元件
+-Icon=blockdevice
++Icon=kde
+Index: runtime/kcontrol/menus/kde-settings-accessibility.directory
+===================================================================
+--- runtime/kcontrol/menus/kde-settings-accessibility.directory	(revisión: 755475)
++++ runtime/kcontrol/menus/kde-settings-accessibility.directory	(copia de trabajo)
+@@ -70,4 +70,4 @@
+ Name[xh]=Ummandla & Nofumaneko
+ Name[zh_CN]=区域和辅助功能
+ Name[zh_TW]=區域性與易用性
+-Icon=locale
++Icon=preferences-desktop-locale
+Index: runtime/kcontrol/menus/kde-settings-sound.directory
+===================================================================
+--- runtime/kcontrol/menus/kde-settings-sound.directory	(revisión: 755475)
++++ runtime/kcontrol/menus/kde-settings-sound.directory	(copia de trabajo)
+@@ -70,4 +70,4 @@
+ Name[xh]=Isandi & Multimedia
+ Name[zh_CN]=声音和多媒体
+ Name[zh_TW]=聲音與多媒體
+-Icon=multimedia
++Icon=preferences-desktop-sound
+Index: runtime/kcontrol/menus/kde-settings-network.directory
+===================================================================
+--- runtime/kcontrol/menus/kde-settings-network.directory	(revisión: 755475)
++++ runtime/kcontrol/menus/kde-settings-network.directory	(copia de trabajo)
+@@ -72,4 +72,4 @@
+ Name[xh]=Internet & Nomsebenzi womnatha
+ Name[zh_CN]=互联网和网络
+ Name[zh_TW]=網路
+-Icon=preferences-system-network
++Icon=preferences-system-network-sharing
+Index: runtime/kcontrol/menus/kde-settings-power.directory
+===================================================================
+--- runtime/kcontrol/menus/kde-settings-power.directory	(revisión: 755475)
++++ runtime/kcontrol/menus/kde-settings-power.directory	(copia de trabajo)
+@@ -71,4 +71,4 @@
+ Name[xh]=Ulawulo Lwamandla
+ Name[zh_CN]=电源控制
+ Name[zh_TW]=電源控制
+-Icon=energy
++Icon=preferences-system-power-management
+Index: runtime/kcontrol/menus/kde-settings-hardware.directory
+===================================================================
+--- runtime/kcontrol/menus/kde-settings-hardware.directory	(revisión: 755475)
++++ runtime/kcontrol/menus/kde-settings-hardware.directory	(copia de trabajo)
+@@ -57,4 +57,4 @@
+ Name[x-test]=xxHardwarexx
+ Name[zh_CN]=硬件
+ Name[zh_TW]=硬體
+-Icon=input_devices_settings
++Icon=preferences-system
+Index: runtime/kcontrol/menus/kde-settings-security.directory
+===================================================================
+--- runtime/kcontrol/menus/kde-settings-security.directory	(revisión: 755475)
++++ runtime/kcontrol/menus/kde-settings-security.directory	(copia de trabajo)
+@@ -71,4 +71,4 @@
+ Name[xh]=Ukhuseleko & Nobunikazi
+ Name[zh_CN]=安全和隐私
+ Name[zh_TW]=安全性與私密性
+-Icon=password
++Icon=preferences-desktop-user-password
+Index: runtime/kcontrol/menus/kde-settings-desktop.directory
+===================================================================
+--- runtime/kcontrol/menus/kde-settings-desktop.directory	(revisión: 755475)
++++ runtime/kcontrol/menus/kde-settings-desktop.directory	(copia de trabajo)
+@@ -68,4 +68,4 @@
+ Name[x-test]=xxDesktopxx
+ Name[zh_CN]=桌面
+ Name[zh_TW]=桌面
+-Icon=desktop
++Icon=preferences-desktop
+Index: runtime/kcontrol/menus/CMakeLists.txt
+===================================================================
+--- runtime/kcontrol/menus/CMakeLists.txt	(revisión: 755475)
++++ runtime/kcontrol/menus/CMakeLists.txt	(copia de trabajo)
+@@ -1,8 +1,20 @@
+-
+-
+-
+ ########### install files ###############
+ 
+-install( FILES kde-information.menu
+-    DESTINATION ${SYSCONF_INSTALL_DIR}/xdg/menus/)
+-install( FILES kde-information.directory  DESTINATION  ${XDG_DIRECTORY_INSTALL_DIR} )
++install( FILES kde-kcontrol.menu
++               kde-information.menu
++         DESTINATION ${SYSCONF_INSTALL_DIR}/xdg/menus/)
++install( FILES kde-information.directory
++               kde-settings.directory
++               kde-settings-accessibility.directory
++               kde-settings-components.directory
++               kde-settings-desktop.directory
++               kde-settings.directory
++               kde-settings-hardware.directory
++               kde-settings-looknfeel.directory
++               kde-settings-network.directory
++               kde-settings-power.directory
++               kde-settings-security.directory
++               kde-settings-sound.directory
++               kde-settings-system.directory
++               kde-settings-webbrowsing.directory
++         DESTINATION  ${XDG_DIRECTORY_INSTALL_DIR} )
+Index: runtime/kioslave/settings/kio_settings.cc
+===================================================================
+--- runtime/kioslave/settings/kio_settings.cc	(revisión: 755475)
++++ runtime/kioslave/settings/kio_settings.cc	(copia de trabajo)
+@@ -146,7 +146,10 @@
+ 	KService::Ptr service = KService::serviceByDesktopName(url.fileName());
+ 	if (service && service->isValid()) {
+ 		KUrl redirUrl;
+-		redirUrl.setPath(KStandardDirs::locate("apps", service->entryPath()));
++        if ( m_runMode == SettingsMode )
++            redirUrl.setPath(KStandardDirs::locate("services", service->entryPath()));
++        else
++		    redirUrl.setPath(KStandardDirs::locate("apps", service->entryPath()));
+ 		redirection(redirUrl);
+ 		finished();
+ 	} else {
+@@ -177,8 +180,10 @@
+ //			newUrl.setPath(KStandardDirs::locate("apps", service->entryPath()));
+ //			createFileEntry(entry, service->name(), newUrl, "application/x-desktop", service->icon());
+ 
+-			createFileEntry(entry, service->name(), url.url( KUrl::AddTrailingSlash )+service->desktopEntryName(),
+-                            "application/x-desktop", service->icon(), KStandardDirs::locate("apps", service->entryPath()) );
++            if ( m_runMode == SettingsMode )
++                createFileEntry(entry, service->name(), url.url( KUrl::AddTrailingSlash )+service->desktopEntryName(), "application/x-desktop", service->icon(), KStandardDirs::locate("services", service->entryPath()) );
++            else
++			    createFileEntry(entry, service->name(), url.url( KUrl::AddTrailingSlash )+service->desktopEntryName(), "application/x-desktop", service->icon(), KStandardDirs::locate("apps", service->entryPath()) );
+ 		} else {
+ 			error(KIO::ERR_SLAVE_DEFINED,i18n("Unknown settings folder"));
+ 			return;
+@@ -239,7 +244,7 @@
+ 			{
+ 			  case( SettingsMode ):
+ 				relPath.remove(0, 9); // length("Settings/") ==9
+-				kDebug() << "SettingsProtocol: adding entry settings:/" << relPath;
++				kDebug() << "SettingsProtocol: adding entry settings:/" << relPath << " with icon " << g->icon();
+ 				createDirEntry(entry, groupCaption, "settings:/"+relPath, "inode/directory",g->icon());
+ 				break;
+ 			  case( ProgramsMode ):
+@@ -247,7 +252,7 @@
+ 				createDirEntry(entry, groupCaption, "programs:/"+relPath, "inode/directory",g->icon());
+ 				break;
+ 			  case( ApplicationsMode ):
+-				kDebug() << "SettingsProtocol: adding entry applications:/" << relPath;
++                kDebug() << "SettingsProtocol: adding entry applications:/" << relPath << " with icon " << g->icon();
+ 				createDirEntry(entry, groupCaption, "applications:/"+relPath, "inode/directory",g->icon());
+ 				break;
+ 		    }
+@@ -255,7 +260,11 @@
+ 		} else {
+ 			KService::Ptr s(KService::Ptr::staticCast(e));
+ 			kDebug() << "SettingsProtocol: adding file entry " << url.url( KUrl::AddTrailingSlash )+s->name();
+-			createFileEntry(entry,s->name(),url.url( KUrl::AddTrailingSlash )+s->desktopEntryName(), "application/x-desktop",s->icon(),KStandardDirs::locate("apps", s->entryPath()));
++
++            if ( m_runMode == SettingsMode )
++                createFileEntry(entry,s->name(),url.url( KUrl::AddTrailingSlash )+s->desktopEntryName(), "application/x-desktop",s->icon(),KStandardDirs::locate("services", s->entryPath()));
++            else
++			    createFileEntry(entry,s->name(),url.url( KUrl::AddTrailingSlash )+s->desktopEntryName(), "application/x-desktop",s->icon(),KStandardDirs::locate("apps", s->entryPath()));
+ 		}
+ 
+ 		listEntry(entry, false);
+Index: workspace/menu/desktop/kde-utilities-peripherals.directory
+===================================================================
+--- workspace/menu/desktop/kde-utilities-peripherals.directory	(revisión: 755475)
++++ workspace/menu/desktop/kde-utilities-peripherals.directory	(copia de trabajo)
+@@ -1,6 +1,7 @@
+ [Desktop Entry]
+ Encoding=UTF-8
+ Type=Directory
++Icon=preferences-desktop-peripherals
+ Name=Peripherals
+ Name[af]=Randapperatuur
+ Name[ar]=الأجهزة الطرفية

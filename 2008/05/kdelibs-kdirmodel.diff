@@ -1,0 +1,15 @@
+diff --git a/kio/kio/kdirmodel.cpp b/kio/kio/kdirmodel.cpp
+index a1b134c..878af74 100644
+--- a/kio/kio/kdirmodel.cpp
++++ b/kio/kio/kdirmodel.cpp
+@@ -186,9 +186,8 @@ QPair<int /*row*/, KDirModelNode*> KDirModelPrivate::nodeForUrl(const KUrl& _url
+                 return qMakePair(row, *it);
+             }
+             // This used to be urlStr.startsWith(u.url()+'/'), but KUrl::url() is a slow operation.
+-            if ( pathStr.startsWith(u.path()+'/') ) {
++            if ( pathStr.startsWith(u.path()+'/') && isDir(*it) ) {
+                 //kDebug(7008) << "going into " << node->item().url();
+-                Q_ASSERT( isDir(*it) );
+                 dirNode = static_cast<KDirModelDirNode *>( *it );
+                 foundChild = true;
+                 break;

@@ -1,0 +1,43 @@
+Index: rendering/render_form.cpp
+===================================================================
+--- rendering/render_form.cpp	(revisión: 785364)
++++ rendering/render_form.cpp	(copia de trabajo)
+@@ -589,17 +589,6 @@ void LineEditWidget::clearHistoryActivat
+ 
+ void LineEditWidget::paintEvent( QPaintEvent *pe )
+ {
+-    //Always paint our background color
+-    QRect r = rect();
+-    if (hasFrame()) {
+-        int margin = style()->pixelMetric(QStyle::PM_DefaultFrameWidth);
+-        r = QRect(QPoint(margin, margin), QSize(width() - 2*margin, height() - 2*margin));
+-    }
+-
+-    QPainter p(this);
+-    p.fillRect(r, palette().brush(QPalette::Base));
+-    p.end();
+-
+     KLineEdit::paintEvent( pe );
+ }
+ 
+Index: rendering/render_replaced.cpp
+===================================================================
+--- rendering/render_replaced.cpp	(revisión: 785364)
++++ rendering/render_replaced.cpp	(copia de trabajo)
+@@ -593,10 +593,13 @@ static void copyWidget(const QRect& r, Q
+         if (!widget->size().isValid())
+             return;
+         pm = PaintBuffer::grab(widget->size());
++        if (!pm->hasAlphaChannel()) {
++            pm->fill(Qt::transparent);
++        } else {
+         QPainter pp(pm);
+-        pp.setCompositionMode(QPainter::CompositionMode_Clear);
+-        pp.eraseRect(r);
+-        pp.end();
++            pp.setCompositionMode( QPainter::CompositionMode_Source );
++            pp.fillRect(r, Qt::transparent);
++        }
+         d = pm;
+     } else {
+         p->end();

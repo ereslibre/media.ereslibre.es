@@ -1,0 +1,122 @@
+Index: code/drawcontrol.cpp
+===================================================================
+--- code/drawcontrol.cpp	(revisión: 658369)
++++ code/drawcontrol.cpp	(copia de trabajo)
+@@ -110,7 +110,7 @@ static bool scrollAreaHovered(const QWid
+    return isActive;
+ }
+ 
+-void OxygenStyle::drawControl ( ControlElement element, const QStyleOption * option, QPainter * painter, const QWidget * widget) const
++void OxygenStyle::drawControl ( QStyle::ControlElement element, const QStyleOption * option, QPainter * painter, const QWidget * widget) const
+ {
+    Q_ASSERT(option);
+    Q_ASSERT(painter);
+@@ -729,11 +729,11 @@ void OxygenStyle::drawControl ( ControlE
+          if (const QMenuBar* mbar = qobject_cast<const QMenuBar*>(widget)) {
+             action = mbar->actionAt(RECT.topLeft()); // is the action for this item!
+             activeAction = mbar->activeAction();
+-            info = const_cast<IndexedFadeInfo *>(indexedFadeInfo(widget, (int)activeAction));
++            //info = const_cast<IndexedFadeInfo *>(indexedFadeInfo(widget, (int)activeAction));
+          }
+-         if (info &&
++         /*if (info &&
+              (!activeAction || !activeAction->menu() || activeAction->menu()->isHidden()))
+-            step = info->step((int)action);
++            step = info->step((int)action);*/
+          if (step || option->state & State_Selected) {
+             QRect r = RECT;
+             if (step) {
+@@ -1245,3 +1245,48 @@ void OxygenStyle::drawControl ( ControlE
+          QCommonStyle::drawControl( element, option, painter, widget );
+    } // switch
+ }
++
++void OxygenStyle::drawControl(KStyle::ControlElement element, const QStyleOption *opt, QPainter *p, const QWidget *widget) const
++{
++    //Extract the stuff we need out of the option
++    QPalette   pal   = opt->palette;
++
++    switch (element)
++    {
++        case CE_Category:
++        {
++            if (const QStyleOptionButton *but = qstyleoption_cast<const QStyleOptionButton*>(opt))
++            {
++                QFont painterFont = p->font();
++                painterFont.setWeight(QFont::Bold);
++                QFontMetrics metrics(painterFont);
++                p->setFont(painterFont);
++
++                QRect shadowRect(opt->rect.left(),
++                                 opt->rect.bottom() - 15,
++                                 opt->rect.width(),
++                                 15);
++
++                QRect textRect(opt->rect.left() + 5,
++                               opt->rect.top(),
++                               opt->rect.width(),
++                               opt->rect.bottom() - shadowRect.top());
++
++                QLinearGradient shadow(shadowRect.topLeft(),
++                                       shadowRect.bottomLeft());
++                shadow.setColorAt(0, pal.color(QPalette::Light));
++                shadow.setColorAt(0.5, pal.color(QPalette::Button));
++                shadow.setColorAt(1, pal.color(QPalette::Light));
++
++                p->fillRect(shadowRect, shadow);
++
++                p->drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, but->text);
++            }
++
++            break;
++        }
++
++        default:
++        break;
++    }
++}
+Index: code/oxygen.cpp
+===================================================================
+--- code/oxygen.cpp	(revisión: 658369)
++++ code/oxygen.cpp	(copia de trabajo)
+@@ -447,7 +447,7 @@ void OxygenStyle::initMetrics()
+ #undef SCALE
+ 
+ /**THE STYLE ITSELF*/
+-OxygenStyle::OxygenStyle() : QCommonStyle(), activeChunk(0), anmiationUpdate(false), mouseButtonPressed_(false), internalEvent_(false), _bgBrush(0L), popupPix(0L), timer(0L)
++OxygenStyle::OxygenStyle() : KStyle(), activeChunk(0), anmiationUpdate(false), mouseButtonPressed_(false), internalEvent_(false), _bgBrush(0L), popupPix(0L), timer(0L)
+ {
+    _scanlines[0] = _scanlines[1] = 0L;
+    readSettings();
+Index: code/oxygen.h
+===================================================================
+--- code/oxygen.h	(revisión: 658369)
++++ code/oxygen.h	(copia de trabajo)
+@@ -42,6 +42,8 @@ class QFrame;
+ #include <fixx11h.h>
+ #include "tileset.h"
+ 
++#include <kstyle.h>
++
+ namespace Oxygen {
+ 
+ enum BGMode { Plain = 0, Scanlines, Dummy, FullPix, VGradient1, HGradient1, VGradient2, HGradient2, Glass };
+@@ -157,7 +159,7 @@ private:
+    int off[4];
+ };
+ 
+-class OxygenStyle : public QCommonStyle {
++class OxygenStyle : public KStyle {
+    Q_OBJECT
+ public:
+    enum WidgetState{Basic = 0, Hovered, Focused, Active};
+@@ -168,7 +170,8 @@ public:
+    //inheritance from QStyle
+    virtual void drawComplexControl ( ComplexControl control, const QStyleOptionComplex * option, QPainter * painter, const QWidget * widget = 0 ) const;
+   
+-   virtual void drawControl ( ControlElement element, const QStyleOption * option, QPainter * painter, const QWidget * widget = 0 ) const;
++   virtual void drawControl ( QStyle::ControlElement element, const QStyleOption * option, QPainter * painter, const QWidget * widget = 0 ) const;
++   virtual void drawControl ( KStyle::ControlElement element, const QStyleOption * option, QPainter * painter, const QWidget * widget = 0 ) const;
+    
+    /**what do they do?
+    virtual void drawItemPixmap ( QPainter * painter, const QRect & rect, int alignment, const QPixmap & pixmap ) const;

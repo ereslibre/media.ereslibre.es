@@ -1,0 +1,264 @@
+diff --git a/kfile/kdiroperator.cpp b/kfile/kdiroperator.cpp
+index d0726a7..23d45dc 100644
+--- a/kfile/kdiroperator.cpp
++++ b/kfile/kdiroperator.cpp
+@@ -176,6 +176,12 @@ public:
+     Private( KDirOperator *parent );
+     ~Private();
+ 
++    enum InlinePreviewState {
++        ForcedToFalse = 0,
++        ForcedToTrue,
++        NotForced
++    };
++
+     // private methods
+     bool checkPreviewInternal() const;
+     void checkPath(const QString &txt, bool takeFiles = false);
+@@ -282,6 +288,7 @@ public:
+     KToggleAction *leftAction;
+     KUrl::List itemsToBeSetAsCurrent;
+     bool shouldFetchForItems;
++    InlinePreviewState inlinePreviewState;
+ };
+ 
+ KDirOperator::Private::Private(KDirOperator *_parent) :
+@@ -308,7 +315,8 @@ KDirOperator::Private::Private(KDirOperator *_parent) :
+     iconsZoom(0),
+     decorationMenu(0),
+     leftAction(0),
+-    shouldFetchForItems(false)
++    shouldFetchForItems(false),
++    inlinePreviewState(NotForced)
+ {
+ }
+ 
+@@ -879,6 +887,11 @@ KFilePreviewGenerator *KDirOperator::previewGenerator() const
+     return d->previewGenerator;
+ }
+ 
++void KDirOperator::setInlinePreviewShown(bool show)
++{
++    d->inlinePreviewState = show ? Private::ForcedToTrue : Private::ForcedToFalse;
++}
++
+ bool KDirOperator::isInlinePreviewShown() const
+ {
+     return d->showPreviews;
+@@ -916,12 +929,13 @@ void KDirOperator::setIconsZoom(int _value)
+     value = qMin(100, value);
+     value = qMax(0, value);
+ 
+-    d->iconsZoom = value;
+-
+-    if (qobject_cast<QListView*>(d->itemView)) {
+-        d->configGroup->writeEntry("listViewIconSize", d->iconsZoom);
+-    } else {
+-        d->configGroup->writeEntry("detailedViewIconSize", d->iconsZoom);
++    if (d->inlinePreviewState == Private::NotForced) {
++        d->iconsZoom = value;
++        if (qobject_cast<QListView*>(d->itemView)) {
++            d->configGroup->writeEntry("listViewIconSize", d->iconsZoom);
++        } else {
++            d->configGroup->writeEntry("detailedViewIconSize", d->iconsZoom);
++        }
+     }
+ 
+     if (!d->previewGenerator) {
+@@ -1567,18 +1581,21 @@ void KDirOperator::setView(QAbstractItemView *view)
+         d->itemsToBeSetAsCurrent.clear();
+     }
+ 
++    const bool previewShown = d->inlinePreviewState == Private::NotForced ? d->showPreviews : d->inlinePreviewState;
++    const bool previewForcedToTrue = d->inlinePreviewState == Private::ForcedToTrue;
+     d->previewGenerator = new KFilePreviewGenerator(d->itemView);
+     int maxSize = KIconLoader::SizeEnormous - KIconLoader::SizeSmall;
+     int val = (maxSize * d->iconsZoom / 100) + KIconLoader::SizeSmall;
+-    d->itemView->setIconSize(QSize(val, val));
+-    d->previewGenerator->setPreviewShown(d->showPreviews);
++    d->itemView->setIconSize(previewForcedToTrue ? QSize(KIconLoader::SizeEnormous, KIconLoader::SizeEnormous) : QSize(val, val));
++    d->previewGenerator->setPreviewShown(previewShown);
++    d->actionCollection->action("inline preview")->setChecked(previewShown);
+ 
+     // ensure we change everything needed
+     d->_k_slotChangeDecorationPosition();
+ 
+     emit viewChanged(view);
+ 
+-    const int zoom = d->iconSizeForViewType(view);
++    const int zoom = previewForcedToTrue ? 100 : d->iconSizeForViewType(view);
+     // this will make d->iconsZoom be updated, since setIconsZoom slot will be called
+     emit currentIconSizeChanged(zoom);
+ }
+@@ -2067,8 +2084,9 @@ void KDirOperator::readConfig(const KConfigGroup& configGroup)
+         d->sorting = d->sorting | QDir::Reversed;
+     }
+ 
+-    d->showPreviews = configGroup.readEntry(QLatin1String("Previews"), false);
+-    d->iconsZoom = configGroup.readEntry(QLatin1String("Zoom"), 0);
++    if (d->inlinePreviewState == Private::NotForced) {
++        d->showPreviews = configGroup.readEntry(QLatin1String("Previews"), false);
++    }
+     decorationPosition = (QStyleOptionViewItem::Position) configGroup.readEntry(QLatin1String("Decoration position"), (int) QStyleOptionViewItem::Top);
+     const bool decorationAtLeft = decorationPosition == QStyleOptionViewItem::Left;
+     d->actionCollection->action("decorationAtLeft")->setChecked(decorationAtLeft);
+@@ -2128,8 +2146,9 @@ void KDirOperator::writeConfig(KConfigGroup& configGroup)
+         style = QLatin1String("DetailTree");
+     configGroup.writeEntry(QLatin1String("View Style"), style);
+ 
+-    configGroup.writeEntry(QLatin1String("Previews"), d->showPreviews);
+-    configGroup.writeEntry(QLatin1String("Zoom"), d->iconsZoom);
++    if (d->inlinePreviewState == Private::NotForced) {
++        configGroup.writeEntry(QLatin1String("Previews"), d->showPreviews);
++    }
+     configGroup.writeEntry(QLatin1String("Decoration position"), (int) decorationPosition);
+ }
+ 
+diff --git a/kfile/kdiroperator.h b/kfile/kdiroperator.h
+index 3494248..a7de1c1 100644
+--- a/kfile/kdiroperator.h
++++ b/kfile/kdiroperator.h
+@@ -541,6 +541,14 @@ public:
+     KFilePreviewGenerator *previewGenerator() const;
+ 
+     /**
++     * Forces the inline previews to be shown or hidden, depending on @p show.
++     *
++     * @param show Whether to show inline previews or not.
++     * @since 4.2
++     */
++    void setInlinePreviewShown(bool show);
++
++    /**
+      * Returns whether the inline previews are shown or not.
+      * @since 4.2
+      */
+diff --git a/kfile/kdiroperatordetailview.cpp b/kfile/kdiroperatordetailview.cpp
+index aa19ba0..509ec51 100644
+--- a/kfile/kdiroperatordetailview.cpp
++++ b/kfile/kdiroperatordetailview.cpp
+@@ -99,7 +99,8 @@ bool KDirOperatorDetailView::event(QEvent *event)
+ 
+         setColumnHidden(KDirModel::Size, m_hideDetailColumns);
+         setColumnHidden(KDirModel::ModifiedTime, m_hideDetailColumns);
+-        hideColumn(KDirModel::Type);
++        setColumnHidden(KDirModel::Type, m_hideDetailColumns);
++
+         hideColumn(KDirModel::Permissions);
+         hideColumn(KDirModel::Owner);
+         hideColumn(KDirModel::Group);
+diff --git a/kfile/kfilewidget.cpp b/kfile/kfilewidget.cpp
+index 2cd45e2..7366440 100644
+--- a/kfile/kfilewidget.cpp
++++ b/kfile/kfilewidget.cpp
+@@ -197,6 +197,8 @@ public:
+      */
+     static KUrl mostLocalUrl(const KUrl &url);
+ 
++    void setInlinePreviewShown(bool show);
++
+     KFileWidget* q;
+ 
+     // the last selected url
+@@ -2495,10 +2497,18 @@ void KFileWidget::virtual_hook( int id, void* data )
+     // is going to become a virtual function for KDE5
+ 
+     switch (id) {
+-    case 0:
+-        bool *enable = static_cast<bool*>(data);
+-        d->confirmOverwrite = *enable;
+-        break;
++        case 0: { // setConfirmOverwrite(bool)
++                bool *enable = static_cast<bool*>(data);
++                d->confirmOverwrite = *enable;
++            }
++            break;
++        case 1: { // setInlinePreviewShown(bool)
++                bool *show = static_cast<bool*>(data);
++                d->setInlinePreviewShown(*show);
++            }
++            break;
++        default:
++            break;
+     }
+ }
+ 
+@@ -2530,4 +2540,9 @@ KUrl KFileWidgetPrivate::mostLocalUrl(const KUrl &url)
+     return url;
+ }
+ 
++void KFileWidgetPrivate::setInlinePreviewShown(bool show)
++{
++    ops->setInlinePreviewShown(show);
++}
++
+ #include "kfilewidget.moc"
+diff --git a/kio/kfile/kabstractfilewidget.h b/kio/kfile/kabstractfilewidget.h
+index 48b47c9..6096cd1 100644
+--- a/kio/kfile/kabstractfilewidget.h
++++ b/kio/kfile/kabstractfilewidget.h
+@@ -368,6 +368,15 @@ public:
+         virtual_hook(0, static_cast<void*>(&enable));
+     }
+ 
++    /**
++     * Forces the inline previews to be shown or hidden, depending on @p show.
++     *
++     * @param show Whether to show inline previews or not.
++     * @since 4.2
++     */
++    void setInlinePreviewShown(bool show) { // KDE5 TODO: make this virtual
++        virtual_hook(1, static_cast<void*>(&show));
++    }
+ };
+ 
+ Q_DECLARE_INTERFACE(KAbstractFileWidget, "org.kde.KAbstractFileWidget")
+diff --git a/kio/kfile/kfiledialog.cpp b/kio/kfile/kfiledialog.cpp
+index 60c6c4b..129a0de 100644
+--- a/kio/kfile/kfiledialog.cpp
++++ b/kio/kfile/kfiledialog.cpp
+@@ -335,6 +335,14 @@ void KFileDialog::setPreviewWidget(KPreviewWidgetBase *w)
+     d->w->setPreviewWidget(w);
+ }
+ 
++void KFileDialog::setInlinePreviewShown(bool show)
++{
++    if (d->native) {
++        return;
++    }
++    d->w->setInlinePreviewShown(show);
++}
++
+ QSize KFileDialog::sizeHint() const
+ {
+     return QSize(640, 400);
+@@ -548,9 +556,8 @@ KUrl KFileDialog::getImageOpenUrl( const KUrl& startDir, QWidget *parent,
+     dlg.setOperationMode( Opening );
+     dlg.setCaption( caption.isEmpty() ? i18n("Open") : caption );
+     dlg.setMode( KFile::File );
++    dlg.setInlinePreviewShown( true );
+ 
+-    KImageFilePreview *ip = new KImageFilePreview( &dlg );
+-    dlg.setPreviewWidget( ip );
+     dlg.exec();
+ 
+     return dlg.selectedUrl();
+diff --git a/kio/kfile/kfiledialog.h b/kio/kfile/kfiledialog.h
+index 2b73db1..5937f49 100644
+--- a/kio/kfile/kfiledialog.h
++++ b/kio/kfile/kfiledialog.h
+@@ -306,6 +306,14 @@ public:
+     void setPreviewWidget(KPreviewWidgetBase *w);
+ 
+     /**
++     * Forces the inline previews to be shown or hidden, depending on @p show.
++     *
++     * @param show Whether to show inline previews or not.
++     * @since 4.2
++     */
++    void setInlinePreviewShown(bool show);
++
++    /**
+      * Sets whether the dialog should ask before accepting the selected file
+      * when KFileDialog::OperationMode is set to Saving.
+      *

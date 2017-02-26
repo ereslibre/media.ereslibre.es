@@ -1,0 +1,62 @@
+Index: kopete/kopete/chatwindow/kopetechatwindow.cpp
+===================================================================
+--- kopete/kopete/chatwindow/kopetechatwindow.cpp	(revisión: 723183)
++++ kopete/kopete/chatwindow/kopetechatwindow.cpp	(copia de trabajo)
+@@ -83,7 +83,6 @@
+ #include "kopeteprotocol.h"
+ #include "kopetestdaction.h"
+ #include "kopeteviewmanager.h"
+-#include "sidebarwidget.h"
+ 
+ #include <qtoolbutton.h>
+ #include <kxmlguifactory.h>
+@@ -204,14 +203,8 @@ KopeteChatWindow::KopeteChatWindow( QWid
+ 	updateBg = true;
+ 	m_tabBar = 0L;
+ 
+-	m_sideBar = new SidebarWidget(this);
+-	m_sideBar->setAllowedAreas(Qt::RightDockWidgetArea | Qt::LeftDockWidgetArea);
+-	m_sideBar->setObjectName("SideBar"); //object name is required for automatic position and settings save.
+-
+ 	initActions();
+ 
+-	addDockWidget(Qt::RightDockWidgetArea, m_sideBar);
+-
+ 	KVBox *vBox = new KVBox( this );
+ 	vBox->setLineWidth( 0 );
+ 	vBox->setSpacing( 0 );
+@@ -447,10 +440,6 @@ void KopeteChatWindow::initActions(void)
+ 	toggleAutoSpellCheck->setChecked( true );
+ 	connect( toggleAutoSpellCheck, SIGNAL(triggered(bool)), this, SLOT(toggleAutoSpellChecking()) );
+ 
+-	QAction *toggleSideBarAction = m_sideBar->toggleViewAction( );
+-	toggleSideBarAction->setText( i18n( "Show Sidebar" ) );
+-	coll->addAction ( "show_sidebar_widget", toggleSideBarAction );
+-
+ 	actionSmileyMenu = new KopeteEmoticonAction( coll );
+         coll->addAction( "format_smiley", actionSmileyMenu );
+ 	actionSmileyMenu->setDelayed( false );
+Index: kopete/kopete/chatwindow/kopetechatwindow.h
+===================================================================
+--- kopete/kopete/chatwindow/kopetechatwindow.h	(revisión: 723183)
++++ kopete/kopete/chatwindow/kopetechatwindow.h	(copia de trabajo)
+@@ -47,7 +47,6 @@ class KTabWidget;
+ class QLabel;
+ class KopeteEmoticonAction;
+ class ChatView;
+-class SidebarWidget;
+ 
+ namespace Kopete
+ {
+@@ -133,11 +132,6 @@ private:
+ 	//why did we ever need this method??
+ 	//const QString fileContents( const QString &file ) const;
+ 
+-	// Sidebar
+-	SidebarWidget *m_sideBar;
+-	QTabWidget *m_sideBarTabWidget;
+-
+-	//
+ 	ChatView *m_activeView;
+ 	ChatView *m_popupView;
+ 	bool m_alwaysShowTabs;

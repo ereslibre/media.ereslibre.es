@@ -1,0 +1,387 @@
+Index: kfile/kdirsortfilterproxymodel.h
+===================================================================
+--- kfile/kdirsortfilterproxymodel.h	(revisión: 712411)
++++ kfile/kdirsortfilterproxymodel.h	(copia de trabajo)
+@@ -23,7 +23,8 @@
+ #ifndef KDIRSORTFILTERPROXYMODEL_H
+ #define KDIRSORTFILTERPROXYMODEL_H
+ 
+-#include <QtGui/QSortFilterProxyModel>
++#include <kcategorizedsortfilterproxymodel.h>
++
+ #include <kfile_export.h>
+ //#include <kio/kio_export.h>
+ 
+@@ -46,7 +47,8 @@
+  *
+  * @author Dominic Battre, Martin Pool and Peter Penz
+  */
+-class KFILE_EXPORT /*KIO_EXPORT*/ KDirSortFilterProxyModel : public QSortFilterProxyModel
++class KFILE_EXPORT /*KIO_EXPORT*/ KDirSortFilterProxyModel
++    : public KCategorizedSortFilterProxyModel
+ {
+     Q_OBJECT
+ 
+@@ -76,6 +78,12 @@
+      */
+     virtual bool lessThan(const QModelIndex& left,
+                           const QModelIndex& right) const;
++
++    virtual bool lessThanCategoryPurpose(const QModelIndex &left,
++                                         const QModelIndex &right) const;
++
++    virtual bool lessThanGeneralPurpose(const QModelIndex &left,
++                                        const QModelIndex &right) const;
+ };
+ 
+ 
+Index: kfile/kdirsortfilterproxymodel.cpp
+===================================================================
+--- kfile/kdirsortfilterproxymodel.cpp	(revisión: 712411)
++++ kfile/kdirsortfilterproxymodel.cpp	(copia de trabajo)
+@@ -31,7 +31,7 @@
+ // in the form of a separate subclass
+ 
+ KDirSortFilterProxyModel::KDirSortFilterProxyModel(QObject* parent)
+-    : QSortFilterProxyModel(parent)
++    : KCategorizedSortFilterProxyModel(parent)
+ {
+     setDynamicSortFilter(true);
+ 
+@@ -288,7 +288,80 @@
+ 
+     // We have set a SortRole and trust the ProxyModel to do
+     // the right thing for now.
+-    return QSortFilterProxyModel::lessThan(left, right);
++    return KCategorizedSortFilterProxyModel::lessThan(left, right);
+ }
+ 
++bool KDirSortFilterProxyModel::lessThanCategoryPurpose(const QModelIndex &left,
++                                                       const QModelIndex &right) const
++{
++    return lessThan(left, right);
++}
+ 
++bool KDirSortFilterProxyModel::lessThanGeneralPurpose(const QModelIndex &left,
++                                                      const QModelIndex &right) const
++{
++    KDirModel* dirModel = static_cast<KDirModel*>(sourceModel());
++
++    const KFileItem leftFileItem  = dirModel->itemForIndex(left);
++    const KFileItem rightFileItem = dirModel->itemForIndex(right);
++
++    switch (left.column()) {
++    case KDirModel::Name: {
++        QString leftFileName(leftFileItem.name());
++        if (leftFileName.at(0) == '.') {
++            leftFileName = leftFileName.mid(1);
++        }
++
++        QString rightFileName(rightFileItem.name());
++        if (rightFileName.at(0) == '.') {
++            rightFileName = rightFileName.mid(1);
++        }
++
++        // We don't care about case for building categories
++        return naturalCompare(leftFileName[0].toLower(), rightFileName[0].toLower()) < 0;
++    }
++
++    case KDirModel::Size:
++        // If we are sorting by size, show folders first. We will sort them
++        // correctly later.
++        return leftFileItem.isDir() && !rightFileItem.isDir();
++
++    case KDirModel::ModifiedTime: {
++        KDateTime leftTime = leftFileItem.time(KFileItem::ModificationTime);
++        KDateTime rightTime = rightFileItem.time(KFileItem::ModificationTime);
++        return leftTime > rightTime;
++    }
++
++    case KDirModel::Permissions: {
++        return naturalCompare(leftFileItem.permissionsString(),
++                            rightFileItem.permissionsString()) < 0;
++    }
++
++    case KDirModel::Owner: {
++        return naturalCompare(leftFileItem.user().toLower(),
++                              rightFileItem.user().toLower()) < 0;
++    }
++
++    case KDirModel::Group: {
++        return naturalCompare(leftFileItem.group().toLower(),
++                              rightFileItem.group().toLower()) < 0;
++    }
++
++    case KDirModel::Type: {
++        // If we are sorting by size, show folders first. We will sort them
++        // correctly later.
++        if (leftFileItem.isDir() && !rightFileItem.isDir()) {
++            return true;
++        } else if (!leftFileItem.isDir() && rightFileItem.isDir()) {
++            return false;
++        }
++
++        return naturalCompare(leftFileItem.mimeComment().toLower(),
++                              rightFileItem.mimeComment().toLower()) < 0;
++    }
++
++    default:
++        break;
++    }
++    return false;
++}
+Index: kdeui/itemviews/kcategorizedsortfilterproxymodel_p.h
+===================================================================
+--- kdeui/itemviews/kcategorizedsortfilterproxymodel_p.h	(revisión: 712411)
++++ kdeui/itemviews/kcategorizedsortfilterproxymodel_p.h	(copia de trabajo)
+@@ -227,8 +227,6 @@
+     QRegExp filterRegExp;
+     int filterRole;
+ 
+-    mutable QStringList categories;
+-    mutable QMap<QString, QVector<int> > categoriesRows;
+     mutable QMap<QModelIndex, InternalInformation*> sourceIndexMap;
+ 
+     QList<QPersistentModelIndex> persistentIndexes;
+Index: kdeui/itemviews/kcategorizedsortfilterproxymodel.cpp
+===================================================================
+--- kdeui/itemviews/kcategorizedsortfilterproxymodel.cpp	(revisión: 712411)
++++ kdeui/itemviews/kcategorizedsortfilterproxymodel.cpp	(copia de trabajo)
+@@ -47,9 +47,6 @@
+ 
+ void KCategorizedSortFilterProxyModel::setSourceModel(QAbstractItemModel *sourceModel)
+ {
+-    d->categories.clear();
+-    d->categoriesRows.clear();
+-
+     if (this->sourceModel())
+     {
+         disconnect(this->sourceModel(), SIGNAL(dataChanged(QModelIndex,QModelIndex)),
+@@ -136,15 +133,6 @@
+ 
+ void KCategorizedSortFilterProxyModel::sort(int column, Qt::SortOrder order)
+ {
+-    if (d->sortColumn == column && d->sortOrder == order)
+-    {
+-        // I'm pretty fast sorting, huh ? :P
+-        return;
+-    }
+-
+-    d->categories.clear();
+-    d->categoriesRows.clear();
+-
+     d->sortColumn = column;
+     d->sortOrder = order;
+ 
+@@ -246,7 +234,7 @@
+     }
+ 
+     d->sortCaseSensitivity = cs;
+-    sort(d->sortColumn, d->sortOrder); //### THIS WONT SORT. WILL RETURN. SEPARATE sort() as it is done in Qt
++    sort(d->sortColumn, d->sortOrder);
+ }
+ 
+ bool KCategorizedSortFilterProxyModel::isSortLocaleAware() const
+@@ -262,7 +250,7 @@
+     }
+ 
+     d->sortLocaleAware = on;
+-    sort(d->sortColumn, d->sortOrder); //### THIS WONT SORT. WILL RETURN. SEPARATE sort() as it is done in Qt
++    sort(d->sortColumn, d->sortOrder);
+ }
+ 
+ bool KCategorizedSortFilterProxyModel::dynamicSortFilter() const
+@@ -288,7 +276,7 @@
+     }
+ 
+     d->sortRole = role;
+-    sort(d->sortColumn, d->sortOrder); //### THIS WONT SORT. WILL RETURN. SEPARATE sort() as it is done in Qt
++    sort(d->sortColumn, d->sortOrder);
+ }
+ 
+ int KCategorizedSortFilterProxyModel::filterRole() const
+@@ -786,9 +774,6 @@
+ {
+     emit layoutAboutToBeChanged();
+ 
+-    d->categories.clear();
+-    d->categoriesRows.clear();
+-
+     // store the persistent indexes
+     QModelIndexList sourceIndexes = d->storePersistentIndexes();
+ 
+@@ -805,9 +790,6 @@
+ {
+     emit layoutAboutToBeChanged();
+ 
+-    d->categories.clear();
+-    d->categoriesRows.clear();
+-
+     // store the persistent indexes
+     QModelIndexList sourceIndexes = d->storePersistentIndexes();
+ 
+@@ -924,7 +906,7 @@
+         QModelIndexList sourceIndexes = storePersistentIndexes();
+ 
+         removeSourceItems(info->proxyRows, info->sourceRows,
+-                             sourceRowsResort, sourceParent, Qt::Vertical, false);
++                          sourceRowsResort, sourceParent, Qt::Vertical, false);
+ 
+         sortSourceRows(sourceRowsResort, sourceParent);
+ 
+@@ -933,10 +915,18 @@
+ 
+         updatePersistentIndexes(sourceIndexes);
+ 
+-        emit p->layoutChanged();
+-
+         // We want to emit dataChanged for the rows too
+         sourceRowsChange += sourceRowsResort;
++
++        int proxyStartRow;
++        int proxyEndRow;
++        proxyItemRange(info->proxyRows, sourceRowsChange, proxyStartRow, proxyEndRow);
++        QModelIndex proxyTopLeft = p->createIndex(proxyStartRow, info->proxyColumns.at(topLeft.column()), *it);
++        QModelIndex proxyBottomRight = p->createIndex(proxyEndRow, info->proxyColumns.at(bottomRight.column()), *it);
++
++        emit p->dataChanged(proxyTopLeft, proxyBottomRight);
++
++        emit p->layoutChanged();
+     }
+ 
+     if (!sourceRowsChange.isEmpty())
+@@ -1356,7 +1346,7 @@
+ 
+ void KCategorizedSortFilterProxyModel::Private::sortSourceRows(QVector<int> &sourceRows, const QModelIndex &sourceParent) const
+ {
+-    if (sortColumn < 0)
++    if ((sortColumn < 0) || (!sourceRows.count()))
+     {
+         return;
+     }
+@@ -1366,7 +1356,7 @@
+         LessThan lt(sourceParent, p->sourceModel(), p, LessThan::CategoryPurpose);
+         qStableSort(sourceRows.begin(), sourceRows.end(), lt);
+ 
+-         return;
++        return;
+     }
+ 
+     QVector<int> sourceRowSortedList(sourceRows);
+@@ -1376,8 +1366,11 @@
+ 
+     // Explore categories
+     QString prevCategory = p->sourceModel()->data(p->sourceModel()->index(sourceRowSortedList.at(0), sortColumn, sourceParent), KCategorizedSortFilterProxyModel::CategoryRole).toString();
++
+     QString lastCategory = prevCategory;
++    QMap<QString, QVector<int> > categoriesRows;
+     QVector<int> modelRowList;
++    QStringList categories;
+     foreach (int row, sourceRowSortedList)
+     {
+         lastCategory = p->sourceModel()->data(p->sourceModel()->index(row, sortColumn, sourceParent), KCategorizedSortFilterProxyModel::CategoryRole).toString();
+@@ -1501,9 +1494,6 @@
+         return;
+     }
+ 
+-    categories.clear();
+-    categoriesRows.clear();
+-
+     QVector<QPair<int, int> > proxyIntervals;
+     proxyIntervals = proxyIntervalsForSourceItems(sourceToProxy, sourceItems);
+ 
+@@ -1567,19 +1557,22 @@
+ 
+ void KCategorizedSortFilterProxyModel::Private::removeProxyInterval(QVector<int> &sourceToProxy, QVector<int> &proxyToSource, int proxyStart, int proxyEnd, const QModelIndex &proxyParent, Qt::Orientation orientation, bool emitSignal)
+ {
++    int m_proxyStart = qMin(proxyStart, proxyEnd);
++    int m_proxyEnd = qMax(proxyStart, proxyEnd);
++
+     if (emitSignal)
+     {
+         if (orientation == Qt::Vertical)
+         {
+-            emit p->beginRemoveRows(proxyParent, proxyStart, proxyEnd);
++            emit p->beginRemoveRows(proxyParent, m_proxyStart, m_proxyEnd);
+         }
+         else
+         {
+-            emit p->beginRemoveColumns(proxyParent, proxyStart, proxyEnd);
++            emit p->beginRemoveColumns(proxyParent, m_proxyStart, m_proxyEnd);
+         }
+     }
+ 
+-    proxyToSource.remove(proxyStart, proxyEnd - proxyStart + 1);
++    proxyToSource.remove(m_proxyStart, m_proxyEnd - m_proxyStart + 1);
+ 
+     buildSourceToProxyMapping(proxyToSource, sourceToProxy);
+ 
+@@ -1654,6 +1647,8 @@
+     QVector<int> &proxyToSource = (orientation == Qt::Vertical) ? info->sourceRows
+                                                                 : info->sourceColumns;
+ 
++    emit p->layoutAboutToBeChanged();
++
+     if (end >= sourceToProxy.size())
+     {
+         end = sourceToProxy.size() - 1;
+@@ -1687,6 +1682,8 @@
+     buildSourceToProxyMapping(proxyToSource, sourceToProxy);
+ 
+     updateChildrenMapping(sourceParent, info, orientation, start, end, itemCount, true);
++
++    emit p->layoutChanged();
+ }
+ 
+ void KCategorizedSortFilterProxyModel::Private::filterChanged()
+@@ -1794,6 +1791,7 @@
+         sourceItemsInInterval << firstNewSourceItem;
+         sourceItemsIndex++;
+ 
++        proxyLow = 0;
+         int proxyHigh = proxyToSource.size() - 1;
+         QModelIndex i = compare ? p->sourceModel()->index(firstNewSourceItem, sortColumn, sourceParent)
+                                 : QModelIndex();
+@@ -1810,8 +1808,8 @@
+                 if (categorizedModel)
+                 {
+                     // The Big Trick (ereslibre)
+-                    if ((sortOrder == Qt::AscendingOrder) ? p->lessThanGeneralPurpose(i, i2) || (!p->lessThanGeneralPurpose(i2, i) && p->lessThanCategoryPurpose(i, i2))
+-                                                          : p->lessThanGeneralPurpose(i2, i) || (!p->lessThanGeneralPurpose(i, i2) && p->lessThanCategoryPurpose(i2, i)))
++                    if (((sortOrder == Qt::AscendingOrder) ? p->lessThanGeneralPurpose(i, i2) || (!p->lessThanGeneralPurpose(i2, i) && p->lessThanCategoryPurpose(i, i2))
++                                                           : p->lessThanGeneralPurpose(i2, i) || (!p->lessThanGeneralPurpose(i, i2) && p->lessThanCategoryPurpose(i2, i))))
+                     {
+                         proxyHigh = proxyItem - 1;
+                     }
+@@ -1822,8 +1820,8 @@
+                 }
+                 else
+                 {
+-                    if ((sortOrder == Qt::AscendingOrder) ? p->lessThan(i, i2)
+-                                                          : p->lessThan(i2, i))
++                    if (((sortOrder == Qt::AscendingOrder) ? p->lessThan(i, i2)
++                                                           : p->lessThan(i2, i)))
+                     {
+                         proxyHigh = proxyItem - 1;
+                     }
+@@ -1871,16 +1869,16 @@
+                     if (categorizedModel)
+                     {
+                         // The Big Trick (ereslibre)
+-                        if ((sortOrder == Qt::AscendingOrder) ? p->lessThanGeneralPurpose(i, i2) || (!p->lessThanGeneralPurpose(i2, i) && p->lessThanCategoryPurpose(i, i2))
+-                                                              : p->lessThanGeneralPurpose(i2, i) || (!p->lessThanGeneralPurpose(i, i2) && p->lessThanCategoryPurpose(i2, i)))
++                        if (((sortOrder == Qt::AscendingOrder) ? p->lessThanGeneralPurpose(i, i2) || (!p->lessThanGeneralPurpose(i2, i) && p->lessThanCategoryPurpose(i, i2))
++                                                               : p->lessThanGeneralPurpose(i2, i) || (!p->lessThanGeneralPurpose(i, i2) && p->lessThanCategoryPurpose(i2, i))))
+                         {
+                             break;
+                         }
+                     }
+                     else
+                     {
+-                        if ((sortOrder == Qt::AscendingOrder) ? p->lessThan(i, i2)
+-                                                              : p->lessThan(i2, i))
++                        if (((sortOrder == Qt::AscendingOrder) ? p->lessThan(i, i2)
++                                                               : p->lessThan(i2, i)))
+                         {
+                             break;
+                         }

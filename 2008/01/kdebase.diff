@@ -1,0 +1,2276 @@
+Index: apps/konqueror/remoteencodingplugin/kremoteencodingplugin.desktop
+===================================================================
+--- apps/konqueror/remoteencodingplugin/kremoteencodingplugin.desktop	(revisión: 757050)
++++ apps/konqueror/remoteencodingplugin/kremoteencodingplugin.desktop	(copia de trabajo)
+@@ -6,40 +6,6 @@ X-KDE-PluginInfo-Name=kremoteencodingplu
+ X-KDE-PluginInfo-Version=3.4
+ X-KDE-PluginInfo-Website=
+ X-KDE-PluginInfo-Category=Tools
+-X-KDE-PluginInfo-Category[ar]=أدوات
+-X-KDE-PluginInfo-Category[bg]=Инструменти
+-X-KDE-PluginInfo-Category[ca]=Eines
+-X-KDE-PluginInfo-Category[de]=Extras
+-X-KDE-PluginInfo-Category[el]=Εργαλεία
+-X-KDE-PluginInfo-Category[eo]=Iloj
+-X-KDE-PluginInfo-Category[es]=Herramientas
+-X-KDE-PluginInfo-Category[et]=Tööriistad
+-X-KDE-PluginInfo-Category[fr]=Outils
+-X-KDE-PluginInfo-Category[ga]=Uirlisí
+-X-KDE-PluginInfo-Category[hu]=Eszközök
+-X-KDE-PluginInfo-Category[is]=Tól
+-X-KDE-PluginInfo-Category[ja]=ツール
+-X-KDE-PluginInfo-Category[km]=ឧបករណ៍
+-X-KDE-PluginInfo-Category[ku]=Amûr
+-X-KDE-PluginInfo-Category[lv]=Rīki
+-X-KDE-PluginInfo-Category[nb]=Verktøy
+-X-KDE-PluginInfo-Category[nds]=Warktüüch
+-X-KDE-PluginInfo-Category[nl]=Hulpmiddelen
+-X-KDE-PluginInfo-Category[pa]=ਟੂਲ
+-X-KDE-PluginInfo-Category[pl]=Narzędzia
+-X-KDE-PluginInfo-Category[pt]=Ferramentas
+-X-KDE-PluginInfo-Category[pt_BR]=Ferramentas
+-X-KDE-PluginInfo-Category[se]=Reaiddut
+-X-KDE-PluginInfo-Category[sl]=Orodja
+-X-KDE-PluginInfo-Category[sr]=Алатке
+-X-KDE-PluginInfo-Category[sr@latin]=Alatke
+-X-KDE-PluginInfo-Category[sv]=Verktyg
+-X-KDE-PluginInfo-Category[tg]=Асбобҳо
+-X-KDE-PluginInfo-Category[uk]=Інструменти
+-X-KDE-PluginInfo-Category[wa]=Usteyes
+-X-KDE-PluginInfo-Category[x-test]=xxToolsxx
+-X-KDE-PluginInfo-Category[zh_CN]=工具
+-X-KDE-PluginInfo-Category[zh_TW]=工具
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=LGPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: apps/konqueror/kttsplugin/khtmlkttsd.desktop
+===================================================================
+--- apps/konqueror/kttsplugin/khtmlkttsd.desktop	(revisión: 757050)
++++ apps/konqueror/kttsplugin/khtmlkttsd.desktop	(copia de trabajo)
+@@ -7,40 +7,6 @@ X-KDE-PluginInfo-Name=khtmlkttsdplugin
+ X-KDE-PluginInfo-Version=3.4
+ X-KDE-PluginInfo-Website=
+ X-KDE-PluginInfo-Category=Tools
+-X-KDE-PluginInfo-Category[ar]=أدوات
+-X-KDE-PluginInfo-Category[bg]=Инструменти
+-X-KDE-PluginInfo-Category[ca]=Eines
+-X-KDE-PluginInfo-Category[de]=Extras
+-X-KDE-PluginInfo-Category[el]=Εργαλεία
+-X-KDE-PluginInfo-Category[eo]=Iloj
+-X-KDE-PluginInfo-Category[es]=Herramientas
+-X-KDE-PluginInfo-Category[et]=Tööriistad
+-X-KDE-PluginInfo-Category[fr]=Outils
+-X-KDE-PluginInfo-Category[ga]=Uirlisí
+-X-KDE-PluginInfo-Category[hu]=Eszközök
+-X-KDE-PluginInfo-Category[is]=Tól
+-X-KDE-PluginInfo-Category[ja]=ツール
+-X-KDE-PluginInfo-Category[km]=ឧបករណ៍
+-X-KDE-PluginInfo-Category[ku]=Amûr
+-X-KDE-PluginInfo-Category[lv]=Rīki
+-X-KDE-PluginInfo-Category[nb]=Verktøy
+-X-KDE-PluginInfo-Category[nds]=Warktüüch
+-X-KDE-PluginInfo-Category[nl]=Hulpmiddelen
+-X-KDE-PluginInfo-Category[pa]=ਟੂਲ
+-X-KDE-PluginInfo-Category[pl]=Narzędzia
+-X-KDE-PluginInfo-Category[pt]=Ferramentas
+-X-KDE-PluginInfo-Category[pt_BR]=Ferramentas
+-X-KDE-PluginInfo-Category[se]=Reaiddut
+-X-KDE-PluginInfo-Category[sl]=Orodja
+-X-KDE-PluginInfo-Category[sr]=Алатке
+-X-KDE-PluginInfo-Category[sr@latin]=Alatke
+-X-KDE-PluginInfo-Category[sv]=Verktyg
+-X-KDE-PluginInfo-Category[tg]=Асбобҳо
+-X-KDE-PluginInfo-Category[uk]=Інструменти
+-X-KDE-PluginInfo-Category[wa]=Usteyes
+-X-KDE-PluginInfo-Category[x-test]=xxToolsxx
+-X-KDE-PluginInfo-Category[zh_CN]=工具
+-X-KDE-PluginInfo-Category[zh_TW]=工具
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: apps/konqueror/shellcmdplugin/kshellcmdplugin.desktop
+===================================================================
+--- apps/konqueror/shellcmdplugin/kshellcmdplugin.desktop	(revisión: 757050)
++++ apps/konqueror/shellcmdplugin/kshellcmdplugin.desktop	(copia de trabajo)
+@@ -6,40 +6,6 @@ X-KDE-PluginInfo-Name=kshellcmdplugin
+ X-KDE-PluginInfo-Version=3.4
+ X-KDE-PluginInfo-Website=
+ X-KDE-PluginInfo-Category=Tools
+-X-KDE-PluginInfo-Category[ar]=أدوات
+-X-KDE-PluginInfo-Category[bg]=Инструменти
+-X-KDE-PluginInfo-Category[ca]=Eines
+-X-KDE-PluginInfo-Category[de]=Extras
+-X-KDE-PluginInfo-Category[el]=Εργαλεία
+-X-KDE-PluginInfo-Category[eo]=Iloj
+-X-KDE-PluginInfo-Category[es]=Herramientas
+-X-KDE-PluginInfo-Category[et]=Tööriistad
+-X-KDE-PluginInfo-Category[fr]=Outils
+-X-KDE-PluginInfo-Category[ga]=Uirlisí
+-X-KDE-PluginInfo-Category[hu]=Eszközök
+-X-KDE-PluginInfo-Category[is]=Tól
+-X-KDE-PluginInfo-Category[ja]=ツール
+-X-KDE-PluginInfo-Category[km]=ឧបករណ៍
+-X-KDE-PluginInfo-Category[ku]=Amûr
+-X-KDE-PluginInfo-Category[lv]=Rīki
+-X-KDE-PluginInfo-Category[nb]=Verktøy
+-X-KDE-PluginInfo-Category[nds]=Warktüüch
+-X-KDE-PluginInfo-Category[nl]=Hulpmiddelen
+-X-KDE-PluginInfo-Category[pa]=ਟੂਲ
+-X-KDE-PluginInfo-Category[pl]=Narzędzia
+-X-KDE-PluginInfo-Category[pt]=Ferramentas
+-X-KDE-PluginInfo-Category[pt_BR]=Ferramentas
+-X-KDE-PluginInfo-Category[se]=Reaiddut
+-X-KDE-PluginInfo-Category[sl]=Orodja
+-X-KDE-PluginInfo-Category[sr]=Алатке
+-X-KDE-PluginInfo-Category[sr@latin]=Alatke
+-X-KDE-PluginInfo-Category[sv]=Verktyg
+-X-KDE-PluginInfo-Category[tg]=Асбобҳо
+-X-KDE-PluginInfo-Category[uk]=Інструменти
+-X-KDE-PluginInfo-Category[wa]=Usteyes
+-X-KDE-PluginInfo-Category[x-test]=xxToolsxx
+-X-KDE-PluginInfo-Category[zh_CN]=工具
+-X-KDE-PluginInfo-Category[zh_TW]=工具
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/kcontrol/kxkb/plasma-applet-kxkb.desktop
+===================================================================
+--- workspace/kcontrol/kxkb/plasma-applet-kxkb.desktop	(revisión: 757050)
++++ workspace/kcontrol/kxkb/plasma-applet-kxkb.desktop	(copia de trabajo)
+@@ -78,36 +78,6 @@ X-KDE-PluginInfo-Email=rysin@kde.org
+ X-KDE-PluginInfo-Name=kxkb
+ X-KDE-PluginInfo-Version=0.1
+ X-KDE-PluginInfo-Category=Keyboard
+-X-KDE-PluginInfo-Category[bg]=Клавиатура
+-X-KDE-PluginInfo-Category[ca]=Teclat
+-X-KDE-PluginInfo-Category[de]=Tastatur
+-X-KDE-PluginInfo-Category[el]=Πληκτρολόγιο
+-X-KDE-PluginInfo-Category[eo]=Klavaro
+-X-KDE-PluginInfo-Category[es]=Teclado
+-X-KDE-PluginInfo-Category[et]=Klaviatuur
+-X-KDE-PluginInfo-Category[ga]=Méarchlár
+-X-KDE-PluginInfo-Category[hu]=Billentyűzet
+-X-KDE-PluginInfo-Category[is]=Lyklaborð
+-X-KDE-PluginInfo-Category[ja]=キーボード
+-X-KDE-PluginInfo-Category[km]=ក្ដារ​ចុច
+-X-KDE-PluginInfo-Category[lv]=Tastatūra
+-X-KDE-PluginInfo-Category[nb]=Tastatur
+-X-KDE-PluginInfo-Category[nds]=Tastatuur
+-X-KDE-PluginInfo-Category[nl]=Toetsenbord
+-X-KDE-PluginInfo-Category[pa]=ਕੀਬੋਰਡ
+-X-KDE-PluginInfo-Category[pl]=Klawiatura
+-X-KDE-PluginInfo-Category[pt]=Teclado
+-X-KDE-PluginInfo-Category[pt_BR]=Teclado
+-X-KDE-PluginInfo-Category[se]=Boallobeavdi
+-X-KDE-PluginInfo-Category[sl]=Tipkovnica
+-X-KDE-PluginInfo-Category[sr]=Тастатура
+-X-KDE-PluginInfo-Category[sr@latin]=Tastatura
+-X-KDE-PluginInfo-Category[sv]=Tangentbord
+-X-KDE-PluginInfo-Category[uk]=Клавіатура
+-X-KDE-PluginInfo-Category[wa]=Taprece
+-X-KDE-PluginInfo-Category[x-test]=xxKeyboardxx
+-X-KDE-PluginInfo-Category[zh_CN]=键盘
+-X-KDE-PluginInfo-Category[zh_TW]=鍵盤
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/libs/plasma/tests/packagemetadatatest.desktop
+===================================================================
+--- workspace/libs/plasma/tests/packagemetadatatest.desktop	(revisión: 757050)
++++ workspace/libs/plasma/tests/packagemetadatatest.desktop	(copia de trabajo)
+@@ -111,38 +111,6 @@ X-KDE-PluginInfo-Name=test
+ X-KDE-PluginInfo-Version=pre0.1
+ X-KDE-PluginInfo-Website=http://plasma.kde.org/
+ X-KDE-PluginInfo-Category=System test
+-X-KDE-PluginInfo-Category[bg]=Тест на системата
+-X-KDE-PluginInfo-Category[ca]=Prova del sistema
+-X-KDE-PluginInfo-Category[de]=Systemtest
+-X-KDE-PluginInfo-Category[el]=Έλεγχος συστήματος
+-X-KDE-PluginInfo-Category[eo]=Sistemtesto
+-X-KDE-PluginInfo-Category[es]=Prueba del sistema
+-X-KDE-PluginInfo-Category[et]=Süsteemi test
+-X-KDE-PluginInfo-Category[fr]=Test du système
+-X-KDE-PluginInfo-Category[ga]=Tástáil an chórais
+-X-KDE-PluginInfo-Category[hu]=Rendszerteszt
+-X-KDE-PluginInfo-Category[km]=ការ​សាកល្បង​ប្រព័ន្ធ
+-X-KDE-PluginInfo-Category[ko]=시스템 테스트
+-X-KDE-PluginInfo-Category[lv]=Sistēmas tests
+-X-KDE-PluginInfo-Category[nb]=Systemtest
+-X-KDE-PluginInfo-Category[nds]=Systeemtest
+-X-KDE-PluginInfo-Category[nl]=Systeemtest
+-X-KDE-PluginInfo-Category[pa]=ਸਿਸਟਮ ਟੈਸਟ
+-X-KDE-PluginInfo-Category[pl]=Test systemowy
+-X-KDE-PluginInfo-Category[pt]=Teste do sistema
+-X-KDE-PluginInfo-Category[pt_BR]=Teste do sistema
+-X-KDE-PluginInfo-Category[se]=Vuogádatgeahččaleapmi
+-X-KDE-PluginInfo-Category[sl]=Sistemski test
+-X-KDE-PluginInfo-Category[sr]=Системска проба
+-X-KDE-PluginInfo-Category[sr@latin]=Sistemska proba
+-X-KDE-PluginInfo-Category[sv]=Systemtest
+-X-KDE-PluginInfo-Category[tg]=Санҷиши система
+-X-KDE-PluginInfo-Category[th]=ทดสอบระบบ
+-X-KDE-PluginInfo-Category[uk]=Системний тест
+-X-KDE-PluginInfo-Category[wa]=Saye do sistinme
+-X-KDE-PluginInfo-Category[x-test]=xxSystem testxx
+-X-KDE-PluginInfo-Category[zh_CN]=系统测试
+-X-KDE-PluginInfo-Category[zh_TW]=系統測試
+ X-KDE-PluginInfo-Depends=some_test_dep
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/kwin/effects/invert.desktop
+===================================================================
+--- workspace/kwin/effects/invert.desktop	(revisión: 757050)
++++ workspace/kwin/effects/invert.desktop	(copia de trabajo)
+@@ -93,36 +93,6 @@ X-KDE-PluginInfo-Email=rivolaks@hot.ee
+ X-KDE-PluginInfo-Name=kwin4_effect_invert
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Accessibility
+-X-KDE-PluginInfo-Category[bg]=Равностоен достъп
+-X-KDE-PluginInfo-Category[ca]=Accessibilitat
+-X-KDE-PluginInfo-Category[de]=Zugangshilfen
+-X-KDE-PluginInfo-Category[el]=Προσβασιμότητα
+-X-KDE-PluginInfo-Category[eo]=Alirebleco
+-X-KDE-PluginInfo-Category[es]=Accesibilidad
+-X-KDE-PluginInfo-Category[et]=Hõlbustus
+-X-KDE-PluginInfo-Category[fr]=Accessibilité
+-X-KDE-PluginInfo-Category[ga]=Inrochtaineacht
+-X-KDE-PluginInfo-Category[hu]=Kezelési segítség
+-X-KDE-PluginInfo-Category[ja]=アクセシビリティ
+-X-KDE-PluginInfo-Category[km]=មធ្យោបាយ​ងាយស្រួល
+-X-KDE-PluginInfo-Category[lv]=Pieejamība
+-X-KDE-PluginInfo-Category[nb]=Tilgjengelighet
+-X-KDE-PluginInfo-Category[nds]=Behinnertenhülp
+-X-KDE-PluginInfo-Category[nl]=Toegankelijkheid
+-X-KDE-PluginInfo-Category[pa]=ਸਹੂਲਤਾਂ
+-X-KDE-PluginInfo-Category[pl]=Dostępność
+-X-KDE-PluginInfo-Category[pt]=Acessibilidade
+-X-KDE-PluginInfo-Category[pt_BR]=Acessibilidade
+-X-KDE-PluginInfo-Category[se]=Álkkibut geavaheapmi
+-X-KDE-PluginInfo-Category[sl]=Dostopnost
+-X-KDE-PluginInfo-Category[sr]=Приступачност
+-X-KDE-PluginInfo-Category[sr@latin]=Pristupačnost
+-X-KDE-PluginInfo-Category[sv]=Handikappstöd
+-X-KDE-PluginInfo-Category[uk]=Доступність
+-X-KDE-PluginInfo-Category[wa]=Accessibilité
+-X-KDE-PluginInfo-Category[x-test]=xxAccessibilityxx
+-X-KDE-PluginInfo-Category[zh_CN]=辅助功能
+-X-KDE-PluginInfo-Category[zh_TW]=無障礙輔助
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/taskbarthumbnail.desktop
+===================================================================
+--- workspace/kwin/effects/taskbarthumbnail.desktop	(revisión: 757050)
++++ workspace/kwin/effects/taskbarthumbnail.desktop	(copia de trabajo)
+@@ -63,22 +63,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_taskbarthumbnail
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Window Management
+-X-KDE-PluginInfo-Category[ca]=Gestió de les finestres
+-X-KDE-PluginInfo-Category[de]=Fensterverwaltung
+-X-KDE-PluginInfo-Category[el]=Διαχείριση παραθύρων
+-X-KDE-PluginInfo-Category[ga]=Bainisteoireacht Fuinneog
+-X-KDE-PluginInfo-Category[hu]=Ablakkezelés
+-X-KDE-PluginInfo-Category[ja]=ウィンドウマネージメント
+-X-KDE-PluginInfo-Category[km]=ការ​គ្រប់គ្រង​បង្អួច
+-X-KDE-PluginInfo-Category[lv]=Logu pārvaldība
+-X-KDE-PluginInfo-Category[nds]=Finsterpleeg
+-X-KDE-PluginInfo-Category[pt]=Gestão de Janelas
+-X-KDE-PluginInfo-Category[pt_BR]=Gerenciamento de Janelas
+-X-KDE-PluginInfo-Category[sr]=Управљање прозорима
+-X-KDE-PluginInfo-Category[sr@latin]=Upravljanje prozorima
+-X-KDE-PluginInfo-Category[sv]=Fönsterhantering
+-X-KDE-PluginInfo-Category[zh_CN]=窗口管理
+-X-KDE-PluginInfo-Category[zh_TW]=視窗管理
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/kwin/effects/maketransparent.desktop
+===================================================================
+--- workspace/kwin/effects/maketransparent.desktop	(revisión: 757050)
++++ workspace/kwin/effects/maketransparent.desktop	(copia de trabajo)
+@@ -98,36 +98,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_maketransparent
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Appearance
+-X-KDE-PluginInfo-Category[bg]=Изглед
+-X-KDE-PluginInfo-Category[ca]=Aparença
+-X-KDE-PluginInfo-Category[de]=Erscheinungsbild
+-X-KDE-PluginInfo-Category[el]=Εμφάνιση
+-X-KDE-PluginInfo-Category[eo]=Aspekto
+-X-KDE-PluginInfo-Category[es]=Aspecto
+-X-KDE-PluginInfo-Category[et]=Välimus
+-X-KDE-PluginInfo-Category[fr]=Apparence
+-X-KDE-PluginInfo-Category[ga]=Cuma
+-X-KDE-PluginInfo-Category[hu]=Megjelenés
+-X-KDE-PluginInfo-Category[ja]=外観
+-X-KDE-PluginInfo-Category[km]=រូបរាង
+-X-KDE-PluginInfo-Category[lv]=Izskats
+-X-KDE-PluginInfo-Category[nb]=Utseende
+-X-KDE-PluginInfo-Category[nds]=Utsehn
+-X-KDE-PluginInfo-Category[nl]=Uiterlijk
+-X-KDE-PluginInfo-Category[pa]=ਦਿੱਖ
+-X-KDE-PluginInfo-Category[pl]=Wygląd
+-X-KDE-PluginInfo-Category[pt]=Aparência
+-X-KDE-PluginInfo-Category[pt_BR]=Aparência
+-X-KDE-PluginInfo-Category[se]=Fárda
+-X-KDE-PluginInfo-Category[sl]=Videz
+-X-KDE-PluginInfo-Category[sr]=Изглед
+-X-KDE-PluginInfo-Category[sr@latin]=Izgled
+-X-KDE-PluginInfo-Category[sv]=Utseende
+-X-KDE-PluginInfo-Category[uk]=Вигляд
+-X-KDE-PluginInfo-Category[wa]=Rivnance
+-X-KDE-PluginInfo-Category[x-test]=xxAppearancexx
+-X-KDE-PluginInfo-Category[zh_CN]=外观
+-X-KDE-PluginInfo-Category[zh_TW]=外觀
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/sharpen.desktop
+===================================================================
+--- workspace/kwin/effects/sharpen.desktop	(revisión: 757050)
++++ workspace/kwin/effects/sharpen.desktop	(copia de trabajo)
+@@ -92,36 +92,6 @@ X-KDE-PluginInfo-Email=rivolaks@hot.ee
+ X-KDE-PluginInfo-Name=kwin4_effect_sharpen
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Accessibility
+-X-KDE-PluginInfo-Category[bg]=Равностоен достъп
+-X-KDE-PluginInfo-Category[ca]=Accessibilitat
+-X-KDE-PluginInfo-Category[de]=Zugangshilfen
+-X-KDE-PluginInfo-Category[el]=Προσβασιμότητα
+-X-KDE-PluginInfo-Category[eo]=Alirebleco
+-X-KDE-PluginInfo-Category[es]=Accesibilidad
+-X-KDE-PluginInfo-Category[et]=Hõlbustus
+-X-KDE-PluginInfo-Category[fr]=Accessibilité
+-X-KDE-PluginInfo-Category[ga]=Inrochtaineacht
+-X-KDE-PluginInfo-Category[hu]=Kezelési segítség
+-X-KDE-PluginInfo-Category[ja]=アクセシビリティ
+-X-KDE-PluginInfo-Category[km]=មធ្យោបាយ​ងាយស្រួល
+-X-KDE-PluginInfo-Category[lv]=Pieejamība
+-X-KDE-PluginInfo-Category[nb]=Tilgjengelighet
+-X-KDE-PluginInfo-Category[nds]=Behinnertenhülp
+-X-KDE-PluginInfo-Category[nl]=Toegankelijkheid
+-X-KDE-PluginInfo-Category[pa]=ਸਹੂਲਤਾਂ
+-X-KDE-PluginInfo-Category[pl]=Dostępność
+-X-KDE-PluginInfo-Category[pt]=Acessibilidade
+-X-KDE-PluginInfo-Category[pt_BR]=Acessibilidade
+-X-KDE-PluginInfo-Category[se]=Álkkibut geavaheapmi
+-X-KDE-PluginInfo-Category[sl]=Dostopnost
+-X-KDE-PluginInfo-Category[sr]=Приступачност
+-X-KDE-PluginInfo-Category[sr@latin]=Pristupačnost
+-X-KDE-PluginInfo-Category[sv]=Handikappstöd
+-X-KDE-PluginInfo-Category[uk]=Доступність
+-X-KDE-PluginInfo-Category[wa]=Accessibilité
+-X-KDE-PluginInfo-Category[x-test]=xxAccessibilityxx
+-X-KDE-PluginInfo-Category[zh_CN]=辅助功能
+-X-KDE-PluginInfo-Category[zh_TW]=無障礙輔助
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/blur.desktop
+===================================================================
+--- workspace/kwin/effects/blur.desktop	(revisión: 757050)
++++ workspace/kwin/effects/blur.desktop	(copia de trabajo)
+@@ -90,36 +90,6 @@ X-KDE-PluginInfo-Email=rivolaks@hot.ee
+ X-KDE-PluginInfo-Name=kwin4_effect_blur
+ X-KDE-PluginInfo-Version=0.2.0
+ X-KDE-PluginInfo-Category=Appearance
+-X-KDE-PluginInfo-Category[bg]=Изглед
+-X-KDE-PluginInfo-Category[ca]=Aparença
+-X-KDE-PluginInfo-Category[de]=Erscheinungsbild
+-X-KDE-PluginInfo-Category[el]=Εμφάνιση
+-X-KDE-PluginInfo-Category[eo]=Aspekto
+-X-KDE-PluginInfo-Category[es]=Aspecto
+-X-KDE-PluginInfo-Category[et]=Välimus
+-X-KDE-PluginInfo-Category[fr]=Apparence
+-X-KDE-PluginInfo-Category[ga]=Cuma
+-X-KDE-PluginInfo-Category[hu]=Megjelenés
+-X-KDE-PluginInfo-Category[ja]=外観
+-X-KDE-PluginInfo-Category[km]=រូបរាង
+-X-KDE-PluginInfo-Category[lv]=Izskats
+-X-KDE-PluginInfo-Category[nb]=Utseende
+-X-KDE-PluginInfo-Category[nds]=Utsehn
+-X-KDE-PluginInfo-Category[nl]=Uiterlijk
+-X-KDE-PluginInfo-Category[pa]=ਦਿੱਖ
+-X-KDE-PluginInfo-Category[pl]=Wygląd
+-X-KDE-PluginInfo-Category[pt]=Aparência
+-X-KDE-PluginInfo-Category[pt_BR]=Aparência
+-X-KDE-PluginInfo-Category[se]=Fárda
+-X-KDE-PluginInfo-Category[sl]=Videz
+-X-KDE-PluginInfo-Category[sr]=Изглед
+-X-KDE-PluginInfo-Category[sr@latin]=Izgled
+-X-KDE-PluginInfo-Category[sv]=Utseende
+-X-KDE-PluginInfo-Category[uk]=Вигляд
+-X-KDE-PluginInfo-Category[wa]=Rivnance
+-X-KDE-PluginInfo-Category[x-test]=xxAppearancexx
+-X-KDE-PluginInfo-Category[zh_CN]=外观
+-X-KDE-PluginInfo-Category[zh_TW]=外觀
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/fallapart.desktop
+===================================================================
+--- workspace/kwin/effects/fallapart.desktop	(revisión: 757050)
++++ workspace/kwin/effects/fallapart.desktop	(copia de trabajo)
+@@ -80,36 +80,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_fallapart
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Appearance
+-X-KDE-PluginInfo-Category[bg]=Изглед
+-X-KDE-PluginInfo-Category[ca]=Aparença
+-X-KDE-PluginInfo-Category[de]=Erscheinungsbild
+-X-KDE-PluginInfo-Category[el]=Εμφάνιση
+-X-KDE-PluginInfo-Category[eo]=Aspekto
+-X-KDE-PluginInfo-Category[es]=Aspecto
+-X-KDE-PluginInfo-Category[et]=Välimus
+-X-KDE-PluginInfo-Category[fr]=Apparence
+-X-KDE-PluginInfo-Category[ga]=Cuma
+-X-KDE-PluginInfo-Category[hu]=Megjelenés
+-X-KDE-PluginInfo-Category[ja]=外観
+-X-KDE-PluginInfo-Category[km]=រូបរាង
+-X-KDE-PluginInfo-Category[lv]=Izskats
+-X-KDE-PluginInfo-Category[nb]=Utseende
+-X-KDE-PluginInfo-Category[nds]=Utsehn
+-X-KDE-PluginInfo-Category[nl]=Uiterlijk
+-X-KDE-PluginInfo-Category[pa]=ਦਿੱਖ
+-X-KDE-PluginInfo-Category[pl]=Wygląd
+-X-KDE-PluginInfo-Category[pt]=Aparência
+-X-KDE-PluginInfo-Category[pt_BR]=Aparência
+-X-KDE-PluginInfo-Category[se]=Fárda
+-X-KDE-PluginInfo-Category[sl]=Videz
+-X-KDE-PluginInfo-Category[sr]=Изглед
+-X-KDE-PluginInfo-Category[sr@latin]=Izgled
+-X-KDE-PluginInfo-Category[sv]=Utseende
+-X-KDE-PluginInfo-Category[uk]=Вигляд
+-X-KDE-PluginInfo-Category[wa]=Rivnance
+-X-KDE-PluginInfo-Category[x-test]=xxAppearancexx
+-X-KDE-PluginInfo-Category[zh_CN]=外观
+-X-KDE-PluginInfo-Category[zh_TW]=外觀
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/boxswitch.desktop
+===================================================================
+--- workspace/kwin/effects/boxswitch.desktop	(revisión: 757050)
++++ workspace/kwin/effects/boxswitch.desktop	(copia de trabajo)
+@@ -85,37 +85,6 @@ X-KDE-PluginInfo-Email=philip.falkner@gm
+ X-KDE-PluginInfo-Name=kwin4_effect_boxswitch
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Window Management
+-X-KDE-PluginInfo-Category[bg]=Управление на прозорците
+-X-KDE-PluginInfo-Category[ca]=Gestió de les finestres
+-X-KDE-PluginInfo-Category[de]=Fensterverwaltung
+-X-KDE-PluginInfo-Category[el]=Διαχείριση παραθύρων
+-X-KDE-PluginInfo-Category[eo]=Fenestra administrado
+-X-KDE-PluginInfo-Category[es]=Administración de ventanas
+-X-KDE-PluginInfo-Category[et]=Akende haldus
+-X-KDE-PluginInfo-Category[fr]=Gestion des fenêtres
+-X-KDE-PluginInfo-Category[ga]=Bainisteoireacht Fuinneog
+-X-KDE-PluginInfo-Category[hu]=Ablakkezelés
+-X-KDE-PluginInfo-Category[ja]=ウィンドウマネージメント
+-X-KDE-PluginInfo-Category[km]=ការ​គ្រប់គ្រង​បង្អួច
+-X-KDE-PluginInfo-Category[lv]=Logu pārvaldība
+-X-KDE-PluginInfo-Category[nb]=Vindusbehandling
+-X-KDE-PluginInfo-Category[nds]=Finsterpleeg
+-X-KDE-PluginInfo-Category[nl]=Vensterbeheer
+-X-KDE-PluginInfo-Category[oc]=Gestion de las fenèstras
+-X-KDE-PluginInfo-Category[pa]=ਵਿੰਡੋ ਮੈਨਿਜਮੈਂਟ
+-X-KDE-PluginInfo-Category[pl]=Zarządzanie oknami
+-X-KDE-PluginInfo-Category[pt]=Gestão de Janelas
+-X-KDE-PluginInfo-Category[pt_BR]=Gerenciamento de Janelas
+-X-KDE-PluginInfo-Category[se]=Lásegieđaheapmi
+-X-KDE-PluginInfo-Category[sl]=Upravljanje z okni
+-X-KDE-PluginInfo-Category[sr]=Управљање прозорима
+-X-KDE-PluginInfo-Category[sr@latin]=Upravljanje prozorima
+-X-KDE-PluginInfo-Category[sv]=Fönsterhantering
+-X-KDE-PluginInfo-Category[uk]=Керування вікнами
+-X-KDE-PluginInfo-Category[wa]=Manaedjmint d' purnea
+-X-KDE-PluginInfo-Category[x-test]=xxWindow Managementxx
+-X-KDE-PluginInfo-Category[zh_CN]=窗口管理
+-X-KDE-PluginInfo-Category[zh_TW]=視窗管理
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/kwin/effects/explosion.desktop
+===================================================================
+--- workspace/kwin/effects/explosion.desktop	(revisión: 757050)
++++ workspace/kwin/effects/explosion.desktop	(copia de trabajo)
+@@ -90,36 +90,6 @@ X-KDE-PluginInfo-Email=rivolaks@hot.ee
+ X-KDE-PluginInfo-Name=kwin4_effect_explosion
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Appearance
+-X-KDE-PluginInfo-Category[bg]=Изглед
+-X-KDE-PluginInfo-Category[ca]=Aparença
+-X-KDE-PluginInfo-Category[de]=Erscheinungsbild
+-X-KDE-PluginInfo-Category[el]=Εμφάνιση
+-X-KDE-PluginInfo-Category[eo]=Aspekto
+-X-KDE-PluginInfo-Category[es]=Aspecto
+-X-KDE-PluginInfo-Category[et]=Välimus
+-X-KDE-PluginInfo-Category[fr]=Apparence
+-X-KDE-PluginInfo-Category[ga]=Cuma
+-X-KDE-PluginInfo-Category[hu]=Megjelenés
+-X-KDE-PluginInfo-Category[ja]=外観
+-X-KDE-PluginInfo-Category[km]=រូបរាង
+-X-KDE-PluginInfo-Category[lv]=Izskats
+-X-KDE-PluginInfo-Category[nb]=Utseende
+-X-KDE-PluginInfo-Category[nds]=Utsehn
+-X-KDE-PluginInfo-Category[nl]=Uiterlijk
+-X-KDE-PluginInfo-Category[pa]=ਦਿੱਖ
+-X-KDE-PluginInfo-Category[pl]=Wygląd
+-X-KDE-PluginInfo-Category[pt]=Aparência
+-X-KDE-PluginInfo-Category[pt_BR]=Aparência
+-X-KDE-PluginInfo-Category[se]=Fárda
+-X-KDE-PluginInfo-Category[sl]=Videz
+-X-KDE-PluginInfo-Category[sr]=Изглед
+-X-KDE-PluginInfo-Category[sr@latin]=Izgled
+-X-KDE-PluginInfo-Category[sv]=Utseende
+-X-KDE-PluginInfo-Category[uk]=Вигляд
+-X-KDE-PluginInfo-Category[wa]=Rivnance
+-X-KDE-PluginInfo-Category[x-test]=xxAppearancexx
+-X-KDE-PluginInfo-Category[zh_CN]=外观
+-X-KDE-PluginInfo-Category[zh_TW]=外觀
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/zoom.desktop
+===================================================================
+--- workspace/kwin/effects/zoom.desktop	(revisión: 757050)
++++ workspace/kwin/effects/zoom.desktop	(copia de trabajo)
+@@ -81,36 +81,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_zoom
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Accessibility
+-X-KDE-PluginInfo-Category[bg]=Равностоен достъп
+-X-KDE-PluginInfo-Category[ca]=Accessibilitat
+-X-KDE-PluginInfo-Category[de]=Zugangshilfen
+-X-KDE-PluginInfo-Category[el]=Προσβασιμότητα
+-X-KDE-PluginInfo-Category[eo]=Alirebleco
+-X-KDE-PluginInfo-Category[es]=Accesibilidad
+-X-KDE-PluginInfo-Category[et]=Hõlbustus
+-X-KDE-PluginInfo-Category[fr]=Accessibilité
+-X-KDE-PluginInfo-Category[ga]=Inrochtaineacht
+-X-KDE-PluginInfo-Category[hu]=Kezelési segítség
+-X-KDE-PluginInfo-Category[ja]=アクセシビリティ
+-X-KDE-PluginInfo-Category[km]=មធ្យោបាយ​ងាយស្រួល
+-X-KDE-PluginInfo-Category[lv]=Pieejamība
+-X-KDE-PluginInfo-Category[nb]=Tilgjengelighet
+-X-KDE-PluginInfo-Category[nds]=Behinnertenhülp
+-X-KDE-PluginInfo-Category[nl]=Toegankelijkheid
+-X-KDE-PluginInfo-Category[pa]=ਸਹੂਲਤਾਂ
+-X-KDE-PluginInfo-Category[pl]=Dostępność
+-X-KDE-PluginInfo-Category[pt]=Acessibilidade
+-X-KDE-PluginInfo-Category[pt_BR]=Acessibilidade
+-X-KDE-PluginInfo-Category[se]=Álkkibut geavaheapmi
+-X-KDE-PluginInfo-Category[sl]=Dostopnost
+-X-KDE-PluginInfo-Category[sr]=Приступачност
+-X-KDE-PluginInfo-Category[sr@latin]=Pristupačnost
+-X-KDE-PluginInfo-Category[sv]=Handikappstöd
+-X-KDE-PluginInfo-Category[uk]=Доступність
+-X-KDE-PluginInfo-Category[wa]=Accessibilité
+-X-KDE-PluginInfo-Category[x-test]=xxAccessibilityxx
+-X-KDE-PluginInfo-Category[zh_CN]=辅助功能
+-X-KDE-PluginInfo-Category[zh_TW]=無障礙輔助
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/kwin/effects/thumbnailaside.desktop
+===================================================================
+--- workspace/kwin/effects/thumbnailaside.desktop	(revisión: 757050)
++++ workspace/kwin/effects/thumbnailaside.desktop	(copia de trabajo)
+@@ -80,36 +80,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_thumbnailaside
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Appearance
+-X-KDE-PluginInfo-Category[bg]=Изглед
+-X-KDE-PluginInfo-Category[ca]=Aparença
+-X-KDE-PluginInfo-Category[de]=Erscheinungsbild
+-X-KDE-PluginInfo-Category[el]=Εμφάνιση
+-X-KDE-PluginInfo-Category[eo]=Aspekto
+-X-KDE-PluginInfo-Category[es]=Aspecto
+-X-KDE-PluginInfo-Category[et]=Välimus
+-X-KDE-PluginInfo-Category[fr]=Apparence
+-X-KDE-PluginInfo-Category[ga]=Cuma
+-X-KDE-PluginInfo-Category[hu]=Megjelenés
+-X-KDE-PluginInfo-Category[ja]=外観
+-X-KDE-PluginInfo-Category[km]=រូបរាង
+-X-KDE-PluginInfo-Category[lv]=Izskats
+-X-KDE-PluginInfo-Category[nb]=Utseende
+-X-KDE-PluginInfo-Category[nds]=Utsehn
+-X-KDE-PluginInfo-Category[nl]=Uiterlijk
+-X-KDE-PluginInfo-Category[pa]=ਦਿੱਖ
+-X-KDE-PluginInfo-Category[pl]=Wygląd
+-X-KDE-PluginInfo-Category[pt]=Aparência
+-X-KDE-PluginInfo-Category[pt_BR]=Aparência
+-X-KDE-PluginInfo-Category[se]=Fárda
+-X-KDE-PluginInfo-Category[sl]=Videz
+-X-KDE-PluginInfo-Category[sr]=Изглед
+-X-KDE-PluginInfo-Category[sr@latin]=Izgled
+-X-KDE-PluginInfo-Category[sv]=Utseende
+-X-KDE-PluginInfo-Category[uk]=Вигляд
+-X-KDE-PluginInfo-Category[wa]=Rivnance
+-X-KDE-PluginInfo-Category[x-test]=xxAppearancexx
+-X-KDE-PluginInfo-Category[zh_CN]=外观
+-X-KDE-PluginInfo-Category[zh_TW]=外觀
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/magnifier.desktop
+===================================================================
+--- workspace/kwin/effects/magnifier.desktop	(revisión: 757050)
++++ workspace/kwin/effects/magnifier.desktop	(copia de trabajo)
+@@ -93,36 +93,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_magnifier
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Accessibility
+-X-KDE-PluginInfo-Category[bg]=Равностоен достъп
+-X-KDE-PluginInfo-Category[ca]=Accessibilitat
+-X-KDE-PluginInfo-Category[de]=Zugangshilfen
+-X-KDE-PluginInfo-Category[el]=Προσβασιμότητα
+-X-KDE-PluginInfo-Category[eo]=Alirebleco
+-X-KDE-PluginInfo-Category[es]=Accesibilidad
+-X-KDE-PluginInfo-Category[et]=Hõlbustus
+-X-KDE-PluginInfo-Category[fr]=Accessibilité
+-X-KDE-PluginInfo-Category[ga]=Inrochtaineacht
+-X-KDE-PluginInfo-Category[hu]=Kezelési segítség
+-X-KDE-PluginInfo-Category[ja]=アクセシビリティ
+-X-KDE-PluginInfo-Category[km]=មធ្យោបាយ​ងាយស្រួល
+-X-KDE-PluginInfo-Category[lv]=Pieejamība
+-X-KDE-PluginInfo-Category[nb]=Tilgjengelighet
+-X-KDE-PluginInfo-Category[nds]=Behinnertenhülp
+-X-KDE-PluginInfo-Category[nl]=Toegankelijkheid
+-X-KDE-PluginInfo-Category[pa]=ਸਹੂਲਤਾਂ
+-X-KDE-PluginInfo-Category[pl]=Dostępność
+-X-KDE-PluginInfo-Category[pt]=Acessibilidade
+-X-KDE-PluginInfo-Category[pt_BR]=Acessibilidade
+-X-KDE-PluginInfo-Category[se]=Álkkibut geavaheapmi
+-X-KDE-PluginInfo-Category[sl]=Dostopnost
+-X-KDE-PluginInfo-Category[sr]=Приступачност
+-X-KDE-PluginInfo-Category[sr@latin]=Pristupačnost
+-X-KDE-PluginInfo-Category[sv]=Handikappstöd
+-X-KDE-PluginInfo-Category[uk]=Доступність
+-X-KDE-PluginInfo-Category[wa]=Accessibilité
+-X-KDE-PluginInfo-Category[x-test]=xxAccessibilityxx
+-X-KDE-PluginInfo-Category[zh_CN]=辅助功能
+-X-KDE-PluginInfo-Category[zh_TW]=無障礙輔助
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/scalein.desktop
+===================================================================
+--- workspace/kwin/effects/scalein.desktop	(revisión: 757050)
++++ workspace/kwin/effects/scalein.desktop	(copia de trabajo)
+@@ -85,36 +85,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_scalein
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Appearance
+-X-KDE-PluginInfo-Category[bg]=Изглед
+-X-KDE-PluginInfo-Category[ca]=Aparença
+-X-KDE-PluginInfo-Category[de]=Erscheinungsbild
+-X-KDE-PluginInfo-Category[el]=Εμφάνιση
+-X-KDE-PluginInfo-Category[eo]=Aspekto
+-X-KDE-PluginInfo-Category[es]=Aspecto
+-X-KDE-PluginInfo-Category[et]=Välimus
+-X-KDE-PluginInfo-Category[fr]=Apparence
+-X-KDE-PluginInfo-Category[ga]=Cuma
+-X-KDE-PluginInfo-Category[hu]=Megjelenés
+-X-KDE-PluginInfo-Category[ja]=外観
+-X-KDE-PluginInfo-Category[km]=រូបរាង
+-X-KDE-PluginInfo-Category[lv]=Izskats
+-X-KDE-PluginInfo-Category[nb]=Utseende
+-X-KDE-PluginInfo-Category[nds]=Utsehn
+-X-KDE-PluginInfo-Category[nl]=Uiterlijk
+-X-KDE-PluginInfo-Category[pa]=ਦਿੱਖ
+-X-KDE-PluginInfo-Category[pl]=Wygląd
+-X-KDE-PluginInfo-Category[pt]=Aparência
+-X-KDE-PluginInfo-Category[pt_BR]=Aparência
+-X-KDE-PluginInfo-Category[se]=Fárda
+-X-KDE-PluginInfo-Category[sl]=Videz
+-X-KDE-PluginInfo-Category[sr]=Изглед
+-X-KDE-PluginInfo-Category[sr@latin]=Izgled
+-X-KDE-PluginInfo-Category[sv]=Utseende
+-X-KDE-PluginInfo-Category[uk]=Вигляд
+-X-KDE-PluginInfo-Category[wa]=Rivnance
+-X-KDE-PluginInfo-Category[x-test]=xxAppearancexx
+-X-KDE-PluginInfo-Category[zh_CN]=外观
+-X-KDE-PluginInfo-Category[zh_TW]=外觀
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/minimizeanimation.desktop
+===================================================================
+--- workspace/kwin/effects/minimizeanimation.desktop	(revisión: 757050)
++++ workspace/kwin/effects/minimizeanimation.desktop	(copia de trabajo)
+@@ -93,36 +93,6 @@ X-KDE-PluginInfo-Email=rivolaks@hot.ee
+ X-KDE-PluginInfo-Name=kwin4_effect_minimizeanimation
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Appearance
+-X-KDE-PluginInfo-Category[bg]=Изглед
+-X-KDE-PluginInfo-Category[ca]=Aparença
+-X-KDE-PluginInfo-Category[de]=Erscheinungsbild
+-X-KDE-PluginInfo-Category[el]=Εμφάνιση
+-X-KDE-PluginInfo-Category[eo]=Aspekto
+-X-KDE-PluginInfo-Category[es]=Aspecto
+-X-KDE-PluginInfo-Category[et]=Välimus
+-X-KDE-PluginInfo-Category[fr]=Apparence
+-X-KDE-PluginInfo-Category[ga]=Cuma
+-X-KDE-PluginInfo-Category[hu]=Megjelenés
+-X-KDE-PluginInfo-Category[ja]=外観
+-X-KDE-PluginInfo-Category[km]=រូបរាង
+-X-KDE-PluginInfo-Category[lv]=Izskats
+-X-KDE-PluginInfo-Category[nb]=Utseende
+-X-KDE-PluginInfo-Category[nds]=Utsehn
+-X-KDE-PluginInfo-Category[nl]=Uiterlijk
+-X-KDE-PluginInfo-Category[pa]=ਦਿੱਖ
+-X-KDE-PluginInfo-Category[pl]=Wygląd
+-X-KDE-PluginInfo-Category[pt]=Aparência
+-X-KDE-PluginInfo-Category[pt_BR]=Aparência
+-X-KDE-PluginInfo-Category[se]=Fárda
+-X-KDE-PluginInfo-Category[sl]=Videz
+-X-KDE-PluginInfo-Category[sr]=Изглед
+-X-KDE-PluginInfo-Category[sr@latin]=Izgled
+-X-KDE-PluginInfo-Category[sv]=Utseende
+-X-KDE-PluginInfo-Category[uk]=Вигляд
+-X-KDE-PluginInfo-Category[wa]=Rivnance
+-X-KDE-PluginInfo-Category[x-test]=xxAppearancexx
+-X-KDE-PluginInfo-Category[zh_CN]=外观
+-X-KDE-PluginInfo-Category[zh_TW]=外觀
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/kwin/effects/mousemark.desktop
+===================================================================
+--- workspace/kwin/effects/mousemark.desktop	(revisión: 757050)
++++ workspace/kwin/effects/mousemark.desktop	(copia de trabajo)
+@@ -78,36 +78,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_mousemark
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Appearance
+-X-KDE-PluginInfo-Category[bg]=Изглед
+-X-KDE-PluginInfo-Category[ca]=Aparença
+-X-KDE-PluginInfo-Category[de]=Erscheinungsbild
+-X-KDE-PluginInfo-Category[el]=Εμφάνιση
+-X-KDE-PluginInfo-Category[eo]=Aspekto
+-X-KDE-PluginInfo-Category[es]=Aspecto
+-X-KDE-PluginInfo-Category[et]=Välimus
+-X-KDE-PluginInfo-Category[fr]=Apparence
+-X-KDE-PluginInfo-Category[ga]=Cuma
+-X-KDE-PluginInfo-Category[hu]=Megjelenés
+-X-KDE-PluginInfo-Category[ja]=外観
+-X-KDE-PluginInfo-Category[km]=រូបរាង
+-X-KDE-PluginInfo-Category[lv]=Izskats
+-X-KDE-PluginInfo-Category[nb]=Utseende
+-X-KDE-PluginInfo-Category[nds]=Utsehn
+-X-KDE-PluginInfo-Category[nl]=Uiterlijk
+-X-KDE-PluginInfo-Category[pa]=ਦਿੱਖ
+-X-KDE-PluginInfo-Category[pl]=Wygląd
+-X-KDE-PluginInfo-Category[pt]=Aparência
+-X-KDE-PluginInfo-Category[pt_BR]=Aparência
+-X-KDE-PluginInfo-Category[se]=Fárda
+-X-KDE-PluginInfo-Category[sl]=Videz
+-X-KDE-PluginInfo-Category[sr]=Изглед
+-X-KDE-PluginInfo-Category[sr@latin]=Izgled
+-X-KDE-PluginInfo-Category[sv]=Utseende
+-X-KDE-PluginInfo-Category[uk]=Вигляд
+-X-KDE-PluginInfo-Category[wa]=Rivnance
+-X-KDE-PluginInfo-Category[x-test]=xxAppearancexx
+-X-KDE-PluginInfo-Category[zh_CN]=外观
+-X-KDE-PluginInfo-Category[zh_TW]=外觀
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/dialogparent.desktop
+===================================================================
+--- workspace/kwin/effects/dialogparent.desktop	(revisión: 757050)
++++ workspace/kwin/effects/dialogparent.desktop	(copia de trabajo)
+@@ -95,36 +95,6 @@ X-KDE-PluginInfo-Email=rivolaks@hot.ee
+ X-KDE-PluginInfo-Name=kwin4_effect_dialogparent
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Appearance
+-X-KDE-PluginInfo-Category[bg]=Изглед
+-X-KDE-PluginInfo-Category[ca]=Aparença
+-X-KDE-PluginInfo-Category[de]=Erscheinungsbild
+-X-KDE-PluginInfo-Category[el]=Εμφάνιση
+-X-KDE-PluginInfo-Category[eo]=Aspekto
+-X-KDE-PluginInfo-Category[es]=Aspecto
+-X-KDE-PluginInfo-Category[et]=Välimus
+-X-KDE-PluginInfo-Category[fr]=Apparence
+-X-KDE-PluginInfo-Category[ga]=Cuma
+-X-KDE-PluginInfo-Category[hu]=Megjelenés
+-X-KDE-PluginInfo-Category[ja]=外観
+-X-KDE-PluginInfo-Category[km]=រូបរាង
+-X-KDE-PluginInfo-Category[lv]=Izskats
+-X-KDE-PluginInfo-Category[nb]=Utseende
+-X-KDE-PluginInfo-Category[nds]=Utsehn
+-X-KDE-PluginInfo-Category[nl]=Uiterlijk
+-X-KDE-PluginInfo-Category[pa]=ਦਿੱਖ
+-X-KDE-PluginInfo-Category[pl]=Wygląd
+-X-KDE-PluginInfo-Category[pt]=Aparência
+-X-KDE-PluginInfo-Category[pt_BR]=Aparência
+-X-KDE-PluginInfo-Category[se]=Fárda
+-X-KDE-PluginInfo-Category[sl]=Videz
+-X-KDE-PluginInfo-Category[sr]=Изглед
+-X-KDE-PluginInfo-Category[sr@latin]=Izgled
+-X-KDE-PluginInfo-Category[sv]=Utseende
+-X-KDE-PluginInfo-Category[uk]=Вигляд
+-X-KDE-PluginInfo-Category[wa]=Rivnance
+-X-KDE-PluginInfo-Category[x-test]=xxAppearancexx
+-X-KDE-PluginInfo-Category[zh_CN]=外观
+-X-KDE-PluginInfo-Category[zh_TW]=外觀
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/kwin/effects/trackmouse.desktop
+===================================================================
+--- workspace/kwin/effects/trackmouse.desktop	(revisión: 757050)
++++ workspace/kwin/effects/trackmouse.desktop	(copia de trabajo)
+@@ -86,36 +86,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_trackmouse
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Accessibility
+-X-KDE-PluginInfo-Category[bg]=Равностоен достъп
+-X-KDE-PluginInfo-Category[ca]=Accessibilitat
+-X-KDE-PluginInfo-Category[de]=Zugangshilfen
+-X-KDE-PluginInfo-Category[el]=Προσβασιμότητα
+-X-KDE-PluginInfo-Category[eo]=Alirebleco
+-X-KDE-PluginInfo-Category[es]=Accesibilidad
+-X-KDE-PluginInfo-Category[et]=Hõlbustus
+-X-KDE-PluginInfo-Category[fr]=Accessibilité
+-X-KDE-PluginInfo-Category[ga]=Inrochtaineacht
+-X-KDE-PluginInfo-Category[hu]=Kezelési segítség
+-X-KDE-PluginInfo-Category[ja]=アクセシビリティ
+-X-KDE-PluginInfo-Category[km]=មធ្យោបាយ​ងាយស្រួល
+-X-KDE-PluginInfo-Category[lv]=Pieejamība
+-X-KDE-PluginInfo-Category[nb]=Tilgjengelighet
+-X-KDE-PluginInfo-Category[nds]=Behinnertenhülp
+-X-KDE-PluginInfo-Category[nl]=Toegankelijkheid
+-X-KDE-PluginInfo-Category[pa]=ਸਹੂਲਤਾਂ
+-X-KDE-PluginInfo-Category[pl]=Dostępność
+-X-KDE-PluginInfo-Category[pt]=Acessibilidade
+-X-KDE-PluginInfo-Category[pt_BR]=Acessibilidade
+-X-KDE-PluginInfo-Category[se]=Álkkibut geavaheapmi
+-X-KDE-PluginInfo-Category[sl]=Dostopnost
+-X-KDE-PluginInfo-Category[sr]=Приступачност
+-X-KDE-PluginInfo-Category[sr@latin]=Pristupačnost
+-X-KDE-PluginInfo-Category[sv]=Handikappstöd
+-X-KDE-PluginInfo-Category[uk]=Доступність
+-X-KDE-PluginInfo-Category[wa]=Accessibilité
+-X-KDE-PluginInfo-Category[x-test]=xxAccessibilityxx
+-X-KDE-PluginInfo-Category[zh_CN]=辅助功能
+-X-KDE-PluginInfo-Category[zh_TW]=無障礙輔助
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/desktopgrid.desktop
+===================================================================
+--- workspace/kwin/effects/desktopgrid.desktop	(revisión: 757050)
++++ workspace/kwin/effects/desktopgrid.desktop	(copia de trabajo)
+@@ -95,37 +95,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_desktopgrid
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Window Management
+-X-KDE-PluginInfo-Category[bg]=Управление на прозорците
+-X-KDE-PluginInfo-Category[ca]=Gestió de les finestres
+-X-KDE-PluginInfo-Category[de]=Fensterverwaltung
+-X-KDE-PluginInfo-Category[el]=Διαχείριση παραθύρων
+-X-KDE-PluginInfo-Category[eo]=Fenestra administrado
+-X-KDE-PluginInfo-Category[es]=Administración de ventanas
+-X-KDE-PluginInfo-Category[et]=Akende haldus
+-X-KDE-PluginInfo-Category[fr]=Gestion des fenêtres
+-X-KDE-PluginInfo-Category[ga]=Bainisteoireacht Fuinneog
+-X-KDE-PluginInfo-Category[hu]=Ablakkezelés
+-X-KDE-PluginInfo-Category[ja]=ウィンドウマネージメント
+-X-KDE-PluginInfo-Category[km]=ការ​គ្រប់គ្រង​បង្អួច
+-X-KDE-PluginInfo-Category[lv]=Logu pārvaldība
+-X-KDE-PluginInfo-Category[nb]=Vindusbehandling
+-X-KDE-PluginInfo-Category[nds]=Finsterpleeg
+-X-KDE-PluginInfo-Category[nl]=Vensterbeheer
+-X-KDE-PluginInfo-Category[oc]=Gestion de las fenèstras
+-X-KDE-PluginInfo-Category[pa]=ਵਿੰਡੋ ਮੈਨਿਜਮੈਂਟ
+-X-KDE-PluginInfo-Category[pl]=Zarządzanie oknami
+-X-KDE-PluginInfo-Category[pt]=Gestão de Janelas
+-X-KDE-PluginInfo-Category[pt_BR]=Gerenciamento de Janelas
+-X-KDE-PluginInfo-Category[se]=Lásegieđaheapmi
+-X-KDE-PluginInfo-Category[sl]=Upravljanje z okni
+-X-KDE-PluginInfo-Category[sr]=Управљање прозорима
+-X-KDE-PluginInfo-Category[sr@latin]=Upravljanje prozorima
+-X-KDE-PluginInfo-Category[sv]=Fönsterhantering
+-X-KDE-PluginInfo-Category[uk]=Керування вікнами
+-X-KDE-PluginInfo-Category[wa]=Manaedjmint d' purnea
+-X-KDE-PluginInfo-Category[x-test]=xxWindow Managementxx
+-X-KDE-PluginInfo-Category[zh_CN]=窗口管理
+-X-KDE-PluginInfo-Category[zh_TW]=視窗管理
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/kwin/effects/lookingglass.desktop
+===================================================================
+--- workspace/kwin/effects/lookingglass.desktop	(revisión: 757050)
++++ workspace/kwin/effects/lookingglass.desktop	(copia de trabajo)
+@@ -70,36 +70,6 @@ X-KDE-PluginInfo-Email=rivolaks@hot.ee
+ X-KDE-PluginInfo-Name=kwin4_effect_lookingglass
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Accessibility
+-X-KDE-PluginInfo-Category[bg]=Равностоен достъп
+-X-KDE-PluginInfo-Category[ca]=Accessibilitat
+-X-KDE-PluginInfo-Category[de]=Zugangshilfen
+-X-KDE-PluginInfo-Category[el]=Προσβασιμότητα
+-X-KDE-PluginInfo-Category[eo]=Alirebleco
+-X-KDE-PluginInfo-Category[es]=Accesibilidad
+-X-KDE-PluginInfo-Category[et]=Hõlbustus
+-X-KDE-PluginInfo-Category[fr]=Accessibilité
+-X-KDE-PluginInfo-Category[ga]=Inrochtaineacht
+-X-KDE-PluginInfo-Category[hu]=Kezelési segítség
+-X-KDE-PluginInfo-Category[ja]=アクセシビリティ
+-X-KDE-PluginInfo-Category[km]=មធ្យោបាយ​ងាយស្រួល
+-X-KDE-PluginInfo-Category[lv]=Pieejamība
+-X-KDE-PluginInfo-Category[nb]=Tilgjengelighet
+-X-KDE-PluginInfo-Category[nds]=Behinnertenhülp
+-X-KDE-PluginInfo-Category[nl]=Toegankelijkheid
+-X-KDE-PluginInfo-Category[pa]=ਸਹੂਲਤਾਂ
+-X-KDE-PluginInfo-Category[pl]=Dostępność
+-X-KDE-PluginInfo-Category[pt]=Acessibilidade
+-X-KDE-PluginInfo-Category[pt_BR]=Acessibilidade
+-X-KDE-PluginInfo-Category[se]=Álkkibut geavaheapmi
+-X-KDE-PluginInfo-Category[sl]=Dostopnost
+-X-KDE-PluginInfo-Category[sr]=Приступачност
+-X-KDE-PluginInfo-Category[sr@latin]=Pristupačnost
+-X-KDE-PluginInfo-Category[sv]=Handikappstöd
+-X-KDE-PluginInfo-Category[uk]=Доступність
+-X-KDE-PluginInfo-Category[wa]=Accessibilité
+-X-KDE-PluginInfo-Category[x-test]=xxAccessibilityxx
+-X-KDE-PluginInfo-Category[zh_CN]=辅助功能
+-X-KDE-PluginInfo-Category[zh_TW]=無障礙輔助
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/fade.desktop
+===================================================================
+--- workspace/kwin/effects/fade.desktop	(revisión: 757050)
++++ workspace/kwin/effects/fade.desktop	(copia de trabajo)
+@@ -91,36 +91,6 @@ X-KDE-PluginInfo-Email=philip.falkner@gm
+ X-KDE-PluginInfo-Name=kwin4_effect_fade
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Appearance
+-X-KDE-PluginInfo-Category[bg]=Изглед
+-X-KDE-PluginInfo-Category[ca]=Aparença
+-X-KDE-PluginInfo-Category[de]=Erscheinungsbild
+-X-KDE-PluginInfo-Category[el]=Εμφάνιση
+-X-KDE-PluginInfo-Category[eo]=Aspekto
+-X-KDE-PluginInfo-Category[es]=Aspecto
+-X-KDE-PluginInfo-Category[et]=Välimus
+-X-KDE-PluginInfo-Category[fr]=Apparence
+-X-KDE-PluginInfo-Category[ga]=Cuma
+-X-KDE-PluginInfo-Category[hu]=Megjelenés
+-X-KDE-PluginInfo-Category[ja]=外観
+-X-KDE-PluginInfo-Category[km]=រូបរាង
+-X-KDE-PluginInfo-Category[lv]=Izskats
+-X-KDE-PluginInfo-Category[nb]=Utseende
+-X-KDE-PluginInfo-Category[nds]=Utsehn
+-X-KDE-PluginInfo-Category[nl]=Uiterlijk
+-X-KDE-PluginInfo-Category[pa]=ਦਿੱਖ
+-X-KDE-PluginInfo-Category[pl]=Wygląd
+-X-KDE-PluginInfo-Category[pt]=Aparência
+-X-KDE-PluginInfo-Category[pt_BR]=Aparência
+-X-KDE-PluginInfo-Category[se]=Fárda
+-X-KDE-PluginInfo-Category[sl]=Videz
+-X-KDE-PluginInfo-Category[sr]=Изглед
+-X-KDE-PluginInfo-Category[sr@latin]=Izgled
+-X-KDE-PluginInfo-Category[sv]=Utseende
+-X-KDE-PluginInfo-Category[uk]=Вигляд
+-X-KDE-PluginInfo-Category[wa]=Rivnance
+-X-KDE-PluginInfo-Category[x-test]=xxAppearancexx
+-X-KDE-PluginInfo-Category[zh_CN]=外观
+-X-KDE-PluginInfo-Category[zh_TW]=外觀
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/kwin/effects/login.desktop
+===================================================================
+--- workspace/kwin/effects/login.desktop	(revisión: 757050)
++++ workspace/kwin/effects/login.desktop	(copia de trabajo)
+@@ -87,36 +87,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_login
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Appearance
+-X-KDE-PluginInfo-Category[bg]=Изглед
+-X-KDE-PluginInfo-Category[ca]=Aparença
+-X-KDE-PluginInfo-Category[de]=Erscheinungsbild
+-X-KDE-PluginInfo-Category[el]=Εμφάνιση
+-X-KDE-PluginInfo-Category[eo]=Aspekto
+-X-KDE-PluginInfo-Category[es]=Aspecto
+-X-KDE-PluginInfo-Category[et]=Välimus
+-X-KDE-PluginInfo-Category[fr]=Apparence
+-X-KDE-PluginInfo-Category[ga]=Cuma
+-X-KDE-PluginInfo-Category[hu]=Megjelenés
+-X-KDE-PluginInfo-Category[ja]=外観
+-X-KDE-PluginInfo-Category[km]=រូបរាង
+-X-KDE-PluginInfo-Category[lv]=Izskats
+-X-KDE-PluginInfo-Category[nb]=Utseende
+-X-KDE-PluginInfo-Category[nds]=Utsehn
+-X-KDE-PluginInfo-Category[nl]=Uiterlijk
+-X-KDE-PluginInfo-Category[pa]=ਦਿੱਖ
+-X-KDE-PluginInfo-Category[pl]=Wygląd
+-X-KDE-PluginInfo-Category[pt]=Aparência
+-X-KDE-PluginInfo-Category[pt_BR]=Aparência
+-X-KDE-PluginInfo-Category[se]=Fárda
+-X-KDE-PluginInfo-Category[sl]=Videz
+-X-KDE-PluginInfo-Category[sr]=Изглед
+-X-KDE-PluginInfo-Category[sr@latin]=Izgled
+-X-KDE-PluginInfo-Category[sv]=Utseende
+-X-KDE-PluginInfo-Category[uk]=Вигляд
+-X-KDE-PluginInfo-Category[wa]=Rivnance
+-X-KDE-PluginInfo-Category[x-test]=xxAppearancexx
+-X-KDE-PluginInfo-Category[zh_CN]=外观
+-X-KDE-PluginInfo-Category[zh_TW]=外觀
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/kwin/effects/logout.desktop
+===================================================================
+--- workspace/kwin/effects/logout.desktop	(revisión: 757050)
++++ workspace/kwin/effects/logout.desktop	(copia de trabajo)
+@@ -87,36 +87,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_logout
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Appearance
+-X-KDE-PluginInfo-Category[bg]=Изглед
+-X-KDE-PluginInfo-Category[ca]=Aparença
+-X-KDE-PluginInfo-Category[de]=Erscheinungsbild
+-X-KDE-PluginInfo-Category[el]=Εμφάνιση
+-X-KDE-PluginInfo-Category[eo]=Aspekto
+-X-KDE-PluginInfo-Category[es]=Aspecto
+-X-KDE-PluginInfo-Category[et]=Välimus
+-X-KDE-PluginInfo-Category[fr]=Apparence
+-X-KDE-PluginInfo-Category[ga]=Cuma
+-X-KDE-PluginInfo-Category[hu]=Megjelenés
+-X-KDE-PluginInfo-Category[ja]=外観
+-X-KDE-PluginInfo-Category[km]=រូបរាង
+-X-KDE-PluginInfo-Category[lv]=Izskats
+-X-KDE-PluginInfo-Category[nb]=Utseende
+-X-KDE-PluginInfo-Category[nds]=Utsehn
+-X-KDE-PluginInfo-Category[nl]=Uiterlijk
+-X-KDE-PluginInfo-Category[pa]=ਦਿੱਖ
+-X-KDE-PluginInfo-Category[pl]=Wygląd
+-X-KDE-PluginInfo-Category[pt]=Aparência
+-X-KDE-PluginInfo-Category[pt_BR]=Aparência
+-X-KDE-PluginInfo-Category[se]=Fárda
+-X-KDE-PluginInfo-Category[sl]=Videz
+-X-KDE-PluginInfo-Category[sr]=Изглед
+-X-KDE-PluginInfo-Category[sr@latin]=Izgled
+-X-KDE-PluginInfo-Category[sv]=Utseende
+-X-KDE-PluginInfo-Category[uk]=Вигляд
+-X-KDE-PluginInfo-Category[wa]=Rivnance
+-X-KDE-PluginInfo-Category[x-test]=xxAppearancexx
+-X-KDE-PluginInfo-Category[zh_CN]=外观
+-X-KDE-PluginInfo-Category[zh_TW]=外觀
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/kwin/effects/shadow.desktop
+===================================================================
+--- workspace/kwin/effects/shadow.desktop	(revisión: 757050)
++++ workspace/kwin/effects/shadow.desktop	(copia de trabajo)
+@@ -99,36 +99,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_shadow
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Appearance
+-X-KDE-PluginInfo-Category[bg]=Изглед
+-X-KDE-PluginInfo-Category[ca]=Aparença
+-X-KDE-PluginInfo-Category[de]=Erscheinungsbild
+-X-KDE-PluginInfo-Category[el]=Εμφάνιση
+-X-KDE-PluginInfo-Category[eo]=Aspekto
+-X-KDE-PluginInfo-Category[es]=Aspecto
+-X-KDE-PluginInfo-Category[et]=Välimus
+-X-KDE-PluginInfo-Category[fr]=Apparence
+-X-KDE-PluginInfo-Category[ga]=Cuma
+-X-KDE-PluginInfo-Category[hu]=Megjelenés
+-X-KDE-PluginInfo-Category[ja]=外観
+-X-KDE-PluginInfo-Category[km]=រូបរាង
+-X-KDE-PluginInfo-Category[lv]=Izskats
+-X-KDE-PluginInfo-Category[nb]=Utseende
+-X-KDE-PluginInfo-Category[nds]=Utsehn
+-X-KDE-PluginInfo-Category[nl]=Uiterlijk
+-X-KDE-PluginInfo-Category[pa]=ਦਿੱਖ
+-X-KDE-PluginInfo-Category[pl]=Wygląd
+-X-KDE-PluginInfo-Category[pt]=Aparência
+-X-KDE-PluginInfo-Category[pt_BR]=Aparência
+-X-KDE-PluginInfo-Category[se]=Fárda
+-X-KDE-PluginInfo-Category[sl]=Videz
+-X-KDE-PluginInfo-Category[sr]=Изглед
+-X-KDE-PluginInfo-Category[sr@latin]=Izgled
+-X-KDE-PluginInfo-Category[sv]=Utseende
+-X-KDE-PluginInfo-Category[uk]=Вигляд
+-X-KDE-PluginInfo-Category[wa]=Rivnance
+-X-KDE-PluginInfo-Category[x-test]=xxAppearancexx
+-X-KDE-PluginInfo-Category[zh_CN]=外观
+-X-KDE-PluginInfo-Category[zh_TW]=外觀
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/kwin/effects/diminactive.desktop
+===================================================================
+--- workspace/kwin/effects/diminactive.desktop	(revisión: 757050)
++++ workspace/kwin/effects/diminactive.desktop	(copia de trabajo)
+@@ -91,36 +91,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_diminactive
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Accessibility
+-X-KDE-PluginInfo-Category[bg]=Равностоен достъп
+-X-KDE-PluginInfo-Category[ca]=Accessibilitat
+-X-KDE-PluginInfo-Category[de]=Zugangshilfen
+-X-KDE-PluginInfo-Category[el]=Προσβασιμότητα
+-X-KDE-PluginInfo-Category[eo]=Alirebleco
+-X-KDE-PluginInfo-Category[es]=Accesibilidad
+-X-KDE-PluginInfo-Category[et]=Hõlbustus
+-X-KDE-PluginInfo-Category[fr]=Accessibilité
+-X-KDE-PluginInfo-Category[ga]=Inrochtaineacht
+-X-KDE-PluginInfo-Category[hu]=Kezelési segítség
+-X-KDE-PluginInfo-Category[ja]=アクセシビリティ
+-X-KDE-PluginInfo-Category[km]=មធ្យោបាយ​ងាយស្រួល
+-X-KDE-PluginInfo-Category[lv]=Pieejamība
+-X-KDE-PluginInfo-Category[nb]=Tilgjengelighet
+-X-KDE-PluginInfo-Category[nds]=Behinnertenhülp
+-X-KDE-PluginInfo-Category[nl]=Toegankelijkheid
+-X-KDE-PluginInfo-Category[pa]=ਸਹੂਲਤਾਂ
+-X-KDE-PluginInfo-Category[pl]=Dostępność
+-X-KDE-PluginInfo-Category[pt]=Acessibilidade
+-X-KDE-PluginInfo-Category[pt_BR]=Acessibilidade
+-X-KDE-PluginInfo-Category[se]=Álkkibut geavaheapmi
+-X-KDE-PluginInfo-Category[sl]=Dostopnost
+-X-KDE-PluginInfo-Category[sr]=Приступачност
+-X-KDE-PluginInfo-Category[sr@latin]=Pristupačnost
+-X-KDE-PluginInfo-Category[sv]=Handikappstöd
+-X-KDE-PluginInfo-Category[uk]=Доступність
+-X-KDE-PluginInfo-Category[wa]=Accessibilité
+-X-KDE-PluginInfo-Category[x-test]=xxAccessibilityxx
+-X-KDE-PluginInfo-Category[zh_CN]=辅助功能
+-X-KDE-PluginInfo-Category[zh_TW]=無障礙輔助
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/videorecord.desktop
+===================================================================
+--- workspace/kwin/effects/videorecord.desktop	(revisión: 757050)
++++ workspace/kwin/effects/videorecord.desktop	(copia de trabajo)
+@@ -98,36 +98,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_videorecord
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Misc
+-X-KDE-PluginInfo-Category[bg]=Разни
+-X-KDE-PluginInfo-Category[ca]=Varis
+-X-KDE-PluginInfo-Category[de]=Verschiedenes
+-X-KDE-PluginInfo-Category[el]=Διάφορα
+-X-KDE-PluginInfo-Category[eo]=Diversaj
+-X-KDE-PluginInfo-Category[es]=Varios
+-X-KDE-PluginInfo-Category[et]=Muud
+-X-KDE-PluginInfo-Category[fr]=Divers
+-X-KDE-PluginInfo-Category[ga]=Eile
+-X-KDE-PluginInfo-Category[hu]=Egyéb
+-X-KDE-PluginInfo-Category[ja]=その他
+-X-KDE-PluginInfo-Category[km]=ផ្សេងៗ
+-X-KDE-PluginInfo-Category[ko]=기타
+-X-KDE-PluginInfo-Category[lv]=Dažādi
+-X-KDE-PluginInfo-Category[nb]=Diverse
+-X-KDE-PluginInfo-Category[nds]=Anner Saken
+-X-KDE-PluginInfo-Category[nl]=Div.
+-X-KDE-PluginInfo-Category[pa]=ਫੁਟਕਲ
+-X-KDE-PluginInfo-Category[pl]=Różne
+-X-KDE-PluginInfo-Category[pt]=Diversos
+-X-KDE-PluginInfo-Category[pt_BR]=Diversos
+-X-KDE-PluginInfo-Category[se]=Feará mii
+-X-KDE-PluginInfo-Category[sl]=Razno
+-X-KDE-PluginInfo-Category[sr]=Разно
+-X-KDE-PluginInfo-Category[sr@latin]=Razno
+-X-KDE-PluginInfo-Category[sv]=Diverse
+-X-KDE-PluginInfo-Category[uk]=Інше
+-X-KDE-PluginInfo-Category[x-test]=xxMiscxx
+-X-KDE-PluginInfo-Category[zh_CN]=杂项
+-X-KDE-PluginInfo-Category[zh_TW]=雜項
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/presentwindows.desktop
+===================================================================
+--- workspace/kwin/effects/presentwindows.desktop	(revisión: 757050)
++++ workspace/kwin/effects/presentwindows.desktop	(copia de trabajo)
+@@ -96,36 +96,6 @@ X-KDE-PluginInfo-Email=rivolaks@hot.ee
+ X-KDE-PluginInfo-Name=kwin4_effect_presentwindows
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Appearance
+-X-KDE-PluginInfo-Category[bg]=Изглед
+-X-KDE-PluginInfo-Category[ca]=Aparença
+-X-KDE-PluginInfo-Category[de]=Erscheinungsbild
+-X-KDE-PluginInfo-Category[el]=Εμφάνιση
+-X-KDE-PluginInfo-Category[eo]=Aspekto
+-X-KDE-PluginInfo-Category[es]=Aspecto
+-X-KDE-PluginInfo-Category[et]=Välimus
+-X-KDE-PluginInfo-Category[fr]=Apparence
+-X-KDE-PluginInfo-Category[ga]=Cuma
+-X-KDE-PluginInfo-Category[hu]=Megjelenés
+-X-KDE-PluginInfo-Category[ja]=外観
+-X-KDE-PluginInfo-Category[km]=រូបរាង
+-X-KDE-PluginInfo-Category[lv]=Izskats
+-X-KDE-PluginInfo-Category[nb]=Utseende
+-X-KDE-PluginInfo-Category[nds]=Utsehn
+-X-KDE-PluginInfo-Category[nl]=Uiterlijk
+-X-KDE-PluginInfo-Category[pa]=ਦਿੱਖ
+-X-KDE-PluginInfo-Category[pl]=Wygląd
+-X-KDE-PluginInfo-Category[pt]=Aparência
+-X-KDE-PluginInfo-Category[pt_BR]=Aparência
+-X-KDE-PluginInfo-Category[se]=Fárda
+-X-KDE-PluginInfo-Category[sl]=Videz
+-X-KDE-PluginInfo-Category[sr]=Изглед
+-X-KDE-PluginInfo-Category[sr@latin]=Izgled
+-X-KDE-PluginInfo-Category[sv]=Utseende
+-X-KDE-PluginInfo-Category[uk]=Вигляд
+-X-KDE-PluginInfo-Category[wa]=Rivnance
+-X-KDE-PluginInfo-Category[x-test]=xxAppearancexx
+-X-KDE-PluginInfo-Category[zh_CN]=外观
+-X-KDE-PluginInfo-Category[zh_TW]=外觀
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/kwin/effects/test/demo_showpicture.desktop
+===================================================================
+--- workspace/kwin/effects/test/demo_showpicture.desktop	(revisión: 757050)
++++ workspace/kwin/effects/test/demo_showpicture.desktop	(copia de trabajo)
+@@ -41,31 +41,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_demo_showpicture
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Demos
+-X-KDE-PluginInfo-Category[bg]=Демота
+-X-KDE-PluginInfo-Category[el]=Παρουσιάσεις
+-X-KDE-PluginInfo-Category[eo]=Demonstroj
+-X-KDE-PluginInfo-Category[et]=Demod
+-X-KDE-PluginInfo-Category[fr]=Démos
+-X-KDE-PluginInfo-Category[ga]=Maisíochtaí Taispeána
+-X-KDE-PluginInfo-Category[hu]=Demók
+-X-KDE-PluginInfo-Category[ja]=デモ
+-X-KDE-PluginInfo-Category[ko]=데모
+-X-KDE-PluginInfo-Category[lv]=Piemēri
+-X-KDE-PluginInfo-Category[nb]=Demoer
+-X-KDE-PluginInfo-Category[nl]=Demo's
+-X-KDE-PluginInfo-Category[pa]=ਡੈਮੋ
+-X-KDE-PluginInfo-Category[pl]=Demonstracje
+-X-KDE-PluginInfo-Category[pt]=Demonstrações
+-X-KDE-PluginInfo-Category[pt_BR]=Demonstrações
+-X-KDE-PluginInfo-Category[se]=Čájehusat
+-X-KDE-PluginInfo-Category[sl]=Predstavitve
+-X-KDE-PluginInfo-Category[sr]=Демои
+-X-KDE-PluginInfo-Category[sr@latin]=Demoi
+-X-KDE-PluginInfo-Category[sv]=Demonstrationer
+-X-KDE-PluginInfo-Category[uk]=Демонстрації
+-X-KDE-PluginInfo-Category[x-test]=xxDemosxx
+-X-KDE-PluginInfo-Category[zh_CN]=演示
+-X-KDE-PluginInfo-Category[zh_TW]=示範
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/test/demo_liquid.desktop
+===================================================================
+--- workspace/kwin/effects/test/demo_liquid.desktop	(revisión: 757050)
++++ workspace/kwin/effects/test/demo_liquid.desktop	(copia de trabajo)
+@@ -42,31 +42,6 @@ X-KDE-PluginInfo-Email=rivolaks@hot.ee
+ X-KDE-PluginInfo-Name=kwin4_effect_demo_liquid
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Demos
+-X-KDE-PluginInfo-Category[bg]=Демота
+-X-KDE-PluginInfo-Category[el]=Παρουσιάσεις
+-X-KDE-PluginInfo-Category[eo]=Demonstroj
+-X-KDE-PluginInfo-Category[et]=Demod
+-X-KDE-PluginInfo-Category[fr]=Démos
+-X-KDE-PluginInfo-Category[ga]=Maisíochtaí Taispeána
+-X-KDE-PluginInfo-Category[hu]=Demók
+-X-KDE-PluginInfo-Category[ja]=デモ
+-X-KDE-PluginInfo-Category[ko]=데모
+-X-KDE-PluginInfo-Category[lv]=Piemēri
+-X-KDE-PluginInfo-Category[nb]=Demoer
+-X-KDE-PluginInfo-Category[nl]=Demo's
+-X-KDE-PluginInfo-Category[pa]=ਡੈਮੋ
+-X-KDE-PluginInfo-Category[pl]=Demonstracje
+-X-KDE-PluginInfo-Category[pt]=Demonstrações
+-X-KDE-PluginInfo-Category[pt_BR]=Demonstrações
+-X-KDE-PluginInfo-Category[se]=Čájehusat
+-X-KDE-PluginInfo-Category[sl]=Predstavitve
+-X-KDE-PluginInfo-Category[sr]=Демои
+-X-KDE-PluginInfo-Category[sr@latin]=Demoi
+-X-KDE-PluginInfo-Category[sv]=Demonstrationer
+-X-KDE-PluginInfo-Category[uk]=Демонстрації
+-X-KDE-PluginInfo-Category[x-test]=xxDemosxx
+-X-KDE-PluginInfo-Category[zh_CN]=演示
+-X-KDE-PluginInfo-Category[zh_TW]=示範
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/test/howto.desktop
+===================================================================
+--- workspace/kwin/effects/test/howto.desktop	(revisión: 757050)
++++ workspace/kwin/effects/test/howto.desktop	(copia de trabajo)
+@@ -43,31 +43,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_howto
+ # Category of the effect, for config dialog
+ X-KDE-PluginInfo-Category=Demos
+-X-KDE-PluginInfo-Category[bg]=Демота
+-X-KDE-PluginInfo-Category[el]=Παρουσιάσεις
+-X-KDE-PluginInfo-Category[eo]=Demonstroj
+-X-KDE-PluginInfo-Category[et]=Demod
+-X-KDE-PluginInfo-Category[fr]=Démos
+-X-KDE-PluginInfo-Category[ga]=Maisíochtaí Taispeána
+-X-KDE-PluginInfo-Category[hu]=Demók
+-X-KDE-PluginInfo-Category[ja]=デモ
+-X-KDE-PluginInfo-Category[ko]=데모
+-X-KDE-PluginInfo-Category[lv]=Piemēri
+-X-KDE-PluginInfo-Category[nb]=Demoer
+-X-KDE-PluginInfo-Category[nl]=Demo's
+-X-KDE-PluginInfo-Category[pa]=ਡੈਮੋ
+-X-KDE-PluginInfo-Category[pl]=Demonstracje
+-X-KDE-PluginInfo-Category[pt]=Demonstrações
+-X-KDE-PluginInfo-Category[pt_BR]=Demonstrações
+-X-KDE-PluginInfo-Category[se]=Čájehusat
+-X-KDE-PluginInfo-Category[sl]=Predstavitve
+-X-KDE-PluginInfo-Category[sr]=Демои
+-X-KDE-PluginInfo-Category[sr@latin]=Demoi
+-X-KDE-PluginInfo-Category[sv]=Demonstrationer
+-X-KDE-PluginInfo-Category[uk]=Демонстрації
+-X-KDE-PluginInfo-Category[x-test]=xxDemosxx
+-X-KDE-PluginInfo-Category[zh_CN]=演示
+-X-KDE-PluginInfo-Category[zh_TW]=示範
+ # Version and license
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-License=GPL
+Index: workspace/kwin/effects/test/test_fbo.desktop
+===================================================================
+--- workspace/kwin/effects/test/test_fbo.desktop	(revisión: 757050)
++++ workspace/kwin/effects/test/test_fbo.desktop	(copia de trabajo)
+@@ -26,32 +26,6 @@ X-KDE-PluginInfo-Email=rivolaks@hot.ee
+ X-KDE-PluginInfo-Name=kwin4_effect_test_fbo
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Tests
+-X-KDE-PluginInfo-Category[bg]=Тестове
+-X-KDE-PluginInfo-Category[ca]=Proves
+-X-KDE-PluginInfo-Category[el]=Έλεγχοι
+-X-KDE-PluginInfo-Category[eo]=Testoj
+-X-KDE-PluginInfo-Category[es]=Prueba
+-X-KDE-PluginInfo-Category[et]=Testid
+-X-KDE-PluginInfo-Category[ga]=Tástálacha
+-X-KDE-PluginInfo-Category[hu]=Tesztek
+-X-KDE-PluginInfo-Category[ja]=テスト
+-X-KDE-PluginInfo-Category[km]=សាកល្បង
+-X-KDE-PluginInfo-Category[ko]=시험
+-X-KDE-PluginInfo-Category[nb]=Tester
+-X-KDE-PluginInfo-Category[pa]=ਟੈਸਟ
+-X-KDE-PluginInfo-Category[pl]=Testy
+-X-KDE-PluginInfo-Category[pt]=Testes
+-X-KDE-PluginInfo-Category[pt_BR]=Testes
+-X-KDE-PluginInfo-Category[se]=Geahččaleamit
+-X-KDE-PluginInfo-Category[sl]=Preizkusi
+-X-KDE-PluginInfo-Category[sr]=Пробе
+-X-KDE-PluginInfo-Category[sr@latin]=Probe
+-X-KDE-PluginInfo-Category[sv]=Tester
+-X-KDE-PluginInfo-Category[uk]=Тести
+-X-KDE-PluginInfo-Category[wa]=Sayes
+-X-KDE-PluginInfo-Category[x-test]=xxTestsxx
+-X-KDE-PluginInfo-Category[zh_CN]=测试
+-X-KDE-PluginInfo-Category[zh_TW]=測試
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/test/demo_wavywindows.desktop
+===================================================================
+--- workspace/kwin/effects/test/demo_wavywindows.desktop	(revisión: 757050)
++++ workspace/kwin/effects/test/demo_wavywindows.desktop	(copia de trabajo)
+@@ -49,31 +49,6 @@ X-KDE-PluginInfo-Email=rivolaks@hot.ee
+ X-KDE-PluginInfo-Name=kwin4_effect_demo_wavywindows
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Demos
+-X-KDE-PluginInfo-Category[bg]=Демота
+-X-KDE-PluginInfo-Category[el]=Παρουσιάσεις
+-X-KDE-PluginInfo-Category[eo]=Demonstroj
+-X-KDE-PluginInfo-Category[et]=Demod
+-X-KDE-PluginInfo-Category[fr]=Démos
+-X-KDE-PluginInfo-Category[ga]=Maisíochtaí Taispeána
+-X-KDE-PluginInfo-Category[hu]=Demók
+-X-KDE-PluginInfo-Category[ja]=デモ
+-X-KDE-PluginInfo-Category[ko]=데모
+-X-KDE-PluginInfo-Category[lv]=Piemēri
+-X-KDE-PluginInfo-Category[nb]=Demoer
+-X-KDE-PluginInfo-Category[nl]=Demo's
+-X-KDE-PluginInfo-Category[pa]=ਡੈਮੋ
+-X-KDE-PluginInfo-Category[pl]=Demonstracje
+-X-KDE-PluginInfo-Category[pt]=Demonstrações
+-X-KDE-PluginInfo-Category[pt_BR]=Demonstrações
+-X-KDE-PluginInfo-Category[se]=Čájehusat
+-X-KDE-PluginInfo-Category[sl]=Predstavitve
+-X-KDE-PluginInfo-Category[sr]=Демои
+-X-KDE-PluginInfo-Category[sr@latin]=Demoi
+-X-KDE-PluginInfo-Category[sv]=Demonstrationer
+-X-KDE-PluginInfo-Category[uk]=Демонстрації
+-X-KDE-PluginInfo-Category[x-test]=xxDemosxx
+-X-KDE-PluginInfo-Category[zh_CN]=演示
+-X-KDE-PluginInfo-Category[zh_TW]=示範
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/test/demo_shiftworkspaceup.desktop
+===================================================================
+--- workspace/kwin/effects/test/demo_shiftworkspaceup.desktop	(revisión: 757050)
++++ workspace/kwin/effects/test/demo_shiftworkspaceup.desktop	(copia de trabajo)
+@@ -40,31 +40,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_demo_shiftworkspaceup
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Demos
+-X-KDE-PluginInfo-Category[bg]=Демота
+-X-KDE-PluginInfo-Category[el]=Παρουσιάσεις
+-X-KDE-PluginInfo-Category[eo]=Demonstroj
+-X-KDE-PluginInfo-Category[et]=Demod
+-X-KDE-PluginInfo-Category[fr]=Démos
+-X-KDE-PluginInfo-Category[ga]=Maisíochtaí Taispeána
+-X-KDE-PluginInfo-Category[hu]=Demók
+-X-KDE-PluginInfo-Category[ja]=デモ
+-X-KDE-PluginInfo-Category[ko]=데모
+-X-KDE-PluginInfo-Category[lv]=Piemēri
+-X-KDE-PluginInfo-Category[nb]=Demoer
+-X-KDE-PluginInfo-Category[nl]=Demo's
+-X-KDE-PluginInfo-Category[pa]=ਡੈਮੋ
+-X-KDE-PluginInfo-Category[pl]=Demonstracje
+-X-KDE-PluginInfo-Category[pt]=Demonstrações
+-X-KDE-PluginInfo-Category[pt_BR]=Demonstrações
+-X-KDE-PluginInfo-Category[se]=Čájehusat
+-X-KDE-PluginInfo-Category[sl]=Predstavitve
+-X-KDE-PluginInfo-Category[sr]=Демои
+-X-KDE-PluginInfo-Category[sr@latin]=Demoi
+-X-KDE-PluginInfo-Category[sv]=Demonstrationer
+-X-KDE-PluginInfo-Category[uk]=Демонстрації
+-X-KDE-PluginInfo-Category[x-test]=xxDemosxx
+-X-KDE-PluginInfo-Category[zh_CN]=演示
+-X-KDE-PluginInfo-Category[zh_TW]=示範
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/test/drunken.desktop
+===================================================================
+--- workspace/kwin/effects/test/drunken.desktop	(revisión: 757050)
++++ workspace/kwin/effects/test/drunken.desktop	(copia de trabajo)
+@@ -46,31 +46,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_drunken
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Demos
+-X-KDE-PluginInfo-Category[bg]=Демота
+-X-KDE-PluginInfo-Category[el]=Παρουσιάσεις
+-X-KDE-PluginInfo-Category[eo]=Demonstroj
+-X-KDE-PluginInfo-Category[et]=Demod
+-X-KDE-PluginInfo-Category[fr]=Démos
+-X-KDE-PluginInfo-Category[ga]=Maisíochtaí Taispeána
+-X-KDE-PluginInfo-Category[hu]=Demók
+-X-KDE-PluginInfo-Category[ja]=デモ
+-X-KDE-PluginInfo-Category[ko]=데모
+-X-KDE-PluginInfo-Category[lv]=Piemēri
+-X-KDE-PluginInfo-Category[nb]=Demoer
+-X-KDE-PluginInfo-Category[nl]=Demo's
+-X-KDE-PluginInfo-Category[pa]=ਡੈਮੋ
+-X-KDE-PluginInfo-Category[pl]=Demonstracje
+-X-KDE-PluginInfo-Category[pt]=Demonstrações
+-X-KDE-PluginInfo-Category[pt_BR]=Demonstrações
+-X-KDE-PluginInfo-Category[se]=Čájehusat
+-X-KDE-PluginInfo-Category[sl]=Predstavitve
+-X-KDE-PluginInfo-Category[sr]=Демои
+-X-KDE-PluginInfo-Category[sr@latin]=Demoi
+-X-KDE-PluginInfo-Category[sv]=Demonstrationer
+-X-KDE-PluginInfo-Category[uk]=Демонстрації
+-X-KDE-PluginInfo-Category[x-test]=xxDemosxx
+-X-KDE-PluginInfo-Category[zh_CN]=演示
+-X-KDE-PluginInfo-Category[zh_TW]=示範
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/test/demo_shakymove.desktop
+===================================================================
+--- workspace/kwin/effects/test/demo_shakymove.desktop	(revisión: 757050)
++++ workspace/kwin/effects/test/demo_shakymove.desktop	(copia de trabajo)
+@@ -43,31 +43,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_demo_shakymove
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Demos
+-X-KDE-PluginInfo-Category[bg]=Демота
+-X-KDE-PluginInfo-Category[el]=Παρουσιάσεις
+-X-KDE-PluginInfo-Category[eo]=Demonstroj
+-X-KDE-PluginInfo-Category[et]=Demod
+-X-KDE-PluginInfo-Category[fr]=Démos
+-X-KDE-PluginInfo-Category[ga]=Maisíochtaí Taispeána
+-X-KDE-PluginInfo-Category[hu]=Demók
+-X-KDE-PluginInfo-Category[ja]=デモ
+-X-KDE-PluginInfo-Category[ko]=데모
+-X-KDE-PluginInfo-Category[lv]=Piemēri
+-X-KDE-PluginInfo-Category[nb]=Demoer
+-X-KDE-PluginInfo-Category[nl]=Demo's
+-X-KDE-PluginInfo-Category[pa]=ਡੈਮੋ
+-X-KDE-PluginInfo-Category[pl]=Demonstracje
+-X-KDE-PluginInfo-Category[pt]=Demonstrações
+-X-KDE-PluginInfo-Category[pt_BR]=Demonstrações
+-X-KDE-PluginInfo-Category[se]=Čájehusat
+-X-KDE-PluginInfo-Category[sl]=Predstavitve
+-X-KDE-PluginInfo-Category[sr]=Демои
+-X-KDE-PluginInfo-Category[sr@latin]=Demoi
+-X-KDE-PluginInfo-Category[sv]=Demonstrationer
+-X-KDE-PluginInfo-Category[uk]=Демонстрації
+-X-KDE-PluginInfo-Category[x-test]=xxDemosxx
+-X-KDE-PluginInfo-Category[zh_CN]=演示
+-X-KDE-PluginInfo-Category[zh_TW]=示範
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/test/test_thumbnail.desktop
+===================================================================
+--- workspace/kwin/effects/test/test_thumbnail.desktop	(revisión: 757050)
++++ workspace/kwin/effects/test/test_thumbnail.desktop	(copia de trabajo)
+@@ -32,32 +32,6 @@ X-KDE-PluginInfo-Email=rivolaks@hot.ee
+ X-KDE-PluginInfo-Name=kwin4_effect_test_thumbnail
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Tests
+-X-KDE-PluginInfo-Category[bg]=Тестове
+-X-KDE-PluginInfo-Category[ca]=Proves
+-X-KDE-PluginInfo-Category[el]=Έλεγχοι
+-X-KDE-PluginInfo-Category[eo]=Testoj
+-X-KDE-PluginInfo-Category[es]=Prueba
+-X-KDE-PluginInfo-Category[et]=Testid
+-X-KDE-PluginInfo-Category[ga]=Tástálacha
+-X-KDE-PluginInfo-Category[hu]=Tesztek
+-X-KDE-PluginInfo-Category[ja]=テスト
+-X-KDE-PluginInfo-Category[km]=សាកល្បង
+-X-KDE-PluginInfo-Category[ko]=시험
+-X-KDE-PluginInfo-Category[nb]=Tester
+-X-KDE-PluginInfo-Category[pa]=ਟੈਸਟ
+-X-KDE-PluginInfo-Category[pl]=Testy
+-X-KDE-PluginInfo-Category[pt]=Testes
+-X-KDE-PluginInfo-Category[pt_BR]=Testes
+-X-KDE-PluginInfo-Category[se]=Geahččaleamit
+-X-KDE-PluginInfo-Category[sl]=Preizkusi
+-X-KDE-PluginInfo-Category[sr]=Пробе
+-X-KDE-PluginInfo-Category[sr@latin]=Probe
+-X-KDE-PluginInfo-Category[sv]=Tester
+-X-KDE-PluginInfo-Category[uk]=Тести
+-X-KDE-PluginInfo-Category[wa]=Sayes
+-X-KDE-PluginInfo-Category[x-test]=xxTestsxx
+-X-KDE-PluginInfo-Category[zh_CN]=测试
+-X-KDE-PluginInfo-Category[zh_TW]=測試
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/test/flame.desktop
+===================================================================
+--- workspace/kwin/effects/test/flame.desktop	(revisión: 757050)
++++ workspace/kwin/effects/test/flame.desktop	(copia de trabajo)
+@@ -54,36 +54,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_flame
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Appearance
+-X-KDE-PluginInfo-Category[bg]=Изглед
+-X-KDE-PluginInfo-Category[ca]=Aparença
+-X-KDE-PluginInfo-Category[de]=Erscheinungsbild
+-X-KDE-PluginInfo-Category[el]=Εμφάνιση
+-X-KDE-PluginInfo-Category[eo]=Aspekto
+-X-KDE-PluginInfo-Category[es]=Aspecto
+-X-KDE-PluginInfo-Category[et]=Välimus
+-X-KDE-PluginInfo-Category[fr]=Apparence
+-X-KDE-PluginInfo-Category[ga]=Cuma
+-X-KDE-PluginInfo-Category[hu]=Megjelenés
+-X-KDE-PluginInfo-Category[ja]=外観
+-X-KDE-PluginInfo-Category[km]=រូបរាង
+-X-KDE-PluginInfo-Category[lv]=Izskats
+-X-KDE-PluginInfo-Category[nb]=Utseende
+-X-KDE-PluginInfo-Category[nds]=Utsehn
+-X-KDE-PluginInfo-Category[nl]=Uiterlijk
+-X-KDE-PluginInfo-Category[pa]=ਦਿੱਖ
+-X-KDE-PluginInfo-Category[pl]=Wygląd
+-X-KDE-PluginInfo-Category[pt]=Aparência
+-X-KDE-PluginInfo-Category[pt_BR]=Aparência
+-X-KDE-PluginInfo-Category[se]=Fárda
+-X-KDE-PluginInfo-Category[sl]=Videz
+-X-KDE-PluginInfo-Category[sr]=Изглед
+-X-KDE-PluginInfo-Category[sr@latin]=Izgled
+-X-KDE-PluginInfo-Category[sv]=Utseende
+-X-KDE-PluginInfo-Category[uk]=Вигляд
+-X-KDE-PluginInfo-Category[wa]=Rivnance
+-X-KDE-PluginInfo-Category[x-test]=xxAppearancexx
+-X-KDE-PluginInfo-Category[zh_CN]=外观
+-X-KDE-PluginInfo-Category[zh_TW]=外觀
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/test/test_input.desktop
+===================================================================
+--- workspace/kwin/effects/test/test_input.desktop	(revisión: 757050)
++++ workspace/kwin/effects/test/test_input.desktop	(copia de trabajo)
+@@ -30,32 +30,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_test_input
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Tests
+-X-KDE-PluginInfo-Category[bg]=Тестове
+-X-KDE-PluginInfo-Category[ca]=Proves
+-X-KDE-PluginInfo-Category[el]=Έλεγχοι
+-X-KDE-PluginInfo-Category[eo]=Testoj
+-X-KDE-PluginInfo-Category[es]=Prueba
+-X-KDE-PluginInfo-Category[et]=Testid
+-X-KDE-PluginInfo-Category[ga]=Tástálacha
+-X-KDE-PluginInfo-Category[hu]=Tesztek
+-X-KDE-PluginInfo-Category[ja]=テスト
+-X-KDE-PluginInfo-Category[km]=សាកល្បង
+-X-KDE-PluginInfo-Category[ko]=시험
+-X-KDE-PluginInfo-Category[nb]=Tester
+-X-KDE-PluginInfo-Category[pa]=ਟੈਸਟ
+-X-KDE-PluginInfo-Category[pl]=Testy
+-X-KDE-PluginInfo-Category[pt]=Testes
+-X-KDE-PluginInfo-Category[pt_BR]=Testes
+-X-KDE-PluginInfo-Category[se]=Geahččaleamit
+-X-KDE-PluginInfo-Category[sl]=Preizkusi
+-X-KDE-PluginInfo-Category[sr]=Пробе
+-X-KDE-PluginInfo-Category[sr@latin]=Probe
+-X-KDE-PluginInfo-Category[sv]=Tester
+-X-KDE-PluginInfo-Category[uk]=Тести
+-X-KDE-PluginInfo-Category[wa]=Sayes
+-X-KDE-PluginInfo-Category[x-test]=xxTestsxx
+-X-KDE-PluginInfo-Category[zh_CN]=测试
+-X-KDE-PluginInfo-Category[zh_TW]=測試
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/showpaint.desktop
+===================================================================
+--- workspace/kwin/effects/showpaint.desktop	(revisión: 757050)
++++ workspace/kwin/effects/showpaint.desktop	(copia de trabajo)
+@@ -77,36 +77,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_showpaint
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Misc
+-X-KDE-PluginInfo-Category[bg]=Разни
+-X-KDE-PluginInfo-Category[ca]=Varis
+-X-KDE-PluginInfo-Category[de]=Verschiedenes
+-X-KDE-PluginInfo-Category[el]=Διάφορα
+-X-KDE-PluginInfo-Category[eo]=Diversaj
+-X-KDE-PluginInfo-Category[es]=Varios
+-X-KDE-PluginInfo-Category[et]=Muud
+-X-KDE-PluginInfo-Category[fr]=Divers
+-X-KDE-PluginInfo-Category[ga]=Eile
+-X-KDE-PluginInfo-Category[hu]=Egyéb
+-X-KDE-PluginInfo-Category[ja]=その他
+-X-KDE-PluginInfo-Category[km]=ផ្សេងៗ
+-X-KDE-PluginInfo-Category[ko]=기타
+-X-KDE-PluginInfo-Category[lv]=Dažādi
+-X-KDE-PluginInfo-Category[nb]=Diverse
+-X-KDE-PluginInfo-Category[nds]=Anner Saken
+-X-KDE-PluginInfo-Category[nl]=Div.
+-X-KDE-PluginInfo-Category[pa]=ਫੁਟਕਲ
+-X-KDE-PluginInfo-Category[pl]=Różne
+-X-KDE-PluginInfo-Category[pt]=Diversos
+-X-KDE-PluginInfo-Category[pt_BR]=Diversos
+-X-KDE-PluginInfo-Category[se]=Feará mii
+-X-KDE-PluginInfo-Category[sl]=Razno
+-X-KDE-PluginInfo-Category[sr]=Разно
+-X-KDE-PluginInfo-Category[sr@latin]=Razno
+-X-KDE-PluginInfo-Category[sv]=Diverse
+-X-KDE-PluginInfo-Category[uk]=Інше
+-X-KDE-PluginInfo-Category[x-test]=xxMiscxx
+-X-KDE-PluginInfo-Category[zh_CN]=杂项
+-X-KDE-PluginInfo-Category[zh_TW]=雜項
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/kwin/effects/showfps.desktop
+===================================================================
+--- workspace/kwin/effects/showfps.desktop	(revisión: 757050)
++++ workspace/kwin/effects/showfps.desktop	(copia de trabajo)
+@@ -101,36 +101,6 @@ X-KDE-PluginInfo-Email=l.lunak@kde.org
+ X-KDE-PluginInfo-Name=kwin4_effect_showfps
+ X-KDE-PluginInfo-Version=0.1.0
+ X-KDE-PluginInfo-Category=Misc
+-X-KDE-PluginInfo-Category[bg]=Разни
+-X-KDE-PluginInfo-Category[ca]=Varis
+-X-KDE-PluginInfo-Category[de]=Verschiedenes
+-X-KDE-PluginInfo-Category[el]=Διάφορα
+-X-KDE-PluginInfo-Category[eo]=Diversaj
+-X-KDE-PluginInfo-Category[es]=Varios
+-X-KDE-PluginInfo-Category[et]=Muud
+-X-KDE-PluginInfo-Category[fr]=Divers
+-X-KDE-PluginInfo-Category[ga]=Eile
+-X-KDE-PluginInfo-Category[hu]=Egyéb
+-X-KDE-PluginInfo-Category[ja]=その他
+-X-KDE-PluginInfo-Category[km]=ផ្សេងៗ
+-X-KDE-PluginInfo-Category[ko]=기타
+-X-KDE-PluginInfo-Category[lv]=Dažādi
+-X-KDE-PluginInfo-Category[nb]=Diverse
+-X-KDE-PluginInfo-Category[nds]=Anner Saken
+-X-KDE-PluginInfo-Category[nl]=Div.
+-X-KDE-PluginInfo-Category[pa]=ਫੁਟਕਲ
+-X-KDE-PluginInfo-Category[pl]=Różne
+-X-KDE-PluginInfo-Category[pt]=Diversos
+-X-KDE-PluginInfo-Category[pt_BR]=Diversos
+-X-KDE-PluginInfo-Category[se]=Feará mii
+-X-KDE-PluginInfo-Category[sl]=Razno
+-X-KDE-PluginInfo-Category[sr]=Разно
+-X-KDE-PluginInfo-Category[sr@latin]=Razno
+-X-KDE-PluginInfo-Category[sv]=Diverse
+-X-KDE-PluginInfo-Category[uk]=Інше
+-X-KDE-PluginInfo-Category[x-test]=xxMiscxx
+-X-KDE-PluginInfo-Category[zh_CN]=杂项
+-X-KDE-PluginInfo-Category[zh_TW]=雜項
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/plasma/containments/panel/plasma-containment-panel.desktop
+===================================================================
+--- workspace/plasma/containments/panel/plasma-containment-panel.desktop	(revisión: 757050)
++++ workspace/plasma/containments/panel/plasma-containment-panel.desktop	(copia de trabajo)
+@@ -101,35 +101,6 @@ X-KDE-PluginInfo-Name=panel
+ X-KDE-PluginInfo-Version=pre0.1
+ X-KDE-PluginInfo-Website=http://plasma.kde.org/
+ X-KDE-PluginInfo-Category=Containments
+-X-KDE-PluginInfo-Category[ca]=Contenidors
+-X-KDE-PluginInfo-Category[de]=Behältnisse
+-X-KDE-PluginInfo-Category[el]=Υποδοχείς
+-X-KDE-PluginInfo-Category[eo]=Aplikaĵetujoj
+-X-KDE-PluginInfo-Category[es]=Contenedores
+-X-KDE-PluginInfo-Category[et]=Konteinerid
+-X-KDE-PluginInfo-Category[fr]=Confinements
+-X-KDE-PluginInfo-Category[ga]=Coimeádáin
+-X-KDE-PluginInfo-Category[hu]=Tartóelemek
+-X-KDE-PluginInfo-Category[ja]=入れ物
+-X-KDE-PluginInfo-Category[km]=ភាព​មាននៅ
+-X-KDE-PluginInfo-Category[lv]=Konteineri
+-X-KDE-PluginInfo-Category[nb]=Beholdere
+-X-KDE-PluginInfo-Category[nds]=Gelaatsen
+-X-KDE-PluginInfo-Category[nl]=Insluitgebieden
+-X-KDE-PluginInfo-Category[pa]=ਕਨਟੇਨਮੈਂਟ
+-X-KDE-PluginInfo-Category[pl]=Kontenery
+-X-KDE-PluginInfo-Category[pt]=Contentores
+-X-KDE-PluginInfo-Category[pt_BR]=Contentores
+-X-KDE-PluginInfo-Category[ru]=Контейнеры плазмоидов
+-X-KDE-PluginInfo-Category[se]=Lihtit
+-X-KDE-PluginInfo-Category[sl]=Vsebniki
+-X-KDE-PluginInfo-Category[sr]=Садржаоци
+-X-KDE-PluginInfo-Category[sr@latin]=Sadržaoci
+-X-KDE-PluginInfo-Category[sv]=Omgivningar
+-X-KDE-PluginInfo-Category[uk]=Вмістилища
+-X-KDE-PluginInfo-Category[x-test]=xxContainmentsxx
+-X-KDE-PluginInfo-Category[zh_CN]=容器
+-X-KDE-PluginInfo-Category[zh_TW]=容器
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/plasma/containments/desktop/plasma-containment-desktop.desktop
+===================================================================
+--- workspace/plasma/containments/desktop/plasma-containment-desktop.desktop	(revisión: 757050)
++++ workspace/plasma/containments/desktop/plasma-containment-desktop.desktop	(copia de trabajo)
+@@ -78,35 +78,6 @@ X-KDE-PluginInfo-Name=desktop
+ X-KDE-PluginInfo-Version=0.1
+ X-KDE-PluginInfo-Website=http://plasma.kde.org/
+ X-KDE-PluginInfo-Category=Containments
+-X-KDE-PluginInfo-Category[ca]=Contenidors
+-X-KDE-PluginInfo-Category[de]=Behältnisse
+-X-KDE-PluginInfo-Category[el]=Υποδοχείς
+-X-KDE-PluginInfo-Category[eo]=Aplikaĵetujoj
+-X-KDE-PluginInfo-Category[es]=Contenedores
+-X-KDE-PluginInfo-Category[et]=Konteinerid
+-X-KDE-PluginInfo-Category[fr]=Confinements
+-X-KDE-PluginInfo-Category[ga]=Coimeádáin
+-X-KDE-PluginInfo-Category[hu]=Tartóelemek
+-X-KDE-PluginInfo-Category[ja]=入れ物
+-X-KDE-PluginInfo-Category[km]=ភាព​មាននៅ
+-X-KDE-PluginInfo-Category[lv]=Konteineri
+-X-KDE-PluginInfo-Category[nb]=Beholdere
+-X-KDE-PluginInfo-Category[nds]=Gelaatsen
+-X-KDE-PluginInfo-Category[nl]=Insluitgebieden
+-X-KDE-PluginInfo-Category[pa]=ਕਨਟੇਨਮੈਂਟ
+-X-KDE-PluginInfo-Category[pl]=Kontenery
+-X-KDE-PluginInfo-Category[pt]=Contentores
+-X-KDE-PluginInfo-Category[pt_BR]=Contentores
+-X-KDE-PluginInfo-Category[ru]=Контейнеры плазмоидов
+-X-KDE-PluginInfo-Category[se]=Lihtit
+-X-KDE-PluginInfo-Category[sl]=Vsebniki
+-X-KDE-PluginInfo-Category[sr]=Садржаоци
+-X-KDE-PluginInfo-Category[sr@latin]=Sadržaoci
+-X-KDE-PluginInfo-Category[sv]=Omgivningar
+-X-KDE-PluginInfo-Category[uk]=Вмістилища
+-X-KDE-PluginInfo-Category[x-test]=xxContainmentsxx
+-X-KDE-PluginInfo-Category[zh_CN]=容器
+-X-KDE-PluginInfo-Category[zh_TW]=容器
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/plasma/applets/devicenotifier/plasma-applet-devicenotifier.desktop
+===================================================================
+--- workspace/plasma/applets/devicenotifier/plasma-applet-devicenotifier.desktop	(revisión: 757050)
++++ workspace/plasma/applets/devicenotifier/plasma-applet-devicenotifier.desktop	(copia de trabajo)
+@@ -87,38 +87,6 @@ X-KDE-PluginInfo-Name=notifier
+ X-KDE-PluginInfo-Version=pre0.1
+ X-KDE-PluginInfo-Website=http://plasma.kde.org/
+ X-KDE-PluginInfo-Category=System Information
+-X-KDE-PluginInfo-Category[bg]=Информация за системата
+-X-KDE-PluginInfo-Category[ca]=Informació del sistema
+-X-KDE-PluginInfo-Category[de]=Systeminformationen
+-X-KDE-PluginInfo-Category[el]=Πληροφορίες συστήματος
+-X-KDE-PluginInfo-Category[eo]=Sisteminformoj
+-X-KDE-PluginInfo-Category[es]=Información del sistema
+-X-KDE-PluginInfo-Category[et]=Süsteemi info
+-X-KDE-PluginInfo-Category[fr]=Information sur le système
+-X-KDE-PluginInfo-Category[ga]=Eolas faoin Chóras
+-X-KDE-PluginInfo-Category[hu]=Rendszerinformáció
+-X-KDE-PluginInfo-Category[ja]=システム情報
+-X-KDE-PluginInfo-Category[km]=ព័ត៌មាន​ប្រព័ន្ធ
+-X-KDE-PluginInfo-Category[ko]=시스템 정보
+-X-KDE-PluginInfo-Category[lv]=Sistēmas informācija
+-X-KDE-PluginInfo-Category[nb]=Informasjon om systemet
+-X-KDE-PluginInfo-Category[nds]=Systeem-Informatschonen
+-X-KDE-PluginInfo-Category[nl]=Systeeminformatie
+-X-KDE-PluginInfo-Category[pa]=ਸਿਸਟਮ ਜਾਣਕਾਰੀ
+-X-KDE-PluginInfo-Category[pl]=Informacje o systemie
+-X-KDE-PluginInfo-Category[pt]=Informação do Sistema
+-X-KDE-PluginInfo-Category[pt_BR]=Informação do Sistema
+-X-KDE-PluginInfo-Category[se]=Dieđut vuogádagas
+-X-KDE-PluginInfo-Category[sl]=Podatki o sistemu
+-X-KDE-PluginInfo-Category[sr]=Подаци о систему
+-X-KDE-PluginInfo-Category[sr@latin]=Podaci o sistemu
+-X-KDE-PluginInfo-Category[sv]=Systeminformation
+-X-KDE-PluginInfo-Category[tg]=Иттилооти система
+-X-KDE-PluginInfo-Category[uk]=Системна інформація
+-X-KDE-PluginInfo-Category[wa]=Infôrmåcion sistinme
+-X-KDE-PluginInfo-Category[x-test]=xxSystem Informationxx
+-X-KDE-PluginInfo-Category[zh_CN]=系统信息
+-X-KDE-PluginInfo-Category[zh_TW]=系統資訊
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/plasma/applets/lock_logout/plasma-applet-lockout.desktop
+===================================================================
+--- workspace/plasma/applets/lock_logout/plasma-applet-lockout.desktop	(revisión: 757050)
++++ workspace/plasma/applets/lock_logout/plasma-applet-lockout.desktop	(copia de trabajo)
+@@ -90,38 +90,6 @@ X-KDE-PluginInfo-Name=lockout
+ X-KDE-PluginInfo-Version=pre0.1
+ X-KDE-PluginInfo-Website=http://plasma.kde.org/
+ X-KDE-PluginInfo-Category=System Information
+-X-KDE-PluginInfo-Category[bg]=Информация за системата
+-X-KDE-PluginInfo-Category[ca]=Informació del sistema
+-X-KDE-PluginInfo-Category[de]=Systeminformationen
+-X-KDE-PluginInfo-Category[el]=Πληροφορίες συστήματος
+-X-KDE-PluginInfo-Category[eo]=Sisteminformoj
+-X-KDE-PluginInfo-Category[es]=Información del sistema
+-X-KDE-PluginInfo-Category[et]=Süsteemi info
+-X-KDE-PluginInfo-Category[fr]=Information sur le système
+-X-KDE-PluginInfo-Category[ga]=Eolas faoin Chóras
+-X-KDE-PluginInfo-Category[hu]=Rendszerinformáció
+-X-KDE-PluginInfo-Category[ja]=システム情報
+-X-KDE-PluginInfo-Category[km]=ព័ត៌មាន​ប្រព័ន្ធ
+-X-KDE-PluginInfo-Category[ko]=시스템 정보
+-X-KDE-PluginInfo-Category[lv]=Sistēmas informācija
+-X-KDE-PluginInfo-Category[nb]=Informasjon om systemet
+-X-KDE-PluginInfo-Category[nds]=Systeem-Informatschonen
+-X-KDE-PluginInfo-Category[nl]=Systeeminformatie
+-X-KDE-PluginInfo-Category[pa]=ਸਿਸਟਮ ਜਾਣਕਾਰੀ
+-X-KDE-PluginInfo-Category[pl]=Informacje o systemie
+-X-KDE-PluginInfo-Category[pt]=Informação do Sistema
+-X-KDE-PluginInfo-Category[pt_BR]=Informação do Sistema
+-X-KDE-PluginInfo-Category[se]=Dieđut vuogádagas
+-X-KDE-PluginInfo-Category[sl]=Podatki o sistemu
+-X-KDE-PluginInfo-Category[sr]=Подаци о систему
+-X-KDE-PluginInfo-Category[sr@latin]=Podaci o sistemu
+-X-KDE-PluginInfo-Category[sv]=Systeminformation
+-X-KDE-PluginInfo-Category[tg]=Иттилооти система
+-X-KDE-PluginInfo-Category[uk]=Системна інформація
+-X-KDE-PluginInfo-Category[wa]=Infôrmåcion sistinme
+-X-KDE-PluginInfo-Category[x-test]=xxSystem Informationxx
+-X-KDE-PluginInfo-Category[zh_CN]=系统信息
+-X-KDE-PluginInfo-Category[zh_TW]=系統資訊
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/plasma/applets/systemtray/plasma-applet-systemtray.desktop
+===================================================================
+--- workspace/plasma/applets/systemtray/plasma-applet-systemtray.desktop	(revisión: 757050)
++++ workspace/plasma/applets/systemtray/plasma-applet-systemtray.desktop	(copia de trabajo)
+@@ -76,39 +76,6 @@ X-KDE-PluginInfo-Name=systemtray
+ X-KDE-PluginInfo-Version=pre0.1
+ X-KDE-PluginInfo-Website=http://plasma.kde.org
+ X-KDE-PluginInfo-Category=Windows and Tasks
+-X-KDE-PluginInfo-Category[bg]=Прозорци и задачи
+-X-KDE-PluginInfo-Category[ca]=Finestres i tasques
+-X-KDE-PluginInfo-Category[de]=Fenster und Programme
+-X-KDE-PluginInfo-Category[el]=Παράθυρα και Εργασίες
+-X-KDE-PluginInfo-Category[eo]=Fenestroj kaj taskoj
+-X-KDE-PluginInfo-Category[es]=Ventanas y tareas
+-X-KDE-PluginInfo-Category[et]=Aknad ja tegumid
+-X-KDE-PluginInfo-Category[fr]=Fenêtres et tâches
+-X-KDE-PluginInfo-Category[ga]=Fuinneoga agus Tascanna
+-X-KDE-PluginInfo-Category[hu]=Ablakok és feladatok
+-X-KDE-PluginInfo-Category[ja]=ウィンドウとタスク
+-X-KDE-PluginInfo-Category[km]=បង្អួច និង​ភារកិច្ច
+-X-KDE-PluginInfo-Category[lv]=Logi un uzdevumi
+-X-KDE-PluginInfo-Category[nb]=Vinduer og oppgaver
+-X-KDE-PluginInfo-Category[nds]=Finstern un Opgaven
+-X-KDE-PluginInfo-Category[nl]=Vensters en taken
+-X-KDE-PluginInfo-Category[pa]=ਵਿੰਡੋਜ਼ ਅਤੇ ਟਾਸਕ
+-X-KDE-PluginInfo-Category[pl]=Okna i zadania
+-X-KDE-PluginInfo-Category[pt]=Janelas e Tarefas
+-X-KDE-PluginInfo-Category[pt_BR]=Janelas e Tarefas
+-X-KDE-PluginInfo-Category[ru]=Окна и задачи
+-X-KDE-PluginInfo-Category[se]=Láset ja barggut
+-X-KDE-PluginInfo-Category[sl]=Okna in opravila
+-X-KDE-PluginInfo-Category[sr]=Прозори и задаци
+-X-KDE-PluginInfo-Category[sr@latin]=Prozori i zadaci
+-X-KDE-PluginInfo-Category[sv]=Fönster och uppgifter
+-X-KDE-PluginInfo-Category[tg]=Тирезаҳо ва вазифаҳо
+-X-KDE-PluginInfo-Category[th]=หน้าต่างและงาน
+-X-KDE-PluginInfo-Category[uk]=Вікна і задачі
+-X-KDE-PluginInfo-Category[wa]=Purneas eyet bouyes
+-X-KDE-PluginInfo-Category[x-test]=xxWindows and Tasksxx
+-X-KDE-PluginInfo-Category[zh_CN]=窗口和任务
+-X-KDE-PluginInfo-Category[zh_TW]=視窗與工作
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL v2+
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/plasma/applets/tasks/plasma-tasks-default.desktop
+===================================================================
+--- workspace/plasma/applets/tasks/plasma-tasks-default.desktop	(revisión: 757050)
++++ workspace/plasma/applets/tasks/plasma-tasks-default.desktop	(copia de trabajo)
+@@ -53,39 +53,6 @@ X-KDE-PluginInfo-Name=tasks
+ X-KDE-PluginInfo-Version=pre0.1
+ X-KDE-PluginInfo-Website=http://plasma.kde.org/
+ X-KDE-PluginInfo-Category=Windows and Tasks
+-X-KDE-PluginInfo-Category[bg]=Прозорци и задачи
+-X-KDE-PluginInfo-Category[ca]=Finestres i tasques
+-X-KDE-PluginInfo-Category[de]=Fenster und Programme
+-X-KDE-PluginInfo-Category[el]=Παράθυρα και Εργασίες
+-X-KDE-PluginInfo-Category[eo]=Fenestroj kaj taskoj
+-X-KDE-PluginInfo-Category[es]=Ventanas y tareas
+-X-KDE-PluginInfo-Category[et]=Aknad ja tegumid
+-X-KDE-PluginInfo-Category[fr]=Fenêtres et tâches
+-X-KDE-PluginInfo-Category[ga]=Fuinneoga agus Tascanna
+-X-KDE-PluginInfo-Category[hu]=Ablakok és feladatok
+-X-KDE-PluginInfo-Category[ja]=ウィンドウとタスク
+-X-KDE-PluginInfo-Category[km]=បង្អួច និង​ភារកិច្ច
+-X-KDE-PluginInfo-Category[lv]=Logi un uzdevumi
+-X-KDE-PluginInfo-Category[nb]=Vinduer og oppgaver
+-X-KDE-PluginInfo-Category[nds]=Finstern un Opgaven
+-X-KDE-PluginInfo-Category[nl]=Vensters en taken
+-X-KDE-PluginInfo-Category[pa]=ਵਿੰਡੋਜ਼ ਅਤੇ ਟਾਸਕ
+-X-KDE-PluginInfo-Category[pl]=Okna i zadania
+-X-KDE-PluginInfo-Category[pt]=Janelas e Tarefas
+-X-KDE-PluginInfo-Category[pt_BR]=Janelas e Tarefas
+-X-KDE-PluginInfo-Category[ru]=Окна и задачи
+-X-KDE-PluginInfo-Category[se]=Láset ja barggut
+-X-KDE-PluginInfo-Category[sl]=Okna in opravila
+-X-KDE-PluginInfo-Category[sr]=Прозори и задаци
+-X-KDE-PluginInfo-Category[sr@latin]=Prozori i zadaci
+-X-KDE-PluginInfo-Category[sv]=Fönster och uppgifter
+-X-KDE-PluginInfo-Category[tg]=Тирезаҳо ва вазифаҳо
+-X-KDE-PluginInfo-Category[th]=หน้าต่างและงาน
+-X-KDE-PluginInfo-Category[uk]=Вікна і задачі
+-X-KDE-PluginInfo-Category[wa]=Purneas eyet bouyes
+-X-KDE-PluginInfo-Category[x-test]=xxWindows and Tasksxx
+-X-KDE-PluginInfo-Category[zh_CN]=窗口和任务
+-X-KDE-PluginInfo-Category[zh_TW]=視窗與工作
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL v2+
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/plasma/applets/digital-clock/plasma-applet-digitalclock.desktop
+===================================================================
+--- workspace/plasma/applets/digital-clock/plasma-applet-digitalclock.desktop	(revisión: 757050)
++++ workspace/plasma/applets/digital-clock/plasma-applet-digitalclock.desktop	(copia de trabajo)
+@@ -87,39 +87,6 @@ X-KDE-PluginInfo-Name=digital-clock
+ X-KDE-PluginInfo-Version=0.0.1
+ X-KDE-PluginInfo-Website=http://www.ruphy.org/
+ X-KDE-PluginInfo-Category=Date and Time
+-X-KDE-PluginInfo-Category[bg]=Дата и час
+-X-KDE-PluginInfo-Category[ca]=Data i hora
+-X-KDE-PluginInfo-Category[de]=Datum und Zeit
+-X-KDE-PluginInfo-Category[el]=Ημερομηνία και ώρα
+-X-KDE-PluginInfo-Category[eo]=Dato kaj Tempo
+-X-KDE-PluginInfo-Category[es]=Fecha y hora
+-X-KDE-PluginInfo-Category[et]=Kuupäev ja kellaaeg
+-X-KDE-PluginInfo-Category[fr]=Date et heure
+-X-KDE-PluginInfo-Category[ga]=Dáta agus Am
+-X-KDE-PluginInfo-Category[hu]=Dátum és idő
+-X-KDE-PluginInfo-Category[ja]=日付と時間
+-X-KDE-PluginInfo-Category[km]=កាល​បរិច្ឆេទ និង​ពេលវេលា
+-X-KDE-PluginInfo-Category[ko]=날짜와 시간
+-X-KDE-PluginInfo-Category[lv]=Datums un laiks
+-X-KDE-PluginInfo-Category[nb]=Dato og klokkeslett
+-X-KDE-PluginInfo-Category[nds]=Datum un Tiet
+-X-KDE-PluginInfo-Category[nl]=Datum en Tijd
+-X-KDE-PluginInfo-Category[oc]=Data e ora
+-X-KDE-PluginInfo-Category[pa]=ਮਿਤੀ ਅਤੇ ਟਾਈਮ
+-X-KDE-PluginInfo-Category[pl]=Data i czas
+-X-KDE-PluginInfo-Category[pt]=Data e Hora
+-X-KDE-PluginInfo-Category[pt_BR]=Data e Hora
+-X-KDE-PluginInfo-Category[se]=Dáhton ja áigi
+-X-KDE-PluginInfo-Category[sl]=Datum in čas
+-X-KDE-PluginInfo-Category[sr]=Датум и време
+-X-KDE-PluginInfo-Category[sr@latin]=Datum i vreme
+-X-KDE-PluginInfo-Category[sv]=Datum och tid
+-X-KDE-PluginInfo-Category[tg]=Вақт ва сана
+-X-KDE-PluginInfo-Category[uk]=Дата і час
+-X-KDE-PluginInfo-Category[wa]=Date eyet eure
+-X-KDE-PluginInfo-Category[x-test]=xxDate and Timexx
+-X-KDE-PluginInfo-Category[zh_CN]=日期和时间
+-X-KDE-PluginInfo-Category[zh_TW]=日期和時間
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/plasma/applets/icon/plasma-applet-icon.desktop
+===================================================================
+--- workspace/plasma/applets/icon/plasma-applet-icon.desktop	(revisión: 757050)
++++ workspace/plasma/applets/icon/plasma-applet-icon.desktop	(copia de trabajo)
+@@ -77,40 +77,6 @@ X-KDE-PluginInfo-Name=icon
+ X-KDE-PluginInfo-Version=pre0.1
+ X-KDE-PluginInfo-Website=http://plasma.kde.org/
+ X-KDE-PluginInfo-Category=File System
+-X-KDE-PluginInfo-Category[bg]=Файлова система
+-X-KDE-PluginInfo-Category[ca]=Sistema de fitxers
+-X-KDE-PluginInfo-Category[de]=Dateisystem
+-X-KDE-PluginInfo-Category[el]=Σύστημα αρχείων
+-X-KDE-PluginInfo-Category[eo]=Dosiersistemo
+-X-KDE-PluginInfo-Category[es]=Sistema de archivos
+-X-KDE-PluginInfo-Category[et]=Failisüsteem
+-X-KDE-PluginInfo-Category[fr]=Système de fichiers
+-X-KDE-PluginInfo-Category[ga]=Córas Comhad
+-X-KDE-PluginInfo-Category[hu]=Fájlrendszer
+-X-KDE-PluginInfo-Category[ja]=ファイルシステム
+-X-KDE-PluginInfo-Category[km]=ប្រព័ន្ធ​​ឯកសារ
+-X-KDE-PluginInfo-Category[ko]=파일 시스템
+-X-KDE-PluginInfo-Category[ku]=Pergala Pelan
+-X-KDE-PluginInfo-Category[lv]=Failu sistēma
+-X-KDE-PluginInfo-Category[nb]=Filsystem
+-X-KDE-PluginInfo-Category[nds]=Dateisysteem
+-X-KDE-PluginInfo-Category[nl]=Bestandssysteem
+-X-KDE-PluginInfo-Category[pa]=ਫਾਇਲ ਸਿਸਟਮ
+-X-KDE-PluginInfo-Category[pl]=System plików
+-X-KDE-PluginInfo-Category[pt]=Sistema de Ficheiros
+-X-KDE-PluginInfo-Category[pt_BR]=Sistema de Arquivos
+-X-KDE-PluginInfo-Category[se]=Fiilavuogádat
+-X-KDE-PluginInfo-Category[sl]=Datotečni sistem
+-X-KDE-PluginInfo-Category[sr]=Систем фајлова
+-X-KDE-PluginInfo-Category[sr@latin]=Sistem fajlova
+-X-KDE-PluginInfo-Category[sv]=Filsystem
+-X-KDE-PluginInfo-Category[tg]=Файлҳои система
+-X-KDE-PluginInfo-Category[th]=ระบบแฟ้ม
+-X-KDE-PluginInfo-Category[uk]=Файлова система
+-X-KDE-PluginInfo-Category[wa]=Sistinme di fitchî
+-X-KDE-PluginInfo-Category[x-test]=xxFile Systemxx
+-X-KDE-PluginInfo-Category[zh_CN]=文件系统
+-X-KDE-PluginInfo-Category[zh_TW]=檔案系統
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/plasma/applets/battery/plasma-battery-default.desktop
+===================================================================
+--- workspace/plasma/applets/battery/plasma-battery-default.desktop	(revisión: 757050)
++++ workspace/plasma/applets/battery/plasma-battery-default.desktop	(copia de trabajo)
+@@ -90,38 +90,6 @@ X-KDE-PluginInfo-Name=battery
+ X-KDE-PluginInfo-Version=pre0.1
+ X-KDE-PluginInfo-Website=http://plasma.kde.org/
+ X-KDE-PluginInfo-Category=System Information
+-X-KDE-PluginInfo-Category[bg]=Информация за системата
+-X-KDE-PluginInfo-Category[ca]=Informació del sistema
+-X-KDE-PluginInfo-Category[de]=Systeminformationen
+-X-KDE-PluginInfo-Category[el]=Πληροφορίες συστήματος
+-X-KDE-PluginInfo-Category[eo]=Sisteminformoj
+-X-KDE-PluginInfo-Category[es]=Información del sistema
+-X-KDE-PluginInfo-Category[et]=Süsteemi info
+-X-KDE-PluginInfo-Category[fr]=Information sur le système
+-X-KDE-PluginInfo-Category[ga]=Eolas faoin Chóras
+-X-KDE-PluginInfo-Category[hu]=Rendszerinformáció
+-X-KDE-PluginInfo-Category[ja]=システム情報
+-X-KDE-PluginInfo-Category[km]=ព័ត៌មាន​ប្រព័ន្ធ
+-X-KDE-PluginInfo-Category[ko]=시스템 정보
+-X-KDE-PluginInfo-Category[lv]=Sistēmas informācija
+-X-KDE-PluginInfo-Category[nb]=Informasjon om systemet
+-X-KDE-PluginInfo-Category[nds]=Systeem-Informatschonen
+-X-KDE-PluginInfo-Category[nl]=Systeeminformatie
+-X-KDE-PluginInfo-Category[pa]=ਸਿਸਟਮ ਜਾਣਕਾਰੀ
+-X-KDE-PluginInfo-Category[pl]=Informacje o systemie
+-X-KDE-PluginInfo-Category[pt]=Informação do Sistema
+-X-KDE-PluginInfo-Category[pt_BR]=Informação do Sistema
+-X-KDE-PluginInfo-Category[se]=Dieđut vuogádagas
+-X-KDE-PluginInfo-Category[sl]=Podatki o sistemu
+-X-KDE-PluginInfo-Category[sr]=Подаци о систему
+-X-KDE-PluginInfo-Category[sr@latin]=Podaci o sistemu
+-X-KDE-PluginInfo-Category[sv]=Systeminformation
+-X-KDE-PluginInfo-Category[tg]=Иттилооти система
+-X-KDE-PluginInfo-Category[uk]=Системна інформація
+-X-KDE-PluginInfo-Category[wa]=Infôrmåcion sistinme
+-X-KDE-PluginInfo-Category[x-test]=xxSystem Informationxx
+-X-KDE-PluginInfo-Category[zh_CN]=系统信息
+-X-KDE-PluginInfo-Category[zh_TW]=系統資訊
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/plasma/applets/analog-clock/plasma-applet-analogclock.desktop
+===================================================================
+--- workspace/plasma/applets/analog-clock/plasma-applet-analogclock.desktop	(revisión: 757050)
++++ workspace/plasma/applets/analog-clock/plasma-applet-analogclock.desktop	(copia de trabajo)
+@@ -102,39 +102,6 @@ X-KDE-PluginInfo-Name=clock
+ X-KDE-PluginInfo-Version=pre0.1
+ X-KDE-PluginInfo-Website=http://plasma.kde.org/
+ X-KDE-PluginInfo-Category=Date and Time
+-X-KDE-PluginInfo-Category[bg]=Дата и час
+-X-KDE-PluginInfo-Category[ca]=Data i hora
+-X-KDE-PluginInfo-Category[de]=Datum und Zeit
+-X-KDE-PluginInfo-Category[el]=Ημερομηνία και ώρα
+-X-KDE-PluginInfo-Category[eo]=Dato kaj Tempo
+-X-KDE-PluginInfo-Category[es]=Fecha y hora
+-X-KDE-PluginInfo-Category[et]=Kuupäev ja kellaaeg
+-X-KDE-PluginInfo-Category[fr]=Date et heure
+-X-KDE-PluginInfo-Category[ga]=Dáta agus Am
+-X-KDE-PluginInfo-Category[hu]=Dátum és idő
+-X-KDE-PluginInfo-Category[ja]=日付と時間
+-X-KDE-PluginInfo-Category[km]=កាល​បរិច្ឆេទ និង​ពេលវេលា
+-X-KDE-PluginInfo-Category[ko]=날짜와 시간
+-X-KDE-PluginInfo-Category[lv]=Datums un laiks
+-X-KDE-PluginInfo-Category[nb]=Dato og klokkeslett
+-X-KDE-PluginInfo-Category[nds]=Datum un Tiet
+-X-KDE-PluginInfo-Category[nl]=Datum en Tijd
+-X-KDE-PluginInfo-Category[oc]=Data e ora
+-X-KDE-PluginInfo-Category[pa]=ਮਿਤੀ ਅਤੇ ਟਾਈਮ
+-X-KDE-PluginInfo-Category[pl]=Data i czas
+-X-KDE-PluginInfo-Category[pt]=Data e Hora
+-X-KDE-PluginInfo-Category[pt_BR]=Data e Hora
+-X-KDE-PluginInfo-Category[se]=Dáhton ja áigi
+-X-KDE-PluginInfo-Category[sl]=Datum in čas
+-X-KDE-PluginInfo-Category[sr]=Датум и време
+-X-KDE-PluginInfo-Category[sr@latin]=Datum i vreme
+-X-KDE-PluginInfo-Category[sv]=Datum och tid
+-X-KDE-PluginInfo-Category[tg]=Вақт ва сана
+-X-KDE-PluginInfo-Category[uk]=Дата і час
+-X-KDE-PluginInfo-Category[wa]=Date eyet eure
+-X-KDE-PluginInfo-Category[x-test]=xxDate and Timexx
+-X-KDE-PluginInfo-Category[zh_CN]=日期和时间
+-X-KDE-PluginInfo-Category[zh_TW]=日期和時間
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/plasma/applets/kickoff/simpleapplet/plasma-applet-simplelauncher.desktop
+===================================================================
+--- workspace/plasma/applets/kickoff/simpleapplet/plasma-applet-simplelauncher.desktop	(revisión: 757050)
++++ workspace/plasma/applets/kickoff/simpleapplet/plasma-applet-simplelauncher.desktop	(copia de trabajo)
+@@ -78,37 +78,6 @@ X-KDE-PluginInfo-Name=simplelauncher
+ X-KDE-PluginInfo-Version=0.1
+ X-KDE-PluginInfo-Website=http://plasma.kde.org/
+ X-KDE-PluginInfo-Category=Application Launchers
+-X-KDE-PluginInfo-Category[bg]=Стартиране на програми
+-X-KDE-PluginInfo-Category[ca]=Engegadors d'aplicacions
+-X-KDE-PluginInfo-Category[de]=Programmstarter
+-X-KDE-PluginInfo-Category[el]=Εκτέλεση εφαρμογών
+-X-KDE-PluginInfo-Category[eo]=Aplikaĵolanĉiloj
+-X-KDE-PluginInfo-Category[es]=Lanzador de aplicaciones
+-X-KDE-PluginInfo-Category[et]=Rakenduste käivitajad
+-X-KDE-PluginInfo-Category[fr]=Lanceurs d'application
+-X-KDE-PluginInfo-Category[ga]=Tosaitheoirí Feidhmchlár
+-X-KDE-PluginInfo-Category[hu]=Programindítók
+-X-KDE-PluginInfo-Category[ja]=アプリケーションランチャー
+-X-KDE-PluginInfo-Category[km]=កម្មវិធី​ចាប់ផ្ដើម​កម្មវិធី​
+-X-KDE-PluginInfo-Category[lv]=Programmu palaidēji
+-X-KDE-PluginInfo-Category[nb]=Programstartere
+-X-KDE-PluginInfo-Category[nds]=Programmstarters
+-X-KDE-PluginInfo-Category[nl]=Programmastarters
+-X-KDE-PluginInfo-Category[pa]=ਐਪਲੀਕੇਸ਼ਨ ਲਾਂਚਰ
+-X-KDE-PluginInfo-Category[pl]=Uruchamianie programów
+-X-KDE-PluginInfo-Category[pt]=Lançadores de Aplicações
+-X-KDE-PluginInfo-Category[pt_BR]=Lançadores de Aplicativos
+-X-KDE-PluginInfo-Category[se]=Prográmmaálggaheaddjit
+-X-KDE-PluginInfo-Category[sl]=Zaganjalniki programov
+-X-KDE-PluginInfo-Category[sr]=Покретачи програма
+-X-KDE-PluginInfo-Category[sr@latin]=Pokretači programa
+-X-KDE-PluginInfo-Category[sv]=Starta program
+-X-KDE-PluginInfo-Category[th]=ตัวเรียกใช้งานแอพพลิเคชัน
+-X-KDE-PluginInfo-Category[uk]=Пускачі програм
+-X-KDE-PluginInfo-Category[wa]=Enondeus di programe
+-X-KDE-PluginInfo-Category[x-test]=xxApplication Launchersxx
+-X-KDE-PluginInfo-Category[zh_CN]=应用程序启动器
+-X-KDE-PluginInfo-Category[zh_TW]=應用程式啟動器
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: workspace/plasma/applets/kickoff/applet/plasma-applet-launcher.desktop
+===================================================================
+--- workspace/plasma/applets/kickoff/applet/plasma-applet-launcher.desktop	(revisión: 757050)
++++ workspace/plasma/applets/kickoff/applet/plasma-applet-launcher.desktop	(copia de trabajo)
+@@ -90,37 +90,6 @@ X-KDE-PluginInfo-Name=launcher
+ X-KDE-PluginInfo-Version=0.1
+ X-KDE-PluginInfo-Website=http://plasma.kde.org/
+ X-KDE-PluginInfo-Category=Application Launchers
+-X-KDE-PluginInfo-Category[bg]=Стартиране на програми
+-X-KDE-PluginInfo-Category[ca]=Engegadors d'aplicacions
+-X-KDE-PluginInfo-Category[de]=Programmstarter
+-X-KDE-PluginInfo-Category[el]=Εκτέλεση εφαρμογών
+-X-KDE-PluginInfo-Category[eo]=Aplikaĵolanĉiloj
+-X-KDE-PluginInfo-Category[es]=Lanzador de aplicaciones
+-X-KDE-PluginInfo-Category[et]=Rakenduste käivitajad
+-X-KDE-PluginInfo-Category[fr]=Lanceurs d'application
+-X-KDE-PluginInfo-Category[ga]=Tosaitheoirí Feidhmchlár
+-X-KDE-PluginInfo-Category[hu]=Programindítók
+-X-KDE-PluginInfo-Category[ja]=アプリケーションランチャー
+-X-KDE-PluginInfo-Category[km]=កម្មវិធី​ចាប់ផ្ដើម​កម្មវិធី​
+-X-KDE-PluginInfo-Category[lv]=Programmu palaidēji
+-X-KDE-PluginInfo-Category[nb]=Programstartere
+-X-KDE-PluginInfo-Category[nds]=Programmstarters
+-X-KDE-PluginInfo-Category[nl]=Programmastarters
+-X-KDE-PluginInfo-Category[pa]=ਐਪਲੀਕੇਸ਼ਨ ਲਾਂਚਰ
+-X-KDE-PluginInfo-Category[pl]=Uruchamianie programów
+-X-KDE-PluginInfo-Category[pt]=Lançadores de Aplicações
+-X-KDE-PluginInfo-Category[pt_BR]=Lançadores de Aplicativos
+-X-KDE-PluginInfo-Category[se]=Prográmmaálggaheaddjit
+-X-KDE-PluginInfo-Category[sl]=Zaganjalniki programov
+-X-KDE-PluginInfo-Category[sr]=Покретачи програма
+-X-KDE-PluginInfo-Category[sr@latin]=Pokretači programa
+-X-KDE-PluginInfo-Category[sv]=Starta program
+-X-KDE-PluginInfo-Category[th]=ตัวเรียกใช้งานแอพพลิเคชัน
+-X-KDE-PluginInfo-Category[uk]=Пускачі програм
+-X-KDE-PluginInfo-Category[wa]=Enondeus di programe
+-X-KDE-PluginInfo-Category[x-test]=xxApplication Launchersxx
+-X-KDE-PluginInfo-Category[zh_CN]=应用程序启动器
+-X-KDE-PluginInfo-Category[zh_TW]=應用程式啟動器
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: workspace/plasma/applets/pager/plasma-pager-default.desktop
+===================================================================
+--- workspace/plasma/applets/pager/plasma-pager-default.desktop	(revisión: 757050)
++++ workspace/plasma/applets/pager/plasma-pager-default.desktop	(copia de trabajo)
+@@ -43,39 +43,6 @@ X-KDE-PluginInfo-Name=pager
+ X-KDE-PluginInfo-Version=pre0.1
+ X-KDE-PluginInfo-Website=http://plasma.kde.org/
+ X-KDE-PluginInfo-Category=Windows and Tasks
+-X-KDE-PluginInfo-Category[bg]=Прозорци и задачи
+-X-KDE-PluginInfo-Category[ca]=Finestres i tasques
+-X-KDE-PluginInfo-Category[de]=Fenster und Programme
+-X-KDE-PluginInfo-Category[el]=Παράθυρα και Εργασίες
+-X-KDE-PluginInfo-Category[eo]=Fenestroj kaj taskoj
+-X-KDE-PluginInfo-Category[es]=Ventanas y tareas
+-X-KDE-PluginInfo-Category[et]=Aknad ja tegumid
+-X-KDE-PluginInfo-Category[fr]=Fenêtres et tâches
+-X-KDE-PluginInfo-Category[ga]=Fuinneoga agus Tascanna
+-X-KDE-PluginInfo-Category[hu]=Ablakok és feladatok
+-X-KDE-PluginInfo-Category[ja]=ウィンドウとタスク
+-X-KDE-PluginInfo-Category[km]=បង្អួច និង​ភារកិច្ច
+-X-KDE-PluginInfo-Category[lv]=Logi un uzdevumi
+-X-KDE-PluginInfo-Category[nb]=Vinduer og oppgaver
+-X-KDE-PluginInfo-Category[nds]=Finstern un Opgaven
+-X-KDE-PluginInfo-Category[nl]=Vensters en taken
+-X-KDE-PluginInfo-Category[pa]=ਵਿੰਡੋਜ਼ ਅਤੇ ਟਾਸਕ
+-X-KDE-PluginInfo-Category[pl]=Okna i zadania
+-X-KDE-PluginInfo-Category[pt]=Janelas e Tarefas
+-X-KDE-PluginInfo-Category[pt_BR]=Janelas e Tarefas
+-X-KDE-PluginInfo-Category[ru]=Окна и задачи
+-X-KDE-PluginInfo-Category[se]=Láset ja barggut
+-X-KDE-PluginInfo-Category[sl]=Okna in opravila
+-X-KDE-PluginInfo-Category[sr]=Прозори и задаци
+-X-KDE-PluginInfo-Category[sr@latin]=Prozori i zadaci
+-X-KDE-PluginInfo-Category[sv]=Fönster och uppgifter
+-X-KDE-PluginInfo-Category[tg]=Тирезаҳо ва вазифаҳо
+-X-KDE-PluginInfo-Category[th]=หน้าต่างและงาน
+-X-KDE-PluginInfo-Category[uk]=Вікна і задачі
+-X-KDE-PluginInfo-Category[wa]=Purneas eyet bouyes
+-X-KDE-PluginInfo-Category[x-test]=xxWindows and Tasksxx
+-X-KDE-PluginInfo-Category[zh_CN]=窗口和任务
+-X-KDE-PluginInfo-Category[zh_TW]=視窗與工作
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true

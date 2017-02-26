@@ -1,0 +1,193 @@
+Index: kfile/kdiroperator.cpp
+===================================================================
+--- kfile/kdiroperator.cpp	(revisión: 739794)
++++ kfile/kdiroperator.cpp	(copia de trabajo)
+@@ -189,7 +189,6 @@ public:
+     void _k_slotSelectionChanged();
+     void _k_openContextMenu(const QPoint&);
+     void _k_triggerPreview(const QModelIndex&);
+-    void _k_cancelPreview();
+     void _k_showPreview();
+     void _k_slotSplitterMoved(int, int);
+     void _k_assureVisibleSelection();
+@@ -224,7 +223,6 @@ public:
+     QProgressBar *progressBar;
+ 
+     KPreviewWidgetBase *preview;
+-    QTimer *previewTimer;
+     KUrl previewUrl;
+     int previewWidth;
+ 
+@@ -250,7 +248,6 @@ KDirOperator::Private::Private(KDirOpera
+     proxyModel(0),
+     progressBar(0),
+     preview(0),
+-    previewTimer(0),
+     previewUrl(),
+     previewWidth(0),
+     leftButtonPressed(false),
+@@ -298,10 +295,6 @@ KDirOperator::KDirOperator(const KUrl& _
+             this, SLOT(_k_slotSplitterMoved(int, int)));
+ 
+     d->preview = 0;
+-    d->previewTimer = new QTimer(this);
+-    d->previewTimer->setSingleShot(true);
+-    connect(d->previewTimer, SIGNAL(timeout()),
+-            this, SLOT(_k_showPreview()));
+ 
+     d->mode = KFile::File;
+     d->viewKind = KFile::Simple;
+@@ -549,7 +542,6 @@ void KDirOperator::Private::_k_togglePre
+     } else if (preview != 0) {
+         viewKind = viewKind & ~KFile::PreviewContents;
+         preview->hide();
+-        previewTimer->stop();
+     }
+ }
+ 
+@@ -1302,8 +1294,6 @@ void KDirOperator::setView(QAbstractItem
+             this, SLOT(_k_openContextMenu(const QPoint&)));
+     connect(d->itemView, SIGNAL(entered(const QModelIndex&)),
+             this, SLOT(_k_triggerPreview(const QModelIndex&)));
+-    connect(d->itemView, SIGNAL(viewportEntered()),
+-            this, SLOT(_k_cancelPreview()));
+     // assure that the sorting state d->sorting matches with the current action
+     const bool descending = d->actionCollection->action("descending")->isChecked();
+     if (!descending && d->sorting & QDir::Reversed) {
+@@ -1978,16 +1968,11 @@ void KDirOperator::Private::_k_triggerPr
+         const KFileItem item = dirModel->itemForIndex(dirIndex);
+         if (!item.isDir()) {
+             previewUrl = item.url();
+-            previewTimer->start(300);
++            _k_showPreview();
+         }
+     }
+ }
+ 
+-void KDirOperator::Private::_k_cancelPreview()
+-{
+-    previewTimer->stop();
+-}
+-
+ void KDirOperator::Private::_k_showPreview()
+ {
+     if (preview != 0) {
+Index: kfile/kdiroperator.h
+===================================================================
+--- kfile/kdiroperator.h	(revisión: 739794)
++++ kfile/kdiroperator.h	(copia de trabajo)
+@@ -777,7 +777,6 @@ private:
+     Q_PRIVATE_SLOT( d, void _k_slotSelectionChanged() )
+     Q_PRIVATE_SLOT( d, void _k_openContextMenu(const QPoint&) )
+     Q_PRIVATE_SLOT( d, void _k_triggerPreview(const QModelIndex&) )
+-    Q_PRIVATE_SLOT( d, void _k_cancelPreview() )
+     Q_PRIVATE_SLOT( d, void _k_showPreview() )
+     Q_PRIVATE_SLOT( d, void _k_slotSplitterMoved(int, int) )
+     Q_PRIVATE_SLOT( d, void _k_assureVisibleSelection() )
+Index: kio/kfile/kimagefilepreview.cpp
+===================================================================
+--- kio/kfile/kimagefilepreview.cpp	(revisión: 739794)
++++ kio/kfile/kimagefilepreview.cpp	(copia de trabajo)
+@@ -11,9 +11,11 @@
+ 
+ #include <QtGui/QLayout>
+ #include <QtGui/QLabel>
++#include <QtGui/QPainter>
+ #include <QtGui/QComboBox>
+ #include <QtGui/QCheckBox>
+ #include <QtCore/QTimer>
++#include <QtCore/QTimeLine>
+ 
+ #include <kapplication.h>
+ #include <kconfig.h>
+@@ -35,17 +37,28 @@
+ class KImageFilePreview::KImageFilePreviewPrivate
+ {
+ public:
+-    KImageFilePreviewPrivate()
++    explicit KImageFilePreviewPrivate(QObject *parent = 0)
+         : m_job(0)
+     {
++        m_timeLine = new QTimeLine(500);
++        m_timeLine->setCurveShape(QTimeLine::LinearCurve);
++        m_timeLine->setFrameRange(0, 100);
++    }
++
++    ~KImageFilePreviewPrivate()
++    {
++        delete m_timeLine;
+     }
+ 
+     void _k_slotResult( KJob* );
+     void _k_slotFailed( const KFileItem& );
++    void _k_slotStepAnimation( int frame );
+ 
+     KUrl currentURL;
+     QLabel *imageLabel;
+     KIO::PreviewJob *m_job;
++    QTimeLine *m_timeLine;
++    QPixmap m_pm;
+ };
+ 
+ KImageFilePreview::KImageFilePreview( QWidget *parent )
+@@ -62,6 +75,8 @@ KImageFilePreview::KImageFilePreview( QW
+ 
+     setSupportedMimeTypes( KIO::PreviewJob::supportedMimeTypes() );
+     setMinimumWidth( 50 );
++
++    connect(d->m_timeLine, SIGNAL(frameChanged(int)), this, SLOT(_k_slotStepAnimation(int)));
+ }
+ 
+ KImageFilePreview::~KImageFilePreview()
+@@ -135,7 +150,10 @@ KIO::PreviewJob * KImageFilePreview::cre
+ void KImageFilePreview::gotPreview( const KFileItem& item, const QPixmap& pm )
+ {
+     if (item.url() == d->currentURL) // should always be the case
+-        d->imageLabel->setPixmap(pm);
++    {
++        d->m_pm = pm;
++        d->m_timeLine->start();
++    }
+ }
+ 
+ void KImageFilePreview::KImageFilePreviewPrivate::_k_slotFailed( const KFileItem& item )
+@@ -154,6 +172,19 @@ void KImageFilePreview::KImageFilePrevie
+     }
+ }
+ 
++void KImageFilePreview::KImageFilePreviewPrivate::_k_slotStepAnimation( int frame )
++{
++    QPixmap pm(m_pm.size());
++    pm.fill(Qt::transparent);
++
++    QPainter p(&pm);
++    p.setOpacity(((float) frame / 100.0));
++    p.drawPixmap(QPoint(0, 0), m_pm);
++    p.end();
++
++    imageLabel->setPixmap(pm);
++}
++
+ void KImageFilePreview::clearPreview()
+ {
+     if (d->m_job) {
+@@ -161,6 +192,7 @@ void KImageFilePreview::clearPreview()
+         d->m_job = 0L;
+     }
+ 
++    d->m_pm = QPixmap();
+     d->imageLabel->clear();
+     d->currentURL = KUrl();
+ }
+Index: kio/kfile/kimagefilepreview.h
+===================================================================
+--- kio/kfile/kimagefilepreview.h	(revisión: 739794)
++++ kio/kfile/kimagefilepreview.h	(copia de trabajo)
+@@ -74,6 +74,7 @@ class KIO_EXPORT KImageFilePreview : pub
+ 
+         Q_PRIVATE_SLOT( d, void _k_slotResult( KJob* ) )
+         Q_PRIVATE_SLOT( d, void _k_slotFailed( const KFileItem& ) )
++        Q_PRIVATE_SLOT( d, void _k_slotStepAnimation( int frame ) )
+ };
+ 
+ #endif // KIMAGEFILEPREVIEW_H

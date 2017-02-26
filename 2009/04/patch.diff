@@ -1,0 +1,13 @@
+diff --git a/kdeui/itemviews/kwidgetitemdelegatepool_p.h b/kdeui/itemviews/kwidgetitemdelegatepool_p.h
+index a9dc537..8e98966 100644
+--- a/kdeui/itemviews/kwidgetitemdelegatepool_p.h
++++ b/kdeui/itemviews/kwidgetitemdelegatepool_p.h
+@@ -38,6 +38,8 @@ class KWidgetItemDelegatePoolPrivate;
+ class KWidgetItemDelegatePool
+ {
+ public:
++    friend class KWidgetItemDelegate;
++
+     enum UpdateWidgetsEnum {
+         UpdateWidgets = 0,
+         NotUpdateWidgets

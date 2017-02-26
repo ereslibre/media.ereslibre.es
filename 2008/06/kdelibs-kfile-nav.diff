@@ -1,0 +1,46 @@
+diff --git a/kfile/kdiroperator.cpp b/kfile/kdiroperator.cpp
+index 9ab134b..3c97b0e 100644
+--- a/kfile/kdiroperator.cpp
++++ b/kfile/kdiroperator.cpp
+@@ -2119,9 +2119,8 @@ void KDirOperator::Private::_k_assureVisibleSelection()
+ 
+     QItemSelectionModel* selModel = itemView->selectionModel();
+     if (selModel->hasSelection()) {
+-        const QModelIndexList list = selModel->selection().indexes();
+-        const QModelIndex index = list.first();
+-        itemView->scrollTo(index);
++        const QModelIndex index = selModel->currentIndex();
++        itemView->scrollTo(index, QAbstractItemView::PositionAtCenter);
+         _k_triggerPreview(index);
+     }
+ }
+diff --git a/kfile/kfilewidget.cpp b/kfile/kfilewidget.cpp
+index ef3bbb5..ba547d3 100644
+--- a/kfile/kfilewidget.cpp
++++ b/kfile/kfilewidget.cpp
+@@ -1287,7 +1287,7 @@ void KFileWidget::setSelection(const QString& url)
+ 
+ void KFileWidgetPrivate::_k_slotLoadingFinished()
+ {
+-    if ( !selection.isNull() )
++    if ( !selection.isEmpty() )
+         ops->setCurrentItem( selection );
+ }
+ 
+diff --git a/kfile/kurlnavigator.cpp b/kfile/kurlnavigator.cpp
+index 00ddf3d..7e6ddb8 100644
+--- a/kfile/kurlnavigator.cpp
++++ b/kfile/kurlnavigator.cpp
+@@ -500,10 +500,11 @@ void KUrlNavigator::Private::switchView()
+     m_toggleEditableMode->setFocus();
+     m_editable = !m_editable;
+     m_toggleEditableMode->setChecked(m_editable);
+-    updateContent();
++    QTimer::singleShot(0, q, SLOT(updateContent()));
+     if (q->isUrlEditable()) {
+         m_pathBox->setFocus();
+     }
++
+     emit q->requestActivation();
+     emit q->editableStateChanged(m_editable);
+ }

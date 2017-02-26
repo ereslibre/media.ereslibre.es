@@ -1,0 +1,45 @@
+Index: members.php
+===================================================================
+--- members.php	(revisión: 723628)
++++ members.php	(copia de trabajo)
+@@ -9,7 +9,7 @@ KDE e.V. please
+ have a look at the <a href="getinvolved/members.php">information how
+ to become a member of the KDE e.V.</a>
+ 
+-<p>As of 11 August 2007, KDE e.V. has 140 active members:</p>
++<p>As of 12 October 2007, KDE e.V. has 144 active members:</p>
+ 
+ <ul>
+ <li>Aaron Seigo</li>
+@@ -17,6 +17,7 @@ to become a member of the KDE e.V.</a>
+ <li>Adriaan de Groot</li>
+ <li>Adrian Schroeter</li>
+ <li>Albert Astals Cid</li>
++<li>Alexander Dymo</li>
+ <li>Alexander Kellett</li>
+ <li>Alexander Neundorf</li>
+ <li>Allan Sandfeld</li>
+@@ -30,6 +31,7 @@ to become a member of the KDE e.V.</a>
+ <li>Anne Wilson</li>
+ <li>Antonio Larrosa Jimenez</li>
+ <li>Arne Trautmann</li>
++<li>Bart Cerneels</li>
+ <li>Bart Coppens</li>
+ <li>Benjamin Meyer</li>
+ <li>Bernhard Rosenkraenzer</li>
+@@ -88,6 +90,7 @@ to become a member of the KDE e.V.</a>
+ <li>Ingo Klöcker</li>
+ <li>İsmail Dönmez</li>
+ <li>Jaroslaw Staniek</li>
++<li>Jason Kasper</li>
+ <li>Jeff Mitchell</li>
+ <li>Jens Herden</li>
+ <li>Jes Hall</li>
+@@ -141,6 +144,7 @@ to become a member of the KDE e.V.</a>
+ <li>Phillipe Fremy</li>
+ <li>Pino Toscano</li>
+ <li>Pradeepto Bhattacharya</li>
++<li>Rafael Fernández López</li>
+ <li>Rainer Endres</li>
+ <li>Ralf Nolden</li>
+ <li>Reginald Stadlbauer</li>

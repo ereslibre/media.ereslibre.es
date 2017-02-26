@@ -1,0 +1,1112 @@
+diff --git a/kate/app/kateapp.cpp b/kate/app/kateapp.cpp
+index cc31b5f..99bb112 100644
+--- a/kate/app/kateapp.cpp
++++ b/kate/app/kateapp.cpp
+@@ -257,6 +257,8 @@ bool KateApp::startupKate ()
+   // show the nice tips
+   KTipDialog::showTip(activeMainWindow());
+ 
++  activeMainWindow()->setAutoSaveSettings();
++
+   kDebug() << "KateApplication::init finished successful";
+   return true;
+ }
+diff --git a/kate/app/kateconfigdialog.cpp b/kate/app/kateconfigdialog.cpp
+index 435bcaf..dd7cd79 100644
+--- a/kate/app/kateconfigdialog.cpp
++++ b/kate/app/kateconfigdialog.cpp
+@@ -249,21 +249,22 @@ KateConfigDialog::KateConfigDialog ( KateMainWindow *parent, KTextEditor::View *
+   //END Document List page
+ 
+   //BEGIN Plugins page
++  KatePluginList &pluginList (KatePluginManager::self()->pluginList());
++  foreach (const KatePluginInfo &katePluginInfo, pluginList) {
++    KPluginInfo pluginInfo(katePluginInfo.service);
++    KPluginInfo pluginInfoCopy(katePluginInfo.service);
++    pluginInfo.setPluginEnabled(katePluginInfo.load);
++    pluginInfoCopy.setPluginEnabled(katePluginInfo.load);
++    pluginInfoList << pluginInfo;
++  }
++
+   KVBox *page = new KVBox();
+-  KateConfigPluginPage *configPluginPage = new KateConfigPluginPage(page, this);
++  KateConfigPluginPage *configPluginPage = new KateConfigPluginPage(pluginInfoList, page, this);
+   connect( configPluginPage, SIGNAL( changed() ), this, SLOT( slotChanged() ) );
+ 
+-  m_pluginPage = addSubPage( applicationItem, page, i18n("Plugins") );
+-  m_pluginPage->setHeader( i18n("Plugin Manager") );
++  KPageWidgetItem *m_pluginPage = addSubPage( applicationItem, page, i18n("Extensions") );
++  m_pluginPage->setHeader( i18n("Extensions Manager") );
+   m_pluginPage->setIcon( KIcon( "preferences-plugin" ) );
+-
+-  KatePluginList &pluginList (KatePluginManager::self()->pluginList());
+-  foreach (const KatePluginInfo &plugin, pluginList)
+-  {
+-    if  ( plugin.load
+-          && Kate::pluginConfigPageInterface(plugin.plugin) )
+-      addPluginPage (plugin.plugin);
+-  }
+   //END Plugins page
+ 
+   //BEGIN Editors page
+@@ -295,47 +296,6 @@ KateConfigDialog::KateConfigDialog ( KateMainWindow *parent, KTextEditor::View *
+ KateConfigDialog::~KateConfigDialog()
+ {}
+ 
+-void KateConfigDialog::addPluginPage (Kate::Plugin *plugin)
+-{
+-  if (!Kate::pluginConfigPageInterface(plugin))
+-    return;
+-
+-  for (uint i = 0; i < Kate::pluginConfigPageInterface(plugin)->configPages(); i++)
+-  {
+-    KVBox *page = new KVBox();
+-
+-    KPageWidgetItem *item = addSubPage( m_pluginPage, page, Kate::pluginConfigPageInterface(plugin)->configPageName(i) );
+-    item->setHeader( Kate::pluginConfigPageInterface(plugin)->configPageFullName(i) );
+-    item->setIcon( Kate::pluginConfigPageInterface(plugin)->configPageIcon(i));
+-
+-    PluginPageListItem *info = new PluginPageListItem;
+-    info->plugin = plugin;
+-    info->page = Kate::pluginConfigPageInterface(plugin)->configPage (i, page);
+-    info->pageWidgetItem = item;
+-    connect( info->page, SIGNAL( changed() ), this, SLOT( slotChanged() ) );
+-    m_pluginPages.append(info);
+-  }
+-}
+-
+-void KateConfigDialog::removePluginPage (Kate::Plugin *plugin)
+-{
+-  if (!Kate::pluginConfigPageInterface(plugin))
+-    return;
+-
+-  for (int i = 0; i < m_pluginPages.count(); i++)
+-  {
+-    if  ( m_pluginPages[i]->plugin == plugin )
+-    {
+-      QWidget *w = m_pluginPages[i]->page->parentWidget();
+-      delete m_pluginPages[i]->page;
+-      delete w;
+-      removePage(m_pluginPages[i]->pageWidgetItem);
+-      m_pluginPages.removeAt(i);
+-      i--;
+-    }
+-  }
+-}
+-
+ void KateConfigDialog::slotOk()
+ {
+   slotApply();
+@@ -349,6 +309,23 @@ void KateConfigDialog::slotApply()
+   // if data changed apply the kate app stuff
+   if( m_dataChanged )
+   {
++    // (un)load plugins
++    KatePluginList &pluginList (KatePluginManager::self()->pluginList());
++    int i = 0;
++    foreach (const KPluginInfo &pluginInfo, pluginInfoList) {
++      if (pluginInfo.isPluginEnabled() != pluginList[i].load) {
++        if (pluginInfo.isPluginEnabled()) {
++          KatePluginManager::self()->loadPlugin(&pluginList[i]);
++          KatePluginManager::self()->enablePluginGUI(&pluginList[i]);
++        } else {
++          KatePluginManager::self()->unloadPlugin(&pluginList[i]);
++        }
++        pluginList[i].load = pluginInfo.isPluginEnabled();
++      }
++      i++;
++    }
++
++    // keep on with the configuration details
+     KConfigGroup cg = KConfigGroup( config, "General" );
+ 
+     cg.writeEntry("Restore Window Configuration", m_restoreVC->isChecked());
+@@ -406,11 +383,6 @@ void KateConfigDialog::slotApply()
+   // write back the editor config
+   KateDocManager::self()->editor()->writeConfig(config.data());
+ 
+-  foreach (PluginPageListItem *plugin, m_pluginPages)
+-  {
+-    plugin->page->apply();
+-  }
+-
+   config->sync();
+ 
+   m_dataChanged = false;
+diff --git a/kate/app/kateconfigdialog.h b/kate/app/kateconfigdialog.h
+index 1648d27..0cf73b5 100644
+--- a/kate/app/kateconfigdialog.h
++++ b/kate/app/kateconfigdialog.h
+@@ -25,6 +25,7 @@
+ 
+ #include <kate/plugin.h>
+ #include <kate/pluginconfigpageinterface.h>
++#include <kplugininfo.h>
+ 
+ #include <KTextEditor/EditorChooser>
+ 
+@@ -51,10 +52,6 @@ class KateConfigDialog : public KPageDialog
+     KateConfigDialog (KateMainWindow *parent, KTextEditor::View *view);
+     ~KateConfigDialog ();
+ 
+-  public:
+-    void addPluginPage (Kate::Plugin *plugin);
+-    void removePluginPage (Kate::Plugin *plugin);
+-
+   protected Q_SLOTS:
+     void slotOk();
+     void slotApply();
+@@ -80,13 +77,12 @@ class KateConfigDialog : public KPageDialog
+     QRadioButton *m_doNotSaveSessionRadioButton;
+     QRadioButton *m_saveSessionRadioButton;
+     QRadioButton *m_askUserRadioButton;
+-    
+-    QList<PluginPageListItem*> m_pluginPages;
++
+     QList<KTextEditor::ConfigPage*> m_editorPages;
+     KTextEditor::EditorChooser *m_editorChooser;
+-    KPageWidgetItem *m_pluginPage;
+ 
+     class KateFileListConfigPage *filelistConfigPage;
++    QList<KPluginInfo> pluginInfoList;
+ };
+ 
+ #endif
+diff --git a/kate/app/kateconfigplugindialogpage.cpp b/kate/app/kateconfigplugindialogpage.cpp
+index a9215ca..e5dba48 100644
+--- a/kate/app/kateconfigplugindialogpage.cpp
++++ b/kate/app/kateconfigplugindialogpage.cpp
+@@ -2,6 +2,7 @@
+    Copyright (C) 2001 Christoph Cullmann <cullmann@kde.org>
+    Copyright (C) 2002 Joseph Wenninger <jowenn@kde.org>
+    Copyright (C) 2007 Mirko Stocker <me@misto.ch>
++   Copyright (C) 2008 Rafael Fernández López <ereslibre@kde.org>
+  
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Library General Public
+@@ -18,99 +19,28 @@
+    Boston, MA 02110-1301, USA.
+ */
+ 
++#include <kpluginselector.h>
++
+ #include "kateconfigplugindialogpage.h"
+ #include "kateconfigplugindialogpage.moc"
+ 
+ #include "katepluginmanager.h"
+ #include "kateconfigdialog.h"
+ 
+-class KatePluginListItem : public QTreeWidgetItem
+-{
+-  public:
+-    KatePluginListItem(bool checked, KatePluginInfo *info);
+-
+-    KatePluginInfo *info() const
+-    {
+-      return mInfo;
+-    }
+-
+-  protected:
+-    void stateChange(bool);
+-  
+-  private:
+-    KatePluginInfo *mInfo;
+-};
+-
+-KatePluginListItem::KatePluginListItem(bool checked, KatePluginInfo *info)
+-    : QTreeWidgetItem()
+-    , mInfo(info)
+-{
+-  setCheckState(0, checked ? Qt::Checked : Qt::Unchecked);
+-}
+-
+-KatePluginListView::KatePluginListView(QWidget *parent)
+-    : QTreeWidget(parent)
+-{
+-  setRootIsDecorated(false);
+-  connect(this, SIGNAL(itemChanged(QTreeWidgetItem*, int)), this, SLOT(stateChanged(QTreeWidgetItem*)));
+-}
+-
+-void KatePluginListView::stateChanged(QTreeWidgetItem *item)
+-{
+-  emit stateChange(static_cast<KatePluginListItem *>(item), item->checkState(0) == Qt::Checked);
+-}
+-
+-KateConfigPluginPage::KateConfigPluginPage(QWidget *parent, KateConfigDialog *dialog)
++KateConfigPluginPage::KateConfigPluginPage(QList<KPluginInfo> &pluginInfoList, QWidget *parent, KateConfigDialog *dialog)
+     : KVBox(parent)
+     , myDialog(dialog)
++    , pluginSelector(new KPluginSelector(this))
+ {
+-  KatePluginListView* listView = new KatePluginListView(this);
+-  QStringList headers;
+-    headers << i18n("Name") << i18n("Comment");
+-  listView->setHeaderLabels(headers);
+-  listView->setWhatsThis(i18n("Here you can see all available Kate plugins. Those with a check mark are loaded, and will be loaded again the next time Kate is started."));
++  connect(pluginSelector, SIGNAL(changed(bool)), this, SIGNAL(changed()));
++  connect(pluginSelector, SIGNAL(changed(bool)), this, SLOT(stateChange()));
+ 
+-  KatePluginList &pluginList (KatePluginManager::self()->pluginList());
+-#ifdef __GNUC__
+-#warning try to fix me
+-#endif
+-  for (KatePluginList::iterator it = pluginList.begin();it != pluginList.end(); ++it)
+-  {
+-    QTreeWidgetItem *item = new KatePluginListItem(it->load, &(*it));
+-    item->setText(0, it->service->name());
+-    item->setText(1, it->service->comment());
+-    listView->addTopLevelItem(item);
++  if (pluginInfoList.count()) {
++    pluginSelector->addPlugins(pluginInfoList, KPluginSelector::IgnoreConfigFile, i18n("Kate Plugins"));
+   }
+-
+-  listView->resizeColumnToContents(0);
+-  connect(listView, SIGNAL(stateChange(KatePluginListItem *, bool)), this, SLOT(stateChange(KatePluginListItem *, bool)));
+-}
+-
+-void KateConfigPluginPage::stateChange(KatePluginListItem *item, bool b)
+-{
+-  if(b)
+-    loadPlugin(item);
+-  else
+-    unloadPlugin(item);
+-
+-  emit changed();
+ }
+ 
+-void KateConfigPluginPage::loadPlugin (KatePluginListItem *item)
++void KateConfigPluginPage::stateChange()
+ {
+-  KatePluginManager::self()->loadPlugin (item->info());
+-  KatePluginManager::self()->enablePluginGUI (item->info());
+-  myDialog->addPluginPage (item->info()->plugin);
+-
+-  item->setCheckState(0, Qt::Checked);
+-}
+-
+-void KateConfigPluginPage::unloadPlugin (KatePluginListItem *item)
+-{
+-  myDialog->removePluginPage (item->info()->plugin);
+-  KatePluginManager::self()->unloadPlugin (item->info());
+-
+-  item->setCheckState(0, Qt::Unchecked);
++  pluginSelector->updatePluginsState();
+ }
+-// kate: space-indent on; indent-width 2; replace-tabs on;
+-
+diff --git a/kate/app/kateconfigplugindialogpage.h b/kate/app/kateconfigplugindialogpage.h
+index c7b4f2f..4788f7d 100644
+--- a/kate/app/kateconfigplugindialogpage.h
++++ b/kate/app/kateconfigplugindialogpage.h
+@@ -2,6 +2,7 @@
+    Copyright (C) 2001 Christoph Cullmann <cullmann@kde.org>
+    Copyright (C) 2002 Joseph Wenninger <jowenn@kde.org>
+    Copyright (C) 2007 Mirko Stocker <me@misto.ch>
++   Copyright (C) 2008 Rafael Fernández López <ereslibre@kde.org>
+  
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Library General Public
+@@ -22,42 +23,27 @@
+ #define __KATE_CONFIGPLUGINDIALOGPAGE_H__
+ 
+ #include <KVBox>
+-#include <QTreeWidget>
++#include <kplugininfo.h>
+ 
+ class KatePluginListItem;
+-
+-class KatePluginListView : public QTreeWidget
+-{
+-    Q_OBJECT
+-
+-  public:
+-    KatePluginListView (QWidget *parent = 0);
+-
+-  Q_SIGNALS:
+-    void stateChange(KatePluginListItem *, bool);
+-
+-  private Q_SLOTS:
+-    void stateChanged(QTreeWidgetItem *);
+-};
++class KPluginSelector;
+ 
+ class KateConfigPluginPage: public KVBox
+ {
+     Q_OBJECT
+ 
+   public:
+-    KateConfigPluginPage(QWidget *parent, class KateConfigDialog *dialog);
++    KateConfigPluginPage(QList<KPluginInfo> &pluginInfolist, QWidget *parent, class KateConfigDialog *dialog);
+ 
+   private:
+     class KateConfigDialog *myDialog;
++    KPluginSelector *pluginSelector;
+ 
+   Q_SIGNALS:
+     void changed();
+ 
+   private Q_SLOTS:
+-    void stateChange(KatePluginListItem *, bool);
+-
+-    void loadPlugin (KatePluginListItem *);
+-    void unloadPlugin (KatePluginListItem *);
++    void stateChange();
+ };
+ 
+ #endif
+diff --git a/kate/app/katepluginmanager.h b/kate/app/katepluginmanager.h
+index d13ccbd..2c4602c 100644
+--- a/kate/app/katepluginmanager.h
++++ b/kate/app/katepluginmanager.h
+@@ -30,7 +30,7 @@
+ #include <KConfigBase>
+ 
+ #include <QObject>
+-#include <QLinkedList>
++#include <QList>
+ 
+ class KateMainWindow;
+ 
+@@ -43,7 +43,7 @@ class KatePluginInfo
+     QString saveName() const;
+ };
+ 
+-typedef QLinkedList<KatePluginInfo> KatePluginList;
++typedef QList<KatePluginInfo> KatePluginList;
+ 
+ class KatePluginManager : public QObject
+ {
+diff --git a/kate/interfaces/kate/pluginconfigpageinterface.h b/kate/interfaces/kate/pluginconfigpageinterface.h
+index 9bb032e..56c5bfd 100644
+--- a/kate/interfaces/kate/pluginconfigpageinterface.h
++++ b/kate/interfaces/kate/pluginconfigpageinterface.h
+@@ -28,6 +28,7 @@ namespace Kate
+ {
+ 
+   /**
++   * \deprecated
+    * \brief Plugin config page widget.
+    *
+    * The class PluginConfigPage is a base class for config pages for plugins.
+@@ -41,7 +42,7 @@ namespace Kate
+    * \see Plugin, PluginConfigPageInterface
+    * \author Christoph Cullmann \<cullmann@kde.org\>
+    */
+-  class KATEINTERFACES_EXPORT PluginConfigPage : public QWidget
++  class KATEINTERFACES_EXPORT_DEPRECATED PluginConfigPage : public QWidget
+   {
+       Q_OBJECT
+ 
+@@ -96,6 +97,7 @@ namespace Kate
+   };
+ 
+   /**
++   * \deprecated
+    * \brief Plugin config page extension interface.
+    *
+    * The class PluginConfigPageInterface is an extension interface for plugins.
+@@ -124,7 +126,7 @@ namespace Kate
+    * \see Plugin, PluginConfigPage
+    * \author Christoph Cullmann \<cullmann@kde.org\>
+    */
+-  class KATEINTERFACES_EXPORT PluginConfigPageInterface
++  class KATEINTERFACES_EXPORT_DEPRECATED PluginConfigPageInterface
+   {
+       friend class PrivatePluginConfigPageInterface;
+ 
+@@ -201,6 +203,7 @@ namespace Kate
+ 
+   class Plugin;
+   /**
++   * \deprecated
+    * Helper function that returns the PluginConfigPageInterface of the \p plugin
+    * or NULL if the \p plugin does not support the interface.
+    * \param plugin the plugin for which the plugin config page interface should
+@@ -208,7 +211,7 @@ namespace Kate
+    * \return the plugin config page interface or NULL if the plugin does not
+    *        support the interface
+    */
+-  KATEINTERFACES_EXPORT PluginConfigPageInterface *pluginConfigPageInterface (Plugin *plugin);
++  KATEINTERFACES_EXPORT_DEPRECATED PluginConfigPageInterface *pluginConfigPageInterface (Plugin *plugin);
+ 
+ }
+ 
+diff --git a/kate/kate_export.h b/kate/kate_export.h
+index 9efbad7..a568bf2 100644
+--- a/kate/kate_export.h
++++ b/kate/kate_export.h
+@@ -32,5 +32,9 @@
+ # endif
+ #endif
+ 
++# ifndef KATEINTERFACES_EXPORT_DEPRECATED
++#  define KATEINTERFACES_EXPORT_DEPRECATED KDE_DEPRECATED KATEINTERFACES_EXPORT
++# endif
++
+ #endif // _KATE_EXPORT_H
+ 
+diff --git a/kate/plugins/filebrowser/CMakeLists.txt b/kate/plugins/filebrowser/CMakeLists.txt
+index 528ce01..8e2514f 100644
+--- a/kate/plugins/filebrowser/CMakeLists.txt
++++ b/kate/plugins/filebrowser/CMakeLists.txt
+@@ -17,5 +17,5 @@ install(TARGETS katefilebrowserplugin  DESTINATION ${PLUGIN_INSTALL_DIR} )
+ 
+ ########### install files ###############
+ 
+-install( FILES katefilebrowserplugin.desktop  DESTINATION  ${SERVICES_INSTALL_DIR} )
+-
++install( FILES katefilebrowserplugin.desktop
++               katefilebrowserplugin_config.desktop  DESTINATION  ${SERVICES_INSTALL_DIR} )
+diff --git a/kate/plugins/filebrowser/katefilebrowserplugin.desktop b/kate/plugins/filebrowser/katefilebrowserplugin.desktop
+index a72baac..91c87c1 100644
+--- a/kate/plugins/filebrowser/katefilebrowserplugin.desktop
++++ b/kate/plugins/filebrowser/katefilebrowserplugin.desktop
+@@ -1,6 +1,7 @@
+ [Desktop Entry]
+ Type=Service
+-ServiceTypes=Kate/Plugin
++X-KDE-ServiceTypes=Kate/Plugin
++X-KDE-PluginInfo-Name=katefilebrowserplugin
+ X-KDE-Library=katefilebrowserplugin
+ X-Kate-Version=2.8
+ Name=File system browser
+diff --git a/kate/plugins/filebrowser/katefilebrowserplugin_config.desktop b/kate/plugins/filebrowser/katefilebrowserplugin_config.desktop
+new file mode 100644
+index 0000000..67263e1
+--- /dev/null
++++ b/kate/plugins/filebrowser/katefilebrowserplugin_config.desktop
+@@ -0,0 +1,7 @@
++[Desktop Entry]
++Type=Service
++X-KDE-ServiceTypes=KCModule
++X-KDE-Library=katefilebrowserplugin
++X-KDE-ParentComponents=katefilebrowserplugin
++X-KDE-PluginKeyword=katefilebrowserplugin_config
++Name=Behavior
+diff --git a/kate/plugins/filebrowser/katefileselector.cpp b/kate/plugins/filebrowser/katefileselector.cpp
+index 213b1a8..da16be3 100644
+--- a/kate/plugins/filebrowser/katefileselector.cpp
++++ b/kate/plugins/filebrowser/katefileselector.cpp
+@@ -68,11 +68,16 @@
+ #include <kdeversion.h>
+ //END Includes
+ 
+-K_EXPORT_COMPONENT_FACTORY( katefilebrowserplugin, KGenericFactory<KateFileSelectorPlugin>( "katefilebrowserplugin" ) )
++K_PLUGIN_FACTORY_DECLARATION(KateFileSelectorPluginFactory)
+ 
+-KateFileSelectorPlugin::KateFileSelectorPlugin( QObject* parent, const QStringList&):
+-    Kate::Plugin ( (Kate::Application*)parent )
+-{}
++KateFileSelectorPlugin *KateFileSelectorPlugin::plugin = 0;
++
++KateFileSelectorPlugin::KateFileSelectorPlugin( QObject* parent, const QVariantList&):
++    Kate::Plugin ( (Kate::Application*)parent ),
++    m_fileSelector(0)
++{
++  plugin = this;
++}
+ 
+ Kate::PluginView *KateFileSelectorPlugin::createView (Kate::MainWindow *mainWindow)
+ {
+@@ -105,37 +110,6 @@ void KateFileSelectorPluginView::writeSessionConfig(KConfigBase* config, const Q
+   m_fileSelector->writeSessionConfig(config, group);
+ }
+ 
+-uint KateFileSelectorPlugin::configPages() const
+-{
+-  return 1;
+-}
+-
+-Kate::PluginConfigPage *KateFileSelectorPlugin::configPage (uint number, QWidget *parent, const char *name)
+-{	
+-  if (number != 0) 
+-    return 0;
+-  return new KFSConfigPage(parent, name, m_fileSelector);
+-}
+-
+-QString KateFileSelectorPlugin::configPageName (uint number) const
+-{
+-  if (number != 0) return QString();
+-  kDebug() << "Returning a config page name";
+-  return i18n("File Selector");
+-}
+-
+-QString KateFileSelectorPlugin::configPageFullName (uint number) const
+-{
+-  if (number != 0) return QString();
+-  return i18n("File Selector Settings");
+-}
+-
+-KIcon KateFileSelectorPlugin::configPageIcon (uint number) const
+-{
+-  if (number != 0) return KIcon();
+-  return KIcon("document-open");
+-}
+-
+ //BEGIN Toolbar
+ // from kfiledialog.cpp - avoid qt warning in STDERR (~/.xsessionerrors)
+ static void silenceQToolBar(QtMsgType, const char *)
+@@ -642,11 +616,16 @@ class ActionLBItem : public QListWidgetItem
+ ////////////////////////////////////////////////////////////////////////////////
+ // KFSConfigPage implementation
+ ////////////////////////////////////////////////////////////////////////////////
+-KFSConfigPage::KFSConfigPage( QWidget *parent, const char *, KateFileSelector *kfs )
+-    : Kate::PluginConfigPage( parent ),
+-    fileSelector( kfs ),
++KFSConfigPage::KFSConfigPage( QWidget *parent, const QVariantList & )
++    : KCModule( KateFileSelectorPluginFactory::componentData(), parent ),
+     m_changed( false )
+ {
++  if (!KateFileSelectorPlugin::self() || !KateFileSelectorPlugin::self()->m_fileSelector) {
++    fileSelector = new KateFileSelector;
++  } else {
++    fileSelector = KateFileSelectorPlugin::self()->m_fileSelector;
++  }
++
+   QVBoxLayout *lo = new QVBoxLayout( this );
+   int spacing = KDialog::spacingHint();
+   lo->setSpacing( spacing );
+@@ -735,13 +714,13 @@ KFSConfigPage::KFSConfigPage( QWidget *parent, const char *, KateFileSelector *k
+   lbFilterHist->setWhatsThis(fhwt );
+   sbFilterHistLength->setWhatsThis(fhwt );
+   QString synwt( i18n(
+-                   "<p>These options allow you to have the File Selector automatically "
+-                   "change location to the folder of the active document on certain "
+-                   "events.</p>"
+-                   "<p>Auto synchronization is <em>lazy</em>, meaning it will not take "
+-                   "effect until the file selector is visible.</p>"
+-                   "<p>None of these are enabled by default, but you can always sync the "
+-                   "location by pressing the sync button in the toolbar.</p>") );
++                  "<p>These options allow you to have the File Selector automatically "
++                  "change location to the folder of the active document on certain "
++                  "events.</p>"
++                  "<p>Auto synchronization is <em>lazy</em>, meaning it will not take "
++                  "effect until the file selector is visible.</p>"
++                  "<p>None of these are enabled by default, but you can always sync the "
++                  "location by pressing the sync button in the toolbar.</p>") );
+   gbSync->setWhatsThis(synwt );
+   cbSesLocation->setWhatsThis(i18n(
+                                 "<p>If this option is enabled (default), the location will be restored "
+@@ -754,12 +733,9 @@ KFSConfigPage::KFSConfigPage( QWidget *parent, const char *, KateFileSelector *k
+                               "restored.</p>"
+                               "<p><strong>Note</strong> that some of the autosync settings may "
+                               "override the restored location if on.</p>") );
+-
+-  init();
+-
+ }
+ 
+-void KFSConfigPage::apply()
++void KFSConfigPage::save()
+ {
+   if ( ! m_changed )
+     return;
+@@ -797,11 +773,10 @@ void KFSConfigPage::apply()
+   fileSelector->writeConfig();
+ }
+ 
+-void KFSConfigPage::reset()
++void KFSConfigPage::load()
+ {
+-  // hmm, what is this supposed to do, actually??
+-  init();
+   m_changed = false;
++  init();
+ }
+ void KFSConfigPage::init()
+ {
+@@ -859,7 +834,14 @@ void KFSConfigPage::init()
+ void KFSConfigPage::slotMyChanged()
+ {
+   m_changed = true;
+-  emit changed();
++  emit changed(true);
+ }
+ //END KFSConfigPage
++
++K_PLUGIN_FACTORY_DEFINITION(KateFileSelectorPluginFactory,
++        registerPlugin<KateFileSelectorPlugin>();
++        registerPlugin<KFSConfigPage>("katefilebrowserplugin_config");
++        )
++K_EXPORT_PLUGIN(KateFileSelectorPluginFactory("katefilebrowserplugin"))
++
+ // kate: space-indent on; indent-width 2; replace-tabs on;
+diff --git a/kate/plugins/filebrowser/katefileselector.h b/kate/plugins/filebrowser/katefileselector.h
+index f82aa2c..5e5f693 100644
+--- a/kate/plugins/filebrowser/katefileselector.h
++++ b/kate/plugins/filebrowser/katefileselector.h
+@@ -27,7 +27,7 @@
+ #include <ktexteditor/configpage.h>
+ #include <kate/plugin.h>
+ #include <kate/mainwindow.h>
+-#include <kate/pluginconfigpageinterface.h>
++#include <kcmodule.h>
+ #include <kurlcombobox.h>
+ 
+ #include <kvbox.h>
+@@ -47,23 +47,21 @@ class QSpinBox;
+ 
+ class KateFileSelector;
+ 
+-class KateFileSelectorPlugin: public Kate::Plugin, public Kate::PluginConfigPageInterface
++class KateFileSelectorPlugin: public Kate::Plugin
+ {
+     Q_OBJECT
+-    Q_INTERFACES(Kate::PluginConfigPageInterface)
+   public:
+-    explicit KateFileSelectorPlugin( QObject* parent = 0, const QStringList& = QStringList() );
++    explicit KateFileSelectorPlugin( QObject* parent = 0, const QVariantList& = QVariantList() );
+     virtual ~KateFileSelectorPlugin()
+-    {}
++    { plugin = 0; m_fileSelector = 0; }
++
++    static KateFileSelectorPlugin *self() { return plugin; }
+ 
+     Kate::PluginView *createView (Kate::MainWindow *mainWindow);
+ 
+-    uint configPages() const;
+-    Kate::PluginConfigPage *configPage (uint number = 0, QWidget *parent = 0, const char *name = 0);
+-    QString configPageName (uint number = 0) const;
+-    QString configPageFullName (uint number = 0) const;
+-    KIcon configPageIcon (uint number = 0) const;
+     KateFileSelector *m_fileSelector;
++
++    static KateFileSelectorPlugin *plugin;
+ };
+ 
+ class KateFileSelectorPluginView : public Kate::PluginView
+@@ -199,18 +197,16 @@ class KateFileSelector : public KVBox
+     of the path and file filter combos, and how to handle
+     user closed session.
+ */
+-class KFSConfigPage : public Kate::PluginConfigPage
++class KFSConfigPage : public KCModule
+ {
+     Q_OBJECT
+   public:
+-    explicit KFSConfigPage( QWidget* parent = 0, const char *name = 0, KateFileSelector *kfs = 0);
++    explicit KFSConfigPage( QWidget* parent = 0, const QVariantList& = QVariantList() );
+     virtual ~KFSConfigPage()
+     {}
+ 
+-    virtual void apply();
+-    virtual void reset();
+-    virtual void defaults()
+-    {}
++    virtual void save();
++    virtual void load();
+ 
+   private Q_SLOTS:
+     void slotMyChanged();
+diff --git a/kate/plugins/konsole/CMakeLists.txt b/kate/plugins/konsole/CMakeLists.txt
+index 49cc56e..4c12e62 100644
+--- a/kate/plugins/konsole/CMakeLists.txt
++++ b/kate/plugins/konsole/CMakeLists.txt
+@@ -16,5 +16,6 @@ install(TARGETS katekonsoleplugin  DESTINATION ${PLUGIN_INSTALL_DIR} )
+ ########### install files ###############
+ 
+ install( FILES ui.rc  DESTINATION  ${DATA_INSTALL_DIR}/kate/plugins/katekonsole )
+-install( FILES katekonsoleplugin.desktop  DESTINATION  ${SERVICES_INSTALL_DIR} )
++install( FILES katekonsoleplugin.desktop
++               katekonsoleplugin_config.desktop DESTINATION  ${SERVICES_INSTALL_DIR} )
+ 
+diff --git a/kate/plugins/konsole/kateconsole.cpp b/kate/plugins/konsole/kateconsole.cpp
+index 4bc3ccc..470a32c 100644
+--- a/kate/plugins/konsole/kateconsole.cpp
++++ b/kate/plugins/konsole/kateconsole.cpp
+@@ -49,11 +49,14 @@
+ #include <kpluginfactory.h>
+ #include <kauthorized.h>
+ 
+-K_EXPORT_COMPONENT_FACTORY( katekonsoleplugin, KGenericFactory<KateKonsolePlugin>( "katekonsoleplugin" ) )
++K_PLUGIN_FACTORY_DECLARATION(KateKonsolePluginFactory)
+ 
+-KateKonsolePlugin::KateKonsolePlugin( QObject* parent, const QStringList& ):
++KateKonsolePlugin *KateKonsolePlugin::mPlugin = 0;
++
++KateKonsolePlugin::KateKonsolePlugin( QObject* parent, const QVariantList& ):
+     Kate::Plugin ( (Kate::Application*)parent )
+ {
++  mPlugin = this;
+   if (!KAuthorized::authorizeKAction("shell_access"))
+   {
+     KMessageBox::sorry(0, i18n ("You do not have enough karma to access a shell or terminal emulation"));
+@@ -67,32 +70,6 @@ Kate::PluginView *KateKonsolePlugin::createView (Kate::MainWindow *mainWindow)
+   return view;
+ }
+ 
+-Kate::PluginConfigPage *KateKonsolePlugin::configPage (uint number, QWidget *parent, const char *name)
+-{
+-  Q_UNUSED(name)
+-  if (number != 0)
+-    return 0;
+-  return new KateKonsoleConfigPage(parent, this);
+-}
+-
+-QString KateKonsolePlugin::configPageName (uint number) const
+-{
+-  if (number != 0) return QString();
+-  return i18n("Terminal");
+-}
+-
+-QString KateKonsolePlugin::configPageFullName (uint number) const
+-{
+-  if (number != 0) return QString();
+-  return i18n("Terminal Settings");
+-}
+-
+-KIcon KateKonsolePlugin::configPageIcon (uint number) const
+-{
+-  if (number != 0) return KIcon();
+-  return KIcon("utilities-terminal");
+-}
+-
+ void KateKonsolePlugin::readConfig()
+ {
+   foreach ( KateKonsolePluginView *view, mViews )
+@@ -292,33 +269,42 @@ void KateConsole::readConfig()
+     disconnect( m_mw, SIGNAL(viewChanged()), this, SLOT(slotSync()) );
+ }
+ 
+-KateKonsoleConfigPage::KateKonsoleConfigPage( QWidget* parent, KateKonsolePlugin *plugin )
+-  : Kate::PluginConfigPage( parent )
+-  , mPlugin( plugin )
++KateKonsoleConfigPage::KateKonsoleConfigPage( QWidget* parent, const QVariantList& )
++  : KCModule( KateKonsolePluginFactory::componentData(), parent )
++  , mPlugin( KateKonsolePlugin::self() )
+ {
+   QVBoxLayout *lo = new QVBoxLayout( this );
+   lo->setSpacing( KDialog::spacingHint() );
+ 
+   cbAutoSyncronize = new QCheckBox( i18n("&Automatically syncronize the terminal with the current document when possible"), this );
++  connect(cbAutoSyncronize, SIGNAL(toggled(bool)), this, SLOT(slotChanged()));
+   lo->addWidget( cbAutoSyncronize );
+-  reset();
+   lo->addStretch();
+-  connect( cbAutoSyncronize, SIGNAL(stateChanged(int)), SIGNAL(changed()) );
+ }
+ 
+-void KateKonsoleConfigPage::apply()
++void KateKonsoleConfigPage::save()
+ {
+   KConfigGroup config(KGlobal::config(), "Konsole");
+   config.writeEntry("AutoSyncronize", cbAutoSyncronize->isChecked());
+   config.sync();
+-  mPlugin->readConfig();
+ }
+ 
+-void KateKonsoleConfigPage::reset()
++void KateKonsoleConfigPage::load()
+ {
+   KConfigGroup config(KGlobal::config(), "Konsole");
+   cbAutoSyncronize->setChecked(config.readEntry("AutoSyncronize", false));
+ }
+ 
++void KateKonsoleConfigPage::slotChanged()
++{
++  emit changed(true);
++}
++
++K_PLUGIN_FACTORY_DEFINITION(KateKonsolePluginFactory,
++        registerPlugin<KateKonsolePlugin>();
++        registerPlugin<KateKonsoleConfigPage>("katekonsoleplugin_config");
++        )
++K_EXPORT_PLUGIN(KateKonsolePluginFactory("katekonsoleplugin"))
++
+ // kate: space-indent on; indent-width 2; replace-tabs on;
+ 
+diff --git a/kate/plugins/konsole/kateconsole.h b/kate/plugins/konsole/kateconsole.h
+index dbb4a4b..db8929c 100644
+--- a/kate/plugins/konsole/kateconsole.h
++++ b/kate/plugins/konsole/kateconsole.h
+@@ -23,9 +23,9 @@
+ 
+ #include <kate/plugin.h>
+ #include <kate/mainwindow.h>
+-#include <kate/pluginconfigpageinterface.h>
+ #include <kurl.h>
+ #include <kxmlguiclient.h>
++#include <kcmodule.h>
+ 
+ #include <kvbox.h>
+ #include <QList>
+@@ -44,28 +44,23 @@ namespace KateMDI
+ class KateConsole;
+ class KateKonsolePluginView;
+ 
+-class KateKonsolePlugin: public Kate::Plugin, public Kate::PluginConfigPageInterface
++class KateKonsolePlugin: public Kate::Plugin
+ {
+     Q_OBJECT
+-    Q_INTERFACES(Kate::PluginConfigPageInterface)
+   public:
+-    explicit KateKonsolePlugin( QObject* parent = 0, const QStringList& = QStringList() );
++    explicit KateKonsolePlugin( QObject* parent = 0, const QVariantList& = QVariantList() );
+     virtual ~KateKonsolePlugin()
+     {}
+ 
+-    Kate::PluginView *createView (Kate::MainWindow *mainWindow);
++    static KateKonsolePlugin *self() { return mPlugin; }
+ 
+-    // PluginConfigPageInterface
+-    uint configPages() const { return 1; };
+-    Kate::PluginConfigPage *configPage (uint number = 0, QWidget *parent = 0, const char *name = 0);
+-    QString configPageName (uint number = 0) const;
+-    QString configPageFullName (uint number = 0) const;
+-    KIcon configPageIcon (uint number = 0) const;
++    Kate::PluginView *createView (Kate::MainWindow *mainWindow);
+ 
+     void readConfig();
+ 
+   private:
+     QList<KateKonsolePluginView*> mViews;
++    static KateKonsolePlugin *mPlugin;
+ };
+ 
+ class KateKonsolePluginView : public Kate::PluginView
+@@ -186,17 +181,19 @@ class KateConsole : public KVBox, public KXMLGUIClient
+     QWidget *m_toolView;
+ };
+ 
+-class KateKonsoleConfigPage : public Kate::PluginConfigPage {
+-    Q_OBJECT
++class KateKonsoleConfigPage : public KCModule {
++Q_OBJECT
+   public:
+-    explicit KateKonsoleConfigPage( QWidget* parent = 0, KateKonsolePlugin *plugin = 0 );
++    explicit KateKonsoleConfigPage( QWidget* parent = 0, const QVariantList& = QVariantList() );
+     virtual ~KateKonsoleConfigPage()
+     {}
+ 
+-    virtual void apply();
+-    virtual void reset();
+-    virtual void defaults()
+-    {}
++    virtual void save();
++    virtual void load();
++    
++  private slots:
++    void slotChanged();
++    
+   private:
+     class QCheckBox *cbAutoSyncronize;
+     KateKonsolePlugin *mPlugin;
+diff --git a/kate/plugins/konsole/katekonsoleplugin.desktop b/kate/plugins/konsole/katekonsoleplugin.desktop
+index 78236f5..07310ac 100644
+--- a/kate/plugins/konsole/katekonsoleplugin.desktop
++++ b/kate/plugins/konsole/katekonsoleplugin.desktop
+@@ -1,6 +1,7 @@
+ [Desktop Entry]
+ Type=Service
+ ServiceTypes=Kate/Plugin
++X-KDE-PluginInfo-Name=katekonsoleplugin
+ X-KDE-Library=katekonsoleplugin
+ X-Kate-Version=2.8
+ Name=Terminal tool view
+diff --git a/kate/plugins/konsole/katekonsoleplugin_config.desktop b/kate/plugins/konsole/katekonsoleplugin_config.desktop
+new file mode 100644
+index 0000000..a024273
+--- /dev/null
++++ b/kate/plugins/konsole/katekonsoleplugin_config.desktop
+@@ -0,0 +1,7 @@
++[Desktop Entry]
++Type=Service
++X-KDE-ServiceTypes=KCModule
++X-KDE-Library=katekonsoleplugin
++X-KDE-ParentComponents=katekonsoleplugin
++X-KDE-PluginKeyword=katekonsoleplugin_config
++Name=Behavior
+diff --git a/kate/plugins/symbolviewer/CMakeLists.txt b/kate/plugins/symbolviewer/CMakeLists.txt
+index 3740c32..98a3c23 100644
+--- a/kate/plugins/symbolviewer/CMakeLists.txt
++++ b/kate/plugins/symbolviewer/CMakeLists.txt
+@@ -20,4 +20,5 @@ install(TARGETS katesymbolviewerplugin  DESTINATION ${PLUGIN_INSTALL_DIR} )
+ ########### install files ###############
+ 
+ install( FILES ui.rc  DESTINATION  ${DATA_INSTALL_DIR}/kate/plugins/katesymbolviewer )
+-install( FILES katesymbolviewer.desktop  DESTINATION  ${SERVICES_INSTALL_DIR} )
++install( FILES katesymbolviewer.desktop
++               katesymbolviewer_config.desktop  DESTINATION  ${SERVICES_INSTALL_DIR} )
+diff --git a/kate/plugins/symbolviewer/katesymbolviewer.desktop b/kate/plugins/symbolviewer/katesymbolviewer.desktop
+index 8ef5ee1..bc44883 100644
+--- a/kate/plugins/symbolviewer/katesymbolviewer.desktop
++++ b/kate/plugins/symbolviewer/katesymbolviewer.desktop
+@@ -1,7 +1,8 @@
+ [Desktop Entry]
+ Type=Service
+-ServiceTypes=Kate/Plugin
++X-KDE-ServiceTypes=Kate/Plugin
+ X-KDE-Library=katesymbolviewerplugin
++X-KDE-PluginInfo-Name=katesymbolviewerplugin
+ X-Kate-Version=2.8
+ Name=Kate Symbol Viewer
+ Name[ca]=Visualitzador de símbols del Kate
+diff --git a/kate/plugins/symbolviewer/katesymbolviewer_config.desktop b/kate/plugins/symbolviewer/katesymbolviewer_config.desktop
+new file mode 100644
+index 0000000..a4b4868
+--- /dev/null
++++ b/kate/plugins/symbolviewer/katesymbolviewer_config.desktop
+@@ -0,0 +1,7 @@
++[Desktop Entry]
++Type=Service
++X-KDE-ServiceTypes=KCModule
++X-KDE-Library=katesymbolviewerplugin
++X-KDE-ParentComponents=katesymbolviewerplugin
++X-KDE-PluginKeyword=katesymbolviewerplugin_config
++Name=Behavior
+diff --git a/kate/plugins/symbolviewer/plugin_katesymbolviewer.cpp b/kate/plugins/symbolviewer/plugin_katesymbolviewer.cpp
+index ae1922e..b1b1374 100644
+--- a/kate/plugins/symbolviewer/plugin_katesymbolviewer.cpp
++++ b/kate/plugins/symbolviewer/plugin_katesymbolviewer.cpp
+@@ -56,8 +56,7 @@
+ #include <QResizeEvent>
+ #include <QMenu>
+ 
+-K_EXPORT_COMPONENT_FACTORY( katesymbolviewerplugin, KGenericFactory<KatePluginSymbolViewer>( "katesymbolviewer" ) )
+-
++K_PLUGIN_FACTORY_DECLARATION(KatePluginSymbolViewerFactory)
+ 
+ KatePluginSymbolViewerView2::KatePluginSymbolViewerView2 (Kate::MainWindow *w)
+     : Kate::PluginView(w)
+@@ -282,7 +281,7 @@ void KatePluginSymbolViewerView::goToSymbol(QTreeWidgetItem *it)
+   kv->setCursorPosition (KTextEditor::Cursor (it->text(1).toInt(NULL, 10), 0));
+ }
+ 
+-KatePluginSymbolViewer::KatePluginSymbolViewer( QObject* parent, const QStringList& )
++KatePluginSymbolViewer::KatePluginSymbolViewer( QObject* parent, const QVariantList& )
+     : Kate::Plugin ( (Kate::Application*)parent, "katesymbolviewerplugin" ),
+     pConfig("katesymbolviewerpluginrc")
+ {
+@@ -323,22 +322,6 @@ void KatePluginSymbolViewer::loadGeneralConfig(KConfig* config, const QString& g
+   // TODO: FIXME: port to new interfaces
+ }
+ 
+-Kate::PluginConfigPage* KatePluginSymbolViewer::configPage(
+-    uint, QWidget *w, const char* /*name*/)
+-{
+-  KatePluginSymbolViewerConfigPage* p = new KatePluginSymbolViewerConfigPage(this, w);
+-  initConfigPage( p );
+-  connect( p, SIGNAL(configPageApplyRequest(KatePluginSymbolViewerConfigPage*)),
+-      SLOT(applyConfig(KatePluginSymbolViewerConfigPage *)) );
+-  return (Kate::PluginConfigPage*)p;
+-}
+-
+-void KatePluginSymbolViewer::initConfigPage( KatePluginSymbolViewerConfigPage* p )
+-{
+-  p->viewReturns->setChecked(pConfig.group("global").readEntry("view_types", true));
+-  p->expandTree->setChecked(pConfig.group("global").readEntry("expand_tree", false));
+-}
+-
+ void KatePluginSymbolViewer::applyConfig( KatePluginSymbolViewerConfigPage* p )
+ {
+  for (int z=0; z < m_views.count(); z++)
+@@ -355,8 +338,8 @@ void KatePluginSymbolViewer::applyConfig( KatePluginSymbolViewerConfigPage* p )
+ 
+ // BEGIN KatePluginSymbolViewerConfigPage
+ KatePluginSymbolViewerConfigPage::KatePluginSymbolViewerConfigPage(
+-    QObject* /*parent*/ /*= 0L*/, QWidget *parentWidget /*= 0L*/)
+-  : Kate::PluginConfigPage( parentWidget )
++    QWidget* parent /*= 0L*/, const QVariantList&)
++  : KCModule( KatePluginSymbolViewerFactory::componentData(), parent )
+ {
+   QGroupBox* groupBox = new QGroupBox( i18n("Parser Options"), this);
+ 
+@@ -377,9 +360,14 @@ KatePluginSymbolViewerConfigPage::KatePluginSymbolViewerConfigPage(
+ 
+ KatePluginSymbolViewerConfigPage::~KatePluginSymbolViewerConfigPage() {}
+ 
+-void KatePluginSymbolViewerConfigPage::apply()
++void KatePluginSymbolViewerConfigPage::save()
+ {
+     emit configPageApplyRequest( this );
+ }
+ // END KatePluginSymbolViewerConfigPage
+ 
++K_PLUGIN_FACTORY_DEFINITION(KatePluginSymbolViewerFactory,
++        registerPlugin<KatePluginSymbolViewer>();
++        registerPlugin<KatePluginSymbolViewerConfigPage>("katesymbolviewerplugin_config");
++        )
++K_EXPORT_PLUGIN(KatePluginSymbolViewerFactory("katesymbolviewerplugin"))
+diff --git a/kate/plugins/symbolviewer/plugin_katesymbolviewer.h b/kate/plugins/symbolviewer/plugin_katesymbolviewer.h
+index d0c8f34..44f91eb 100644
+--- a/kate/plugins/symbolviewer/plugin_katesymbolviewer.h
++++ b/kate/plugins/symbolviewer/plugin_katesymbolviewer.h
+@@ -24,7 +24,6 @@
+ #include <kate/mainwindow.h>
+ #include <kate/plugin.h>
+ #include <ktexteditor/view.h>
+-#include <kate/pluginconfigpageinterface.h>
+ 
+ #include <kdebug.h>
+ #include <QMenu>
+@@ -39,6 +38,7 @@
+ #include <klocale.h>
+ #include <kiconloader.h>
+ #include <kconfig.h>
++#include <kcmodule.h>
+ 
+ class KatePluginSymbolViewerView;
+ class KatePluginSymbolViewerView2 : public Kate::PluginView
+@@ -101,23 +101,19 @@ class KatePluginSymbolViewerView : public QObject, public KXMLGUIClient
+ /**
+  * Plugin's config page
+  */
+-class KatePluginSymbolViewerConfigPage : public Kate::PluginConfigPage
++class KatePluginSymbolViewerConfigPage : public KCModule
+ {
+   Q_OBJECT
+ 
+   friend class KatePluginSymbolViewer;
+ 
+   public:
+-    explicit KatePluginSymbolViewerConfigPage (QObject* parent = 0L, QWidget *parentWidget = 0L);
++    explicit KatePluginSymbolViewerConfigPage (QWidget* parent = 0L, const QVariantList& = QVariantList());
+     ~KatePluginSymbolViewerConfigPage ();
+ 
+-    /**
+-     * Reimplemented from Kate::PluginConfigPage
+-     * just emits configPageApplyRequest( this ).
+-     */
+-    virtual void apply();
++    virtual void save();
+ 
+-    virtual void reset () { ; }
++    virtual void load () { ; }
+     virtual void defaults () { ; }
+ 
+   signals:
+@@ -136,12 +132,11 @@ class KatePluginSymbolViewerConfigPage : public Kate::PluginConfigPage
+     QCheckBox* expandTree;
+ };
+ 
+-class KatePluginSymbolViewer : public Kate::Plugin, Kate::PluginConfigPageInterface
++class KatePluginSymbolViewer : public Kate::Plugin
+ {
+   Q_OBJECT
+-  Q_INTERFACES(Kate::PluginConfigPageInterface)
+   public:
+-    explicit KatePluginSymbolViewer( QObject* parent = 0, const QStringList& = QStringList() );
++    explicit KatePluginSymbolViewer( QObject* parent = 0, const QVariantList& = QVariantList() );
+     virtual ~KatePluginSymbolViewer();
+ 
+     Kate::PluginView *createView (Kate::MainWindow *mainWindow);
+@@ -151,19 +146,10 @@ class KatePluginSymbolViewer : public Kate::Plugin, Kate::PluginConfigPageInterf
+     void storeGeneralConfig(KConfig* config, const QString& groupPrefix);
+     void loadGeneralConfig(KConfig* config, const QString& groupPrefix);
+ 
+-    uint configPages () const { return 1; }
+-    Kate::PluginConfigPage *configPage (uint , QWidget *w, const char *name=0);
+-    QString configPageName(uint) const { return i18n("Symbol Viewer"); }
+-    QString configPageFullName(uint) const { return i18n("Symbol Viewer Configuration Page"); }
+-    QPixmap configPagePixmap (uint, int) const { return 0L; }
+-    KIcon configPageIcon (uint) const {return KIcon();} //TODO implement it
+   public slots:
+     void applyConfig( KatePluginSymbolViewerConfigPage* );
+ 
+   private:
+-    void initConfigPage( KatePluginSymbolViewerConfigPage* );
+-
+-  private:
+     QList<KatePluginSymbolViewerView *> m_views;
+     KConfig pConfig;
+ };

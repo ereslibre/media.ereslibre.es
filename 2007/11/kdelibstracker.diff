@@ -1,0 +1,77 @@
+Index: kdeui/jobs/kwidgetjobtracker.cpp
+===================================================================
+--- kdeui/jobs/kwidgetjobtracker.cpp	(revisión: 742712)
++++ kdeui/jobs/kwidgetjobtracker.cpp	(copia de trabajo)
+@@ -367,7 +367,7 @@ void KWidgetJobTracker::Private::Progres
+             speedLabel->setText(i18n("%1/s (done)",
+                                         KGlobal::locale()->formatByteSize(1000 * totalSize / s)));
+         }
+-        q->setAutoDelete(job, true);
++        tracker->setAutoDelete(job, true);
+     }
+ }
+ 
+@@ -385,12 +385,12 @@ void KWidgetJobTracker::Private::Progres
+ 
+ void KWidgetJobTracker::Private::ProgressWidget::closeEvent(QCloseEvent *event)
+ {
+-    if (q->stopOnClose(job)) {
+-        q->slotStop(job);
+-    } else if (q->autoDelete(job)) {
++    if (tracker->stopOnClose(job)) {
++        tracker->slotStop(job);
++    } else if (tracker->autoDelete(job)) {
+         deleteLater();
+     } else {
+-        q->slotClean(job);
++        tracker->slotClean(job);
+     }
+ 
+     QWidget::closeEvent(event);
+@@ -577,16 +577,16 @@ void KWidgetJobTracker::Private::Progres
+ void KWidgetJobTracker::Private::ProgressWidget::_k_pauseResumeClicked()
+ {
+     if ( !suspendedProperty ) {
+-        q->slotSuspend(job);
++        tracker->slotSuspend(job);
+     } else {
+-        q->slotResume(job);
++        tracker->slotResume(job);
+     }
+ }
+ 
+ void KWidgetJobTracker::Private::ProgressWidget::_k_stop()
+ {
+-    q->slotStop(job);
+-    q->widget(job)->deleteLater();
++    tracker->slotStop(job);
++    tracker->widget(job)->deleteLater();
+ }
+ 
+ #include "kwidgetjobtracker.moc"
+Index: kdeui/jobs/kwidgetjobtracker_p.h
+===================================================================
+--- kdeui/jobs/kwidgetjobtracker_p.h	(revisión: 742712)
++++ kdeui/jobs/kwidgetjobtracker_p.h	(copia de trabajo)
+@@ -66,7 +66,7 @@ class KWidgetJobTracker::Private::Progre
+ 
+ public:
+     ProgressWidget(KJob *job, KWidgetJobTracker *object, QWidget *parent)
+-        : QWidget(parent), q(object), job(job), totalSize(0), totalFiles(0), totalDirs(0),
++        : QWidget(parent), tracker(object), job(job), totalSize(0), totalFiles(0), totalDirs(0),
+           processedSize(0), processedDirs(0), processedFiles(0),
+           totalSizeKnown(false), keepOpenChecked(false),
+           cancelClose(0), openFile(0), openLocation(0),
+@@ -79,10 +79,10 @@ public:
+ 
+     ~ProgressWidget()
+     {
+-        q->d->progressWidget.remove(job);
++        tracker->d->progressWidget.remove(job);
+     }
+ 
+-    KWidgetJobTracker *const q;
++    KWidgetJobTracker *const tracker;
+     KJob *const job;
+ 
+     qulonglong totalSize;

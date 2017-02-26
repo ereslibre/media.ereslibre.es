@@ -1,0 +1,47 @@
+Index: kdecore/kernel/kcomponentdata.cpp
+===================================================================
+--- kdecore/kernel/kcomponentdata.cpp	(revisión: 1107505)
++++ kdecore/kernel/kcomponentdata.cpp	(copia de trabajo)
+@@ -214,6 +214,11 @@
+     return &d->aboutData;
+ }
+ 
++void KComponentData::setAboutData(const KAboutData &aboutData)
++{
++    d->aboutData = aboutData;
++}
++
+ QString KComponentData::componentName() const
+ {
+     Q_ASSERT(d);
+Index: kdecore/kernel/kcomponentdata.h
+===================================================================
+--- kdecore/kernel/kcomponentdata.h	(revisión: 1107505)
++++ kdecore/kernel/kcomponentdata.h	(copia de trabajo)
+@@ -151,6 +151,13 @@
+     const KAboutData *aboutData() const;
+ 
+     /**
++     * Sets the about data of this component.
++     *
++     * @since 4.5
++     */
++    void setAboutData(const KAboutData &aboutData);
++
++    /**
+      * Returns the name of the component.
+      *
+      * @return The component name.
+Index: kdecore/kernel/kcomponentdata_p.h
+===================================================================
+--- kdecore/kernel/kcomponentdata_p.h	(revisión: 1107505)
++++ kdecore/kernel/kcomponentdata_p.h	(copia de trabajo)
+@@ -79,7 +79,7 @@
+     void configInit(const KComponentData &component);  //call this only from lazyInit()!
+ 
+     KStandardDirs *dirs;
+-    const KAboutData aboutData;
++    KAboutData aboutData;
+     QString configName;
+     KSharedConfig::Ptr sharedConfig;
+     bool syncing;

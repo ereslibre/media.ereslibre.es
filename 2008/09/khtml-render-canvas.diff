@@ -1,0 +1,14 @@
+diff --git a/khtml/rendering/render_canvas.cpp b/khtml/rendering/render_canvas.cpp
+index 5baaa5d..3638a3b 100644
+--- a/khtml/rendering/render_canvas.cpp
++++ b/khtml/rendering/render_canvas.cpp
+@@ -416,8 +416,7 @@ void RenderCanvas::repaintRectangle(int x, int y, int w, int h, Priority p, bool
+     QRect vr = viewRect();
+     QRect ur(x, y, w, h);
+ 
+-    if (m_view && ur.intersects(vr)) {
+-
++    if (m_view) {
+         if (p == RealtimePriority)
+             m_view->updateContents(ur);
+         else if (p == HighPriority)

@@ -1,0 +1,55 @@
+diff --git a/khtml/khtmlview.cpp b/khtml/khtmlview.cpp
+index 80466d8..04701f0 100644
+--- a/khtml/khtmlview.cpp
++++ b/khtml/khtmlview.cpp
+@@ -4174,6 +4174,8 @@ void KHTMLView::unscheduleRepaint()
+ 
+ void KHTMLView::scheduleRepaint(int x, int y, int w, int h, bool asap)
+ {
++    kDebug();
++
+     bool parsing = !m_part->xmlDocImpl() || m_part->xmlDocImpl()->parsing();
+ 
+ //     kDebug() << "parsing " << parsing;
+diff --git a/khtml/rendering/render_canvas.cpp b/khtml/rendering/render_canvas.cpp
+index 5baaa5d..de751f1 100644
+--- a/khtml/rendering/render_canvas.cpp
++++ b/khtml/rendering/render_canvas.cpp
+@@ -339,8 +339,9 @@ bool RenderCanvas::needsFullRepaint() const
+ 
+ void RenderCanvas::repaintViewRectangle(int x, int y, int w, int h, bool asap)
+ {
+-  KHTMLAssert( view() );
+-  view()->scheduleRepaint( x, y, w, h, asap );
++    kDebug();
++    KHTMLAssert( view() );
++    view()->scheduleRepaint( x, y, w, h, asap );
+ }
+ 
+ bool RenderCanvas::absolutePosition(int &xPos, int &yPos, bool f) const
+@@ -403,7 +404,7 @@ void RenderCanvas::paintBoxDecorations(PaintInfo& paintInfo, int /*_tx*/, int /*
+ void RenderCanvas::repaintRectangle(int x, int y, int w, int h, Priority p, bool f)
+ {
+     if (m_staticMode) return;
+-//    kDebug( 6040 ) << "updating views contents (" << x << "/" << y << ") (" << w << "/" << h << ")";
++   kDebug( 6040 ) << "updating views contents (" << x << "/" << y << ") (" << w << "/" << h << ")";
+ 
+     if (f && m_pagedMode) {
+         y += m_pageTop;
+@@ -416,7 +417,7 @@ void RenderCanvas::repaintRectangle(int x, int y, int w, int h, Priority p, bool
+     QRect vr = viewRect();
+     QRect ur(x, y, w, h);
+ 
+-    if (m_view && ur.intersects(vr)) {
++    if (m_view) {
+ 
+         if (p == RealtimePriority)
+             m_view->updateContents(ur);
+@@ -445,6 +446,7 @@ void RenderCanvas::scheduleDeferredRepaints()
+ 
+ void RenderCanvas::repaint(Priority p)
+ {
++    kDebug();
+     if (m_view && !m_staticMode) {
+         if (p == RealtimePriority) {
+             //m_view->resizeContents(docWidth(), docHeight());

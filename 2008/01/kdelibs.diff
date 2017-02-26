@@ -1,0 +1,334 @@
+Index: kate/plugins/kdatatool/ktexteditor_kdatatool.desktop
+===================================================================
+--- kate/plugins/kdatatool/ktexteditor_kdatatool.desktop	(revisión: 757050)
++++ kate/plugins/kdatatool/ktexteditor_kdatatool.desktop	(copia de trabajo)
+@@ -6,36 +6,6 @@ X-KDE-PluginInfo-Name=ktexteditorkdatato
+ X-KDE-PluginInfo-Version=0.1
+ X-KDE-PluginInfo-Website=http://kate.kde.org
+ X-KDE-PluginInfo-Category=Editor
+-X-KDE-PluginInfo-Category[bg]=Редактор
+-X-KDE-PluginInfo-Category[bn_IN]=এডিটর
+-X-KDE-PluginInfo-Category[csb]=Editora
+-X-KDE-PluginInfo-Category[el]=Επεξεργαστής
+-X-KDE-PluginInfo-Category[eo]=Redaktilo
+-X-KDE-PluginInfo-Category[et]=Redaktor
+-X-KDE-PluginInfo-Category[eu]=Editorea
+-X-KDE-PluginInfo-Category[fr]=Éditeur
+-X-KDE-PluginInfo-Category[ga]=Eagarthóir
+-X-KDE-PluginInfo-Category[hu]=Szerkesztő
+-X-KDE-PluginInfo-Category[hy]=Խմբագրիչ
+-X-KDE-PluginInfo-Category[is]=Ritill
+-X-KDE-PluginInfo-Category[ja]=エディタ
+-X-KDE-PluginInfo-Category[km]=កម្មវិធី​និពន្ធ
+-X-KDE-PluginInfo-Category[ko]=편집기
+-X-KDE-PluginInfo-Category[ku]=Edîtor
+-X-KDE-PluginInfo-Category[lv]=Redaktors
+-X-KDE-PluginInfo-Category[nb]=Redigerer
+-X-KDE-PluginInfo-Category[pa]=ਐਡੀਟਰ
+-X-KDE-PluginInfo-Category[pl]=Edytor
+-X-KDE-PluginInfo-Category[sl]=Urejevalnik
+-X-KDE-PluginInfo-Category[sr]=Уређивач
+-X-KDE-PluginInfo-Category[sr@latin]=Uređivač
+-X-KDE-PluginInfo-Category[tg]=Таҳриргар
+-X-KDE-PluginInfo-Category[th]=โปรแกรมแก้ไขข้อความ
+-X-KDE-PluginInfo-Category[tr]=Düzenleyici
+-X-KDE-PluginInfo-Category[uk]=Редактор
+-X-KDE-PluginInfo-Category[x-test]=xxEditorxx
+-X-KDE-PluginInfo-Category[zh_CN]=编辑器
+-X-KDE-PluginInfo-Category[zh_TW]=編輯器
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: kate/plugins/insertfile/ktexteditor_insertfile.desktop
+===================================================================
+--- kate/plugins/insertfile/ktexteditor_insertfile.desktop	(revisión: 757050)
++++ kate/plugins/insertfile/ktexteditor_insertfile.desktop	(copia de trabajo)
+@@ -6,36 +6,6 @@ X-KDE-PluginInfo-Name=ktexteditorinsertf
+ X-KDE-PluginInfo-Version=0.1
+ X-KDE-PluginInfo-Website=http://kate.kde.org
+ X-KDE-PluginInfo-Category=Editor
+-X-KDE-PluginInfo-Category[bg]=Редактор
+-X-KDE-PluginInfo-Category[bn_IN]=এডিটর
+-X-KDE-PluginInfo-Category[csb]=Editora
+-X-KDE-PluginInfo-Category[el]=Επεξεργαστής
+-X-KDE-PluginInfo-Category[eo]=Redaktilo
+-X-KDE-PluginInfo-Category[et]=Redaktor
+-X-KDE-PluginInfo-Category[eu]=Editorea
+-X-KDE-PluginInfo-Category[fr]=Éditeur
+-X-KDE-PluginInfo-Category[ga]=Eagarthóir
+-X-KDE-PluginInfo-Category[hu]=Szerkesztő
+-X-KDE-PluginInfo-Category[hy]=Խմբագրիչ
+-X-KDE-PluginInfo-Category[is]=Ritill
+-X-KDE-PluginInfo-Category[ja]=エディタ
+-X-KDE-PluginInfo-Category[km]=កម្មវិធី​និពន្ធ
+-X-KDE-PluginInfo-Category[ko]=편집기
+-X-KDE-PluginInfo-Category[ku]=Edîtor
+-X-KDE-PluginInfo-Category[lv]=Redaktors
+-X-KDE-PluginInfo-Category[nb]=Redigerer
+-X-KDE-PluginInfo-Category[pa]=ਐਡੀਟਰ
+-X-KDE-PluginInfo-Category[pl]=Edytor
+-X-KDE-PluginInfo-Category[sl]=Urejevalnik
+-X-KDE-PluginInfo-Category[sr]=Уређивач
+-X-KDE-PluginInfo-Category[sr@latin]=Uređivač
+-X-KDE-PluginInfo-Category[tg]=Таҳриргар
+-X-KDE-PluginInfo-Category[th]=โปรแกรมแก้ไขข้อความ
+-X-KDE-PluginInfo-Category[tr]=Düzenleyici
+-X-KDE-PluginInfo-Category[uk]=Редактор
+-X-KDE-PluginInfo-Category[x-test]=xxEditorxx
+-X-KDE-PluginInfo-Category[zh_CN]=编辑器
+-X-KDE-PluginInfo-Category[zh_TW]=編輯器
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: kate/plugins/autobookmarker/ktexteditor_autobookmarker.desktop
+===================================================================
+--- kate/plugins/autobookmarker/ktexteditor_autobookmarker.desktop	(revisión: 757050)
++++ kate/plugins/autobookmarker/ktexteditor_autobookmarker.desktop	(copia de trabajo)
+@@ -6,36 +6,6 @@ X-KDE-PluginInfo-Name=ktexteditorautoboo
+ X-KDE-PluginInfo-Version=0.1
+ X-KDE-PluginInfo-Website=http://kate.kde.org
+ X-KDE-PluginInfo-Category=Editor
+-X-KDE-PluginInfo-Category[bg]=Редактор
+-X-KDE-PluginInfo-Category[bn_IN]=এডিটর
+-X-KDE-PluginInfo-Category[csb]=Editora
+-X-KDE-PluginInfo-Category[el]=Επεξεργαστής
+-X-KDE-PluginInfo-Category[eo]=Redaktilo
+-X-KDE-PluginInfo-Category[et]=Redaktor
+-X-KDE-PluginInfo-Category[eu]=Editorea
+-X-KDE-PluginInfo-Category[fr]=Éditeur
+-X-KDE-PluginInfo-Category[ga]=Eagarthóir
+-X-KDE-PluginInfo-Category[hu]=Szerkesztő
+-X-KDE-PluginInfo-Category[hy]=Խմբագրիչ
+-X-KDE-PluginInfo-Category[is]=Ritill
+-X-KDE-PluginInfo-Category[ja]=エディタ
+-X-KDE-PluginInfo-Category[km]=កម្មវិធី​និពន្ធ
+-X-KDE-PluginInfo-Category[ko]=편집기
+-X-KDE-PluginInfo-Category[ku]=Edîtor
+-X-KDE-PluginInfo-Category[lv]=Redaktors
+-X-KDE-PluginInfo-Category[nb]=Redigerer
+-X-KDE-PluginInfo-Category[pa]=ਐਡੀਟਰ
+-X-KDE-PluginInfo-Category[pl]=Edytor
+-X-KDE-PluginInfo-Category[sl]=Urejevalnik
+-X-KDE-PluginInfo-Category[sr]=Уређивач
+-X-KDE-PluginInfo-Category[sr@latin]=Uređivač
+-X-KDE-PluginInfo-Category[tg]=Таҳриргар
+-X-KDE-PluginInfo-Category[th]=โปรแกรมแก้ไขข้อความ
+-X-KDE-PluginInfo-Category[tr]=Düzenleyici
+-X-KDE-PluginInfo-Category[uk]=Редактор
+-X-KDE-PluginInfo-Category[x-test]=xxEditorxx
+-X-KDE-PluginInfo-Category[zh_CN]=编辑器
+-X-KDE-PluginInfo-Category[zh_TW]=編輯器
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: kate/plugins/wordcompletion/ktexteditor_docwordcompletion.desktop
+===================================================================
+--- kate/plugins/wordcompletion/ktexteditor_docwordcompletion.desktop	(revisión: 757050)
++++ kate/plugins/wordcompletion/ktexteditor_docwordcompletion.desktop	(copia de trabajo)
+@@ -6,36 +6,6 @@ X-KDE-PluginInfo-Name=ktexteditordocword
+ X-KDE-PluginInfo-Version=0.1
+ X-KDE-PluginInfo-Website=http://kate.kde.org
+ X-KDE-PluginInfo-Category=Editor
+-X-KDE-PluginInfo-Category[bg]=Редактор
+-X-KDE-PluginInfo-Category[bn_IN]=এডিটর
+-X-KDE-PluginInfo-Category[csb]=Editora
+-X-KDE-PluginInfo-Category[el]=Επεξεργαστής
+-X-KDE-PluginInfo-Category[eo]=Redaktilo
+-X-KDE-PluginInfo-Category[et]=Redaktor
+-X-KDE-PluginInfo-Category[eu]=Editorea
+-X-KDE-PluginInfo-Category[fr]=Éditeur
+-X-KDE-PluginInfo-Category[ga]=Eagarthóir
+-X-KDE-PluginInfo-Category[hu]=Szerkesztő
+-X-KDE-PluginInfo-Category[hy]=Խմբագրիչ
+-X-KDE-PluginInfo-Category[is]=Ritill
+-X-KDE-PluginInfo-Category[ja]=エディタ
+-X-KDE-PluginInfo-Category[km]=កម្មវិធី​និពន្ធ
+-X-KDE-PluginInfo-Category[ko]=편집기
+-X-KDE-PluginInfo-Category[ku]=Edîtor
+-X-KDE-PluginInfo-Category[lv]=Redaktors
+-X-KDE-PluginInfo-Category[nb]=Redigerer
+-X-KDE-PluginInfo-Category[pa]=ਐਡੀਟਰ
+-X-KDE-PluginInfo-Category[pl]=Edytor
+-X-KDE-PluginInfo-Category[sl]=Urejevalnik
+-X-KDE-PluginInfo-Category[sr]=Уређивач
+-X-KDE-PluginInfo-Category[sr@latin]=Uređivač
+-X-KDE-PluginInfo-Category[tg]=Таҳриргар
+-X-KDE-PluginInfo-Category[th]=โปรแกรมแก้ไขข้อความ
+-X-KDE-PluginInfo-Category[tr]=Düzenleyici
+-X-KDE-PluginInfo-Category[uk]=Редактор
+-X-KDE-PluginInfo-Category[x-test]=xxEditorxx
+-X-KDE-PluginInfo-Category[zh_CN]=编辑器
+-X-KDE-PluginInfo-Category[zh_TW]=編輯器
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: kate/plugins/timedate/ktexteditor_timedate.desktop
+===================================================================
+--- kate/plugins/timedate/ktexteditor_timedate.desktop	(revisión: 757050)
++++ kate/plugins/timedate/ktexteditor_timedate.desktop	(copia de trabajo)
+@@ -6,36 +6,6 @@ X-KDE-PluginInfo-Name=ktexteditortimedat
+ X-KDE-PluginInfo-Version=0.1
+ X-KDE-PluginInfo-Website=http://kate.kde.org
+ X-KDE-PluginInfo-Category=Editor
+-X-KDE-PluginInfo-Category[bg]=Редактор
+-X-KDE-PluginInfo-Category[bn_IN]=এডিটর
+-X-KDE-PluginInfo-Category[csb]=Editora
+-X-KDE-PluginInfo-Category[el]=Επεξεργαστής
+-X-KDE-PluginInfo-Category[eo]=Redaktilo
+-X-KDE-PluginInfo-Category[et]=Redaktor
+-X-KDE-PluginInfo-Category[eu]=Editorea
+-X-KDE-PluginInfo-Category[fr]=Éditeur
+-X-KDE-PluginInfo-Category[ga]=Eagarthóir
+-X-KDE-PluginInfo-Category[hu]=Szerkesztő
+-X-KDE-PluginInfo-Category[hy]=Խմբագրիչ
+-X-KDE-PluginInfo-Category[is]=Ritill
+-X-KDE-PluginInfo-Category[ja]=エディタ
+-X-KDE-PluginInfo-Category[km]=កម្មវិធី​និពន្ធ
+-X-KDE-PluginInfo-Category[ko]=편집기
+-X-KDE-PluginInfo-Category[ku]=Edîtor
+-X-KDE-PluginInfo-Category[lv]=Redaktors
+-X-KDE-PluginInfo-Category[nb]=Redigerer
+-X-KDE-PluginInfo-Category[pa]=ਐਡੀਟਰ
+-X-KDE-PluginInfo-Category[pl]=Edytor
+-X-KDE-PluginInfo-Category[sl]=Urejevalnik
+-X-KDE-PluginInfo-Category[sr]=Уређивач
+-X-KDE-PluginInfo-Category[sr@latin]=Uređivač
+-X-KDE-PluginInfo-Category[tg]=Таҳриргар
+-X-KDE-PluginInfo-Category[th]=โปรแกรมแก้ไขข้อความ
+-X-KDE-PluginInfo-Category[tr]=Düzenleyici
+-X-KDE-PluginInfo-Category[uk]=Редактор
+-X-KDE-PluginInfo-Category[x-test]=xxEditorxx
+-X-KDE-PluginInfo-Category[zh_CN]=编辑器
+-X-KDE-PluginInfo-Category[zh_TW]=編輯器
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=GPL
+ X-KDE-PluginInfo-EnabledByDefault=false
+Index: sonnet/plugins/aspell/kspell_aspell.desktop
+===================================================================
+--- sonnet/plugins/aspell/kspell_aspell.desktop	(revisión: 757050)
++++ sonnet/plugins/aspell/kspell_aspell.desktop	(copia de trabajo)
+@@ -8,38 +8,6 @@ X-KDE-PluginInfo-Name=kspell_aspell
+ X-KDE-PluginInfo-Version=0.0.1
+ X-KDE-PluginInfo-Website=http://www.kde.org
+ X-KDE-PluginInfo-Category=Clients
+-X-KDE-PluginInfo-Category[bg]=Клиенти
+-X-KDE-PluginInfo-Category[bn_IN]=ক্লায়েন্ট
+-X-KDE-PluginInfo-Category[csb]=Klience
+-X-KDE-PluginInfo-Category[el]=Πελάτες
+-X-KDE-PluginInfo-Category[eo]=Klientoj
+-X-KDE-PluginInfo-Category[es]=Clientes
+-X-KDE-PluginInfo-Category[et]=Kliendid
+-X-KDE-PluginInfo-Category[eu]=Bezeroak
+-X-KDE-PluginInfo-Category[ga]=Cliaint
+-X-KDE-PluginInfo-Category[hu]=Kliensek
+-X-KDE-PluginInfo-Category[is]=Vélar
+-X-KDE-PluginInfo-Category[it]=Client
+-X-KDE-PluginInfo-Category[ja]=クライアント
+-X-KDE-PluginInfo-Category[km]=ម៉ាស៊ីន​ភ្ញៀវ
+-X-KDE-PluginInfo-Category[ko]=클라이언트
+-X-KDE-PluginInfo-Category[lv]=Klienti
+-X-KDE-PluginInfo-Category[nb]=Klienter
+-X-KDE-PluginInfo-Category[pa]=ਕਲਾਇਟ
+-X-KDE-PluginInfo-Category[pl]=Klienci
+-X-KDE-PluginInfo-Category[pt]=Clientes
+-X-KDE-PluginInfo-Category[pt_BR]=Clientes
+-X-KDE-PluginInfo-Category[sl]=Odjemniki
+-X-KDE-PluginInfo-Category[sr]=Клијенти
+-X-KDE-PluginInfo-Category[sr@latin]=Klijenti
+-X-KDE-PluginInfo-Category[sv]=Klienter
+-X-KDE-PluginInfo-Category[tg]=Мизоҷ
+-X-KDE-PluginInfo-Category[th]=โปรแกรมลูก
+-X-KDE-PluginInfo-Category[tr]=İstemciler
+-X-KDE-PluginInfo-Category[uk]=Клієнти
+-X-KDE-PluginInfo-Category[x-test]=xxClientsxx
+-X-KDE-PluginInfo-Category[zh_CN]=客户
+-X-KDE-PluginInfo-Category[zh_TW]=客戶端
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=LGPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: sonnet/plugins/enchant/kspell_enchant.desktop
+===================================================================
+--- sonnet/plugins/enchant/kspell_enchant.desktop	(revisión: 757050)
++++ sonnet/plugins/enchant/kspell_enchant.desktop	(copia de trabajo)
+@@ -8,38 +8,6 @@ X-KDE-PluginInfo-Name=kspell_enchant
+ X-KDE-PluginInfo-Version=0.0.1
+ X-KDE-PluginInfo-Website=http://www.kde.org
+ X-KDE-PluginInfo-Category=Clients
+-X-KDE-PluginInfo-Category[bg]=Клиенти
+-X-KDE-PluginInfo-Category[bn_IN]=ক্লায়েন্ট
+-X-KDE-PluginInfo-Category[csb]=Klience
+-X-KDE-PluginInfo-Category[el]=Πελάτες
+-X-KDE-PluginInfo-Category[eo]=Klientoj
+-X-KDE-PluginInfo-Category[es]=Clientes
+-X-KDE-PluginInfo-Category[et]=Kliendid
+-X-KDE-PluginInfo-Category[eu]=Bezeroak
+-X-KDE-PluginInfo-Category[ga]=Cliaint
+-X-KDE-PluginInfo-Category[hu]=Kliensek
+-X-KDE-PluginInfo-Category[is]=Vélar
+-X-KDE-PluginInfo-Category[it]=Client
+-X-KDE-PluginInfo-Category[ja]=クライアント
+-X-KDE-PluginInfo-Category[km]=ម៉ាស៊ីន​ភ្ញៀវ
+-X-KDE-PluginInfo-Category[ko]=클라이언트
+-X-KDE-PluginInfo-Category[lv]=Klienti
+-X-KDE-PluginInfo-Category[nb]=Klienter
+-X-KDE-PluginInfo-Category[pa]=ਕਲਾਇਟ
+-X-KDE-PluginInfo-Category[pl]=Klienci
+-X-KDE-PluginInfo-Category[pt]=Clientes
+-X-KDE-PluginInfo-Category[pt_BR]=Clientes
+-X-KDE-PluginInfo-Category[sl]=Odjemniki
+-X-KDE-PluginInfo-Category[sr]=Клијенти
+-X-KDE-PluginInfo-Category[sr@latin]=Klijenti
+-X-KDE-PluginInfo-Category[sv]=Klienter
+-X-KDE-PluginInfo-Category[tg]=Мизоҷ
+-X-KDE-PluginInfo-Category[th]=โปรแกรมลูก
+-X-KDE-PluginInfo-Category[tr]=İstemciler
+-X-KDE-PluginInfo-Category[uk]=Клієнти
+-X-KDE-PluginInfo-Category[x-test]=xxClientsxx
+-X-KDE-PluginInfo-Category[zh_CN]=客户
+-X-KDE-PluginInfo-Category[zh_TW]=客戶端
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=LGPL
+ X-KDE-PluginInfo-EnabledByDefault=true
+Index: sonnet/plugins/hspell/kspell_hspell.desktop
+===================================================================
+--- sonnet/plugins/hspell/kspell_hspell.desktop	(revisión: 757050)
++++ sonnet/plugins/hspell/kspell_hspell.desktop	(copia de trabajo)
+@@ -8,38 +8,6 @@ X-KDE-PluginInfo-Name=kspell_hspell
+ X-KDE-PluginInfo-Version=0.0.1
+ X-KDE-PluginInfo-Website=http://www.kde.org
+ X-KDE-PluginInfo-Category=Clients
+-X-KDE-PluginInfo-Category[bg]=Клиенти
+-X-KDE-PluginInfo-Category[bn_IN]=ক্লায়েন্ট
+-X-KDE-PluginInfo-Category[csb]=Klience
+-X-KDE-PluginInfo-Category[el]=Πελάτες
+-X-KDE-PluginInfo-Category[eo]=Klientoj
+-X-KDE-PluginInfo-Category[es]=Clientes
+-X-KDE-PluginInfo-Category[et]=Kliendid
+-X-KDE-PluginInfo-Category[eu]=Bezeroak
+-X-KDE-PluginInfo-Category[ga]=Cliaint
+-X-KDE-PluginInfo-Category[hu]=Kliensek
+-X-KDE-PluginInfo-Category[is]=Vélar
+-X-KDE-PluginInfo-Category[it]=Client
+-X-KDE-PluginInfo-Category[ja]=クライアント
+-X-KDE-PluginInfo-Category[km]=ម៉ាស៊ីន​ភ្ញៀវ
+-X-KDE-PluginInfo-Category[ko]=클라이언트
+-X-KDE-PluginInfo-Category[lv]=Klienti
+-X-KDE-PluginInfo-Category[nb]=Klienter
+-X-KDE-PluginInfo-Category[pa]=ਕਲਾਇਟ
+-X-KDE-PluginInfo-Category[pl]=Klienci
+-X-KDE-PluginInfo-Category[pt]=Clientes
+-X-KDE-PluginInfo-Category[pt_BR]=Clientes
+-X-KDE-PluginInfo-Category[sl]=Odjemniki
+-X-KDE-PluginInfo-Category[sr]=Клијенти
+-X-KDE-PluginInfo-Category[sr@latin]=Klijenti
+-X-KDE-PluginInfo-Category[sv]=Klienter
+-X-KDE-PluginInfo-Category[tg]=Мизоҷ
+-X-KDE-PluginInfo-Category[th]=โปรแกรมลูก
+-X-KDE-PluginInfo-Category[tr]=İstemciler
+-X-KDE-PluginInfo-Category[uk]=Клієнти
+-X-KDE-PluginInfo-Category[x-test]=xxClientsxx
+-X-KDE-PluginInfo-Category[zh_CN]=客户
+-X-KDE-PluginInfo-Category[zh_TW]=客戶端
+ X-KDE-PluginInfo-Depends=
+ X-KDE-PluginInfo-License=LGPL
+ X-KDE-PluginInfo-EnabledByDefault=true

@@ -1,0 +1,128 @@
+Index: kdeui/widgets/klineedit.h
+===================================================================
+--- kdeui/widgets/klineedit.h	(revisión: 772275)
++++ kdeui/widgets/klineedit.h	(copia de trabajo)
+@@ -628,6 +628,8 @@ private:
+ private:
+     class KLineEditPrivate;
+     KLineEditPrivate *const d;
++
++    Q_PRIVATE_SLOT( d, void _k_slotSettingsChanged( int category ) );
+ };
+ 
+ #endif
+Index: kdeui/widgets/klineedit_p.h
+===================================================================
+--- kdeui/widgets/klineedit_p.h	(revisión: 772275)
++++ kdeui/widgets/klineedit_p.h	(copia de trabajo)
+@@ -27,6 +27,8 @@
+ #include <QPaintEvent>
+ #include <QTimeLine>
+ 
++#include <kglobalsettings.h>
++
+ class KLineEditButton : public QWidget
+ {
+     Q_OBJECT
+@@ -35,6 +37,8 @@ public:
+     KLineEditButton(QWidget *parent)
+         : QWidget(parent)
+     {
++        animationsEnabled = KGlobalSettings::animationsEnabled();
++
+         m_timeline = new QTimeLine(200, this);
+         m_timeline->setFrameRange(0, 255);
+         m_timeline->setCurveShape(QTimeLine::EaseInOutCurve);
+@@ -67,8 +71,12 @@ public:
+             m_timeline->setDuration(250);
+         }
+ 
++        if (animationsEnabled) {
+         if (m_timeline->state() != QTimeLine::Running)
+             m_timeline->start();
++        } else {
++            setVisible(m_timeline->direction() == QTimeLine::Forward);
++        }
+     }
+ 
+     void setPixmap(const QPixmap& p)
+@@ -81,11 +89,26 @@ public:
+         return m_pixmap;
+     }
+ 
++    void setAnimationsEnabled(bool animationsEnabled)
++    {
++        this->animationsEnabled = animationsEnabled;
++
++        // We need to set the current time in the case that we had the clear
++        // button shown, for it being painted on the paintEvent(). Otherwise
++        // it wont be painted, resulting (m->timeLine->currentTime() == 0) true,
++        // and therefore a bad painting. This is needed for the case that we
++        // come from a non animated widget and want it animated. (ereslibre)
++        if (animationsEnabled && m_timeline->direction() == QTimeLine::Forward) {
++            m_timeline->setCurrentTime(150);
++        }
++    }
++
+ protected:
+     void paintEvent(QPaintEvent *event)
+     {
+         Q_UNUSED(event)
+ 
++        if (animationsEnabled) {
+         if (m_pixmap.isNull() || m_timeline->currentTime() == 0) {
+             return;
+         }
+@@ -95,6 +118,13 @@ protected:
+         p.drawPixmap((width() - m_pixmap.width()) / 2,
+                      (height() - m_pixmap.height()) / 2,
+                      m_pixmap);
++        } else {
++            QPainter p(this);
++            p.setOpacity(1); // make sure
++            p.drawPixmap((width() - m_pixmap.width()) / 2,
++                        (height() - m_pixmap.height()) / 2,
++                        m_pixmap);
++        }
+     }
+ 
+ protected slots:
+@@ -110,6 +140,10 @@ protected slots:
+ private:
+     QTimeLine *m_timeline;
+     QPixmap m_pixmap;
++    // Caching this property prevents us from asking KGlobalSettings very
++    // repeatedly. We need to update this property when KGlobalSettings notifies
++    // a certain change on the current settings. (ereslibre)
++    bool animationsEnabled;
+ };
+ 
+ #endif
+Index: kdeui/widgets/klineedit.cpp
+===================================================================
+--- kdeui/widgets/klineedit.cpp	(revisión: 772275)
++++ kdeui/widgets/klineedit.cpp	(copia de trabajo)
+@@ -89,6 +89,14 @@ public:
+ //        delete completionBox;
+     }
+ 
++    void _k_slotSettingsChanged(int category)
++    {
++        Q_UNUSED(category);
++
++        if (clearButton)
++            clearButton->setAnimationsEnabled(KGlobalSettings::animationsEnabled());
++    }
++
+     static bool initialized;
+     static bool backspacePerformsCompletion; // Configuration option
+ 
+@@ -186,6 +194,8 @@ void KLineEdit::init()
+                       mode == KGlobalSettings::CompletionAuto);
+     connect( this, SIGNAL(selectionChanged()), this, SLOT(slotRestoreSelectionColors()));
+ 
++    connect(KGlobalSettings::self(), SIGNAL(settingsChanged(int)), this, SLOT(_k_slotSettingsChanged(int)));
++
+     QPalette p = palette();
+     if ( !d->previousHighlightedTextColor.isValid() )
+       d->previousHighlightedTextColor=p.color(QPalette::Normal,QPalette::HighlightedText);

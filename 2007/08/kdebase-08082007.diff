@@ -1,0 +1,1150 @@
+Index: apps/kdepasswd/kcm/kcm_useraccount.desktop
+===================================================================
+--- apps/kdepasswd/kcm/kcm_useraccount.desktop	(revisión: 697485)
++++ apps/kdepasswd/kcm/kcm_useraccount.desktop	(copia de trabajo)
+@@ -3,7 +3,7 @@
+ Icon=personal
+ Categories=QT;KDE;X-KDE-settings-security;
+ X-KDE-ParentApp=kcontrol
+-X-KDE-Library=useraccount
++X-KDE-Library=kcm_useraccount
+ X-KDE-FactoryName=useraccount
+ 
+ Type=Service
+Index: apps/konqueror/settings/ebrowsing/ebrowsing.desktop
+===================================================================
+--- apps/konqueror/settings/ebrowsing/ebrowsing.desktop	(revisión: 697485)
++++ apps/konqueror/settings/ebrowsing/ebrowsing.desktop	(copia de trabajo)
+@@ -7,7 +7,7 @@
+ Exec=kcmshell ebrowsing
+ 
+ 
+-X-KDE-Library=kurifilt
++X-KDE-Library=kcm_kurifilt
+ X-KDE-FactoryName=kurifilt
+ X-KDE-ParentApp=kcontrol
+ 
+Index: apps/konqueror/settings/performance/kcmkonqyperformance.desktop
+===================================================================
+--- apps/konqueror/settings/performance/kcmkonqyperformance.desktop	(revisión: 697485)
++++ apps/konqueror/settings/performance/kcmkonqyperformance.desktop	(copia de trabajo)
+@@ -5,7 +5,7 @@
+ ServiceTypes=KCModule
+ Exec=kcmshell kcmkonqyperformance
+ 
+-X-KDE-Library=performance
++X-KDE-Library=kcm_performance
+ X-KDE-FactoryName=konqueror
+ #X-KDE-ParentApp=kcontrol
+ 
+Index: apps/konqueror/settings/filetypes/filetypesview.cpp
+===================================================================
+--- apps/konqueror/settings/filetypes/filetypesview.cpp	(revisión: 697485)
++++ apps/konqueror/settings/filetypes/filetypesview.cpp	(copia de trabajo)
+@@ -31,7 +31,7 @@
+ #include "filegroupdetails.h"
+ 
+ typedef KGenericFactory<FileTypesView> FileTypesViewFactory;
+-K_EXPORT_COMPONENT_FACTORY(filetypes, FileTypesViewFactory("filetypes"))
++K_EXPORT_COMPONENT_FACTORY(kcm_filetypes, FileTypesViewFactory("filetypes"))
+ 
+ FileTypesView::FileTypesView(QWidget *parent, const QStringList &)
+   : KCModule(FileTypesViewFactory::componentData(), parent)
+Index: apps/konqueror/settings/css/kcmcss.cpp
+===================================================================
+--- apps/konqueror/settings/css/kcmcss.cpp	(revisión: 697485)
++++ apps/konqueror/settings/css/kcmcss.cpp	(copia de trabajo)
+@@ -25,7 +25,7 @@
+ #include "template.h"
+ 
+ typedef KGenericFactory<CSSConfig, QWidget> CSSFactory;
+-K_EXPORT_COMPONENT_FACTORY( css, CSSFactory("kcmcss") )
++K_EXPORT_COMPONENT_FACTORY( kcm_css, CSSFactory("kcmcss") )
+ 
+ CSSConfig::CSSConfig(QWidget *parent, const QStringList &)
+   : KCModule(CSSFactory::componentData(), parent)
+Index: apps/konqueror/settings/css/kcmcss.desktop
+===================================================================
+--- apps/konqueror/settings/css/kcmcss.desktop	(revisión: 697485)
++++ apps/konqueror/settings/css/kcmcss.desktop	(copia de trabajo)
+@@ -7,7 +7,7 @@
+ DocPath=kcontrol/kcmcss/index.html
+ 
+ 
+-X-KDE-Library=css
++X-KDE-Library=kcm_css
+ X-KDE-ParentApp=kcontrol
+ 
+ Name=Stylesheets
+Index: apps/konqueror/settings/konqhtml/khtml_general.desktop
+===================================================================
+--- apps/konqueror/settings/konqhtml/khtml_general.desktop	(revisión: 697485)
++++ apps/konqueror/settings/konqhtml/khtml_general.desktop	(copia de trabajo)
+@@ -8,7 +8,7 @@
+ X-KDE-ParentApp=kcontrol
+ 
+ 
+-X-KDE-Library=konqhtml
++X-KDE-Library=kcm_konqhtml
+ X-KDE-FactoryName=khtml_general
+ 
+ Name=General
+Index: apps/konqueror/settings/konqhtml/khtml_filter.desktop
+===================================================================
+--- apps/konqueror/settings/konqhtml/khtml_filter.desktop	(revisión: 697485)
++++ apps/konqueror/settings/konqhtml/khtml_filter.desktop	(copia de trabajo)
+@@ -7,7 +7,7 @@
+ Icon=filter
+ Exec=kcmshell khtml_filter
+ 
+-X-KDE-Library=konqhtml
++X-KDE-Library=kcm_konqhtml
+ X-KDE-FactoryName=khtml_filter
+ X-KDE-ParentApp=kcontrol
+ 
+Index: apps/konqueror/settings/konqhtml/khtml_fonts.desktop
+===================================================================
+--- apps/konqueror/settings/konqhtml/khtml_fonts.desktop	(revisión: 697485)
++++ apps/konqueror/settings/konqhtml/khtml_fonts.desktop	(copia de trabajo)
+@@ -9,7 +9,7 @@
+ X-KDE-ParentApp=kcontrol
+ 
+ 
+-X-KDE-Library=konqhtml
++X-KDE-Library=kcm_konqhtml
+ X-KDE-FactoryName=khtml_fonts
+ 
+ Name=Fonts
+Index: apps/konqueror/settings/konqhtml/khtml_behavior.desktop
+===================================================================
+--- apps/konqueror/settings/konqhtml/khtml_behavior.desktop	(revisión: 697485)
++++ apps/konqueror/settings/konqhtml/khtml_behavior.desktop	(copia de trabajo)
+@@ -8,7 +8,7 @@
+ X-KDE-ParentApp=kcontrol
+ 
+ 
+-X-KDE-Library=konqhtml
++X-KDE-Library=kcm_konqhtml
+ X-KDE-FactoryName=khtml_behavior
+ 
+ Name=Web Behavior
+Index: apps/konqueror/settings/konqhtml/khtml_java_js.desktop
+===================================================================
+--- apps/konqueror/settings/konqhtml/khtml_java_js.desktop	(revisión: 697485)
++++ apps/konqueror/settings/konqhtml/khtml_java_js.desktop	(copia de trabajo)
+@@ -9,7 +9,7 @@
+ 
+ 
+ 
+-X-KDE-Library=konqhtml
++X-KDE-Library=kcm_konqhtml
+ X-KDE-FactoryName=khtml_java_js
+ 
+ Name=Java & JavaScript
+Index: apps/konqueror/sidebar/trees/history_module/kcmhistory.desktop
+===================================================================
+--- apps/konqueror/sidebar/trees/history_module/kcmhistory.desktop	(revisión: 697485)
++++ apps/konqueror/sidebar/trees/history_module/kcmhistory.desktop	(copia de trabajo)
+@@ -5,7 +5,7 @@
+ ServiceTypes=KCModule
+ Exec=kcmshell kcmhistory
+ 
+-X-KDE-Library=history
++X-KDE-Library=kcm_history
+ X-KDE-FactoryName=history
+ X-KDE-ParentApp=kcontrol
+ 
+Index: runtime/kcontrol/locale/language.desktop
+===================================================================
+--- runtime/kcontrol/locale/language.desktop	(revisión: 697485)
++++ runtime/kcontrol/locale/language.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ ServiceTypes=KCModule
+ DocPath=kcontrol/language/index.html
+ 
+-X-KDE-Library=locale
++X-KDE-Library=kcm_locale
+ X-KDE-FactoryName=kcm_locale
+ X-KDE-ParentApp=kcontrol
+ 
+Index: runtime/kcontrol/knotify/knotify.cpp
+===================================================================
+--- runtime/kcontrol/knotify/knotify.cpp	(revisión: 697485)
++++ runtime/kcontrol/knotify/knotify.cpp	(copia de trabajo)
+@@ -44,7 +44,7 @@
+ static const int COL_FILENAME = 1;
+ 
+ typedef KGenericFactory<KCMKNotify, QWidget> NotifyFactory;
+-K_EXPORT_COMPONENT_FACTORY( knotify, NotifyFactory("kcmnotify") )
++K_EXPORT_COMPONENT_FACTORY( kcm_knotify, NotifyFactory("kcmnotify") )
+ 
+ 		KCMKNotify::KCMKNotify(QWidget *parent, const QStringList & )
+     : KCModule(NotifyFactory::componentData(), parent/*, name*/),
+Index: runtime/kcontrol/knotify/kcmnotify.desktop
+===================================================================
+--- runtime/kcontrol/knotify/kcmnotify.desktop	(revisión: 697485)
++++ runtime/kcontrol/knotify/kcmnotify.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ ServiceTypes=KCModule
+ DocPath=kcontrol/kcmnotify/index.html
+ 
+-X-KDE-Library=knotify
++X-KDE-Library=kcm_knotify
+ X-KDE-ParentApp=kcontrol
+ 
+ X-KDE-System-Settings-Parent-Category=notifications
+Index: runtime/kcontrol/samba/smbstatus.desktop
+===================================================================
+--- runtime/kcontrol/samba/smbstatus.desktop	(revisión: 697485)
++++ runtime/kcontrol/samba/smbstatus.desktop	(copia de trabajo)
+@@ -7,7 +7,7 @@
+ DocPath=kinfocenter/samba/index.html
+ 
+ 
+-X-KDE-Library=samba
++X-KDE-Library=kcm_samba
+ X-KDE-FactoryName=samba
+ X-KDE-ParentApp=kinfocenter
+ 
+Index: runtime/kcontrol/componentchooser/kcm_componentchooser.cpp
+===================================================================
+--- runtime/kcontrol/componentchooser/kcm_componentchooser.cpp	(revisión: 697485)
++++ runtime/kcontrol/componentchooser/kcm_componentchooser.cpp	(copia de trabajo)
+@@ -27,7 +27,7 @@
+ #include "kcm_componentchooser.moc"
+ 
+ typedef KGenericFactory<KCMComponentChooser> KCMComponentChooserFactory;
+-K_EXPORT_COMPONENT_FACTORY(componentchooser, KCMComponentChooserFactory("kcmcomponentchooser"))
++K_EXPORT_COMPONENT_FACTORY(kcm_componentchooser, KCMComponentChooserFactory("kcmcomponentchooser"))
+ 
+ KCMComponentChooser::KCMComponentChooser(QWidget *parent, const QStringList &):
+ 	KCModule(KCMComponentChooserFactory::componentData(), parent) {
+Index: runtime/kcontrol/kded/kcmkded.desktop
+===================================================================
+--- runtime/kcontrol/kded/kcmkded.desktop	(revisión: 697485)
++++ runtime/kcontrol/kded/kcmkded.desktop	(copia de trabajo)
+@@ -5,8 +5,8 @@
+ Type=Service
+ ServiceTypes=KCModule
+ 
+-X-KDE-Library=kded
+-X-KDE-Factoryname=kded
++X-KDE-Library=kcm_kded
++X-KDE-FactoryName=kded
+ X-KDE-ParentApp=kcontrol
+ 
+ X-KDE-System-Settings-Parent-Category=advanced-user-settings
+Index: runtime/kcontrol/dnssd/kcmdnssd.cpp
+===================================================================
+--- runtime/kcontrol/dnssd/kcmdnssd.cpp	(revisión: 697485)
++++ runtime/kcontrol/dnssd/kcmdnssd.cpp	(copia de trabajo)
+@@ -45,7 +45,7 @@
+ #define MDNSD_PID "/var/run/mdnsd.pid"
+ 
+ typedef KGenericFactory<KCMDnssd, QWidget> KCMDnssdFactory;
+-K_EXPORT_COMPONENT_FACTORY( kdnssd, KCMDnssdFactory("kcmkdnssd"))
++K_EXPORT_COMPONENT_FACTORY( kcm_kdnssd, KCMDnssdFactory("kcmkdnssd"))
+ 
+ KCMDnssd::KCMDnssd(QWidget *parent, const QStringList&)
+ 		: KCModule( KCMDnssdFactory::componentData(), parent)
+Index: runtime/kcontrol/icons/icons.desktop
+===================================================================
+--- runtime/kcontrol/icons/icons.desktop	(revisión: 697485)
++++ runtime/kcontrol/icons/icons.desktop	(copia de trabajo)
+@@ -8,7 +8,7 @@
+ 
+ X-KDE-System-Settings-Parent-Category=appearance
+ 
+-X-KDE-Library=icons
++X-KDE-Library=kcm_icons
+ X-KDE-FactoryName=icons
+ X-KDE-ParentApp=kcontrol
+ 
+Index: runtime/kcontrol/infocenter/ioslaveinfo/ioslaveinfo.desktop
+===================================================================
+--- runtime/kcontrol/infocenter/ioslaveinfo/ioslaveinfo.desktop	(revisión: 697485)
++++ runtime/kcontrol/infocenter/ioslaveinfo/ioslaveinfo.desktop	(copia de trabajo)
+@@ -179,7 +179,7 @@
+ Type=Service
+ ServiceTypes=KCModule
+ X-KDE-FactoryName=ioslaveinfo
+-X-KDE-Library=ioslaveinfo
++X-KDE-Library=kcm_ioslaveinfo
+ 
+ X-KDE-ParentApp=kinfocenter
+ 
+Index: runtime/kioslave/media/kcmodule/media.desktop
+===================================================================
+--- runtime/kioslave/media/kcmodule/media.desktop	(revisión: 697485)
++++ runtime/kioslave/media/kcmodule/media.desktop	(copia de trabajo)
+@@ -8,7 +8,7 @@
+ ServiceTypes=KCModule
+ 
+ 
+-X-KDE-Library=media
++X-KDE-Library=kcm_media
+ X-KDE-FactoryName=media
+ X-KDE-ParentApp=kcontrol
+ 
+Index: runtime/kdeprint/printmgr/printers.desktop
+===================================================================
+--- runtime/kdeprint/printmgr/printers.desktop	(revisión: 697485)
++++ runtime/kdeprint/printmgr/printers.desktop	(copia de trabajo)
+@@ -8,7 +8,7 @@
+ DocPath=kdeprint/index.html
+ MimeType=print/manager
+ 
+-X-KDE-Library=printmgr
++X-KDE-Library=kcm_printmgr
+ X-KDE-RootOnly=true
+ X-KDE-HasReadOnlyMode=true
+ X-KDE-FactoryName=printmgr
+Index: workspace/kcontrol/kfontinst/kcmfontinst/fontinst.desktop
+===================================================================
+--- workspace/kcontrol/kfontinst/kcmfontinst/fontinst.desktop	(revisión: 697485)
++++ workspace/kcontrol/kfontinst/kcmfontinst/fontinst.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ ServiceTypes=KCModule
+ DocPath=kcontrol/fontinst/index.html
+ 
+-X-KDE-Library=fontinst
++X-KDE-Library=kcm_fontinst
+ X-KDE-FactoryName=fontinst
+ 
+ X-KDE-ParentApp=kcontrol
+Index: workspace/kcontrol/background/background.desktop
+===================================================================
+--- workspace/kcontrol/background/background.desktop	(revisión: 697485)
++++ workspace/kcontrol/background/background.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ ServiceTypes=KCModule
+ DocPath=kcontrol/background/index.html
+ 
+-X-KDE-Library=background
++X-KDE-Library=kcm_background
+ X-KDE-FactoryName=background
+ X-KDE-ParentApp=kcontrol
+ 
+Index: workspace/kcontrol/dateandtime/clock.desktop
+===================================================================
+--- workspace/kcontrol/dateandtime/clock.desktop	(revisión: 697485)
++++ workspace/kcontrol/dateandtime/clock.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ ServiceTypes=KCModule
+ DocPath=kcontrol/clock/index.html
+ 
+-X-KDE-Library=clock
++X-KDE-Library=kcm_clock
+ X-KDE-RootOnly=true
+ X-KDE-SubstituteUID=true
+ X-KDE-ParentApp=kcontrol
+Index: workspace/kcontrol/dateandtime/main.cpp
+===================================================================
+--- workspace/kcontrol/dateandtime/main.cpp	(revisión: 697485)
++++ workspace/kcontrol/dateandtime/main.cpp	(copia de trabajo)
+@@ -39,7 +39,7 @@
+ #include "dtime.h"
+ 
+ typedef KGenericFactory<KclockModule, QWidget> KlockModuleFactory;
+-K_EXPORT_COMPONENT_FACTORY( clock, KlockModuleFactory("kcmkclock"))
++K_EXPORT_COMPONENT_FACTORY( kcm_clock, KlockModuleFactory("kcmkclock"))
+ 
+ KclockModule::KclockModule(QWidget *parent, const QStringList &)
+   : KCModule(KlockModuleFactory::componentData(), parent/*, name*/)
+Index: workspace/kcontrol/smartcard/smartcard.cpp
+===================================================================
+--- workspace/kcontrol/smartcard/smartcard.cpp	(revisión: 697485)
++++ workspace/kcontrol/smartcard/smartcard.cpp	(copia de trabajo)
+@@ -45,7 +45,7 @@
+ #include "smartcard.h"
+ 
+ typedef KGenericFactory<KSmartcardConfig> KSmartcardConfigFactory;
+-K_EXPORT_COMPONENT_FACTORY(smartcard, KSmartcardConfigFactory("kcmsmartcard"))
++K_EXPORT_COMPONENT_FACTORY(kcm_smartcard, KSmartcardConfigFactory("kcmsmartcard"))
+ 
+ KSmartcardConfig::KSmartcardConfig(QWidget *parent, const QStringList &)
+   : KCModule(KSmartcardConfig::componentData(), parent)
+Index: workspace/kcontrol/smartcard/smartcard.desktop
+===================================================================
+--- workspace/kcontrol/smartcard/smartcard.desktop	(revisión: 697485)
++++ workspace/kcontrol/smartcard/smartcard.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ Exec=kcmshell smartcard
+ DocPath=kcontrol/smartcard.html
+ 
+-X-KDE-Library=smartcard
++X-KDE-Library=kcm_smartcard
+ X-KDE-Init-Symbol=smartcard
+ X-KDE-ParentApp=kcontrol
+ 
+Index: workspace/kcontrol/screensaver/screensaver.desktop
+===================================================================
+--- workspace/kcontrol/screensaver/screensaver.desktop	(revisión: 697485)
++++ workspace/kcontrol/screensaver/screensaver.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ ServiceTypes=KCModule
+ DocPath=kcontrol/screensaver/index.html
+ 
+-X-KDE-Library=screensaver
++X-KDE-Library=kcm_screensaver
+ X-KDE-FactoryName=screensaver
+ X-KDE-ParentApp=kcontrol
+ 
+Index: workspace/kcontrol/taskbar/kcmtaskbar.desktop
+===================================================================
+--- workspace/kcontrol/taskbar/kcmtaskbar.desktop	(revisión: 697485)
++++ workspace/kcontrol/taskbar/kcmtaskbar.desktop	(copia de trabajo)
+@@ -7,7 +7,7 @@
+ DocPath=kcontrol/kcmtaskbar/index.html
+ 
+ 
+-X-KDE-Library=taskbar
++X-KDE-Library=kcm_taskbar
+ X-KDE-FactoryName=taskbar
+ X-KDE-ParentApp=kcontrol
+ 
+Index: workspace/kcontrol/accessibility/accessibility.desktop
+===================================================================
+--- workspace/kcontrol/accessibility/accessibility.desktop	(revisión: 697485)
++++ workspace/kcontrol/accessibility/accessibility.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ ServiceTypes=KCModule
+ 
+ 
+-X-KDE-Library=accessibility
++X-KDE-Library=kcm_accessibility
+ X-KDE-Factoryname=accessibility
+ X-KDE-ParentApp=kcontrol
+ 
+Index: workspace/kcontrol/energy/energy.desktop
+===================================================================
+--- workspace/kcontrol/energy/energy.desktop	(revisión: 697485)
++++ workspace/kcontrol/energy/energy.desktop	(copia de trabajo)
+@@ -5,7 +5,7 @@
+ DocPath=kcontrol/energy/index.html
+ Type=Service
+ ServiceTypes=KCModule,KCModuleInit
+-X-KDE-Library=energy
++X-KDE-Library=kcm_energy
+ X-KDE-Init-Symbol=energy
+ X-KDE-ParentApp=kcontrol
+ X-KDE-Init-Phase=2
+Index: workspace/kcontrol/energy/energy.cpp
+===================================================================
+--- workspace/kcontrol/energy/energy.cpp	(revisión: 697485)
++++ workspace/kcontrol/energy/energy.cpp	(copia de trabajo)
+@@ -91,7 +91,7 @@
+ /**** DLL Interface ****/
+ 
+ typedef KGenericFactory<KEnergy> KEnergyFactory;
+-K_EXPORT_COMPONENT_FACTORY(energy, KEnergyFactory("kcmenergy"))
++K_EXPORT_COMPONENT_FACTORY(kcm_energy, KEnergyFactory("kcmenergy"))
+ 
+ extern "C" {
+ 
+Index: workspace/kcontrol/fonts/fonts.desktop
+===================================================================
+--- workspace/kcontrol/fonts/fonts.desktop	(revisión: 697485)
++++ workspace/kcontrol/fonts/fonts.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ ServiceTypes=KCModule
+ DocPath=kcontrol/fonts/index.html
+ 
+-X-KDE-Library=fonts
++X-KDE-Library=kcm_fonts
+ X-KDE-FactoryName=fonts
+ X-KDE-ParentApp=kcontrol
+ 
+Index: workspace/kcontrol/infocenter/usbview/kcmusb.cpp
+===================================================================
+--- workspace/kcontrol/infocenter/usbview/kcmusb.cpp	(revisión: 697485)
++++ workspace/kcontrol/infocenter/usbview/kcmusb.cpp	(copia de trabajo)
+@@ -27,7 +27,7 @@
+ #include "kcmusb.moc"
+ 
+ typedef KGenericFactory<USBViewer, QWidget > USBFactory;
+-K_EXPORT_COMPONENT_FACTORY (usb, USBFactory("kcmusb") )
++K_EXPORT_COMPONENT_FACTORY (kcm_usb, USBFactory("kcmusb") )
+ 
+ USBViewer::USBViewer(QWidget *parent, const QStringList &)
+   : KCModule(USBFactory::componentData(), parent)
+Index: workspace/kcontrol/infocenter/usbview/kcmusb.desktop
+===================================================================
+--- workspace/kcontrol/infocenter/usbview/kcmusb.desktop	(revisión: 697485)
++++ workspace/kcontrol/infocenter/usbview/kcmusb.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ DocPath=kinfocenter/usb/index.html
+ Exec=kcmshell kcmusb
+ 
+-X-KDE-Library=usb
++X-KDE-Library=kcm_usb
+ X-KDE-ParentApp=kinfocenter
+ 
+ Name=USB Devices
+Index: workspace/kcontrol/infocenter/info/processor.desktop
+===================================================================
+--- workspace/kcontrol/infocenter/info/processor.desktop	(revisión: 697485)
++++ workspace/kcontrol/infocenter/info/processor.desktop	(copia de trabajo)
+@@ -7,7 +7,7 @@
+ DocPath=kinfocenter/processor/index.html
+ 
+ 
+-X-KDE-Library=info
++X-KDE-Library=kcm_info
+ X-KDE-FactoryName=cpu
+ X-KDE-ParentApp=kinfocenter
+ 
+Index: workspace/kcontrol/infocenter/info/devices.desktop
+===================================================================
+--- workspace/kcontrol/infocenter/info/devices.desktop	(revisión: 697485)
++++ workspace/kcontrol/infocenter/info/devices.desktop	(copia de trabajo)
+@@ -8,7 +8,7 @@
+ Categories=Qt;KDE;X-KDE-information;
+ 
+ 
+-X-KDE-Library=info
++X-KDE-Library=kcm_info
+ X-KDE-FactoryName=devices
+ X-KDE-ParentApp=kinfocenter
+ 
+Index: workspace/kcontrol/infocenter/info/sound.desktop
+===================================================================
+--- workspace/kcontrol/infocenter/info/sound.desktop	(revisión: 697485)
++++ workspace/kcontrol/infocenter/info/sound.desktop	(copia de trabajo)
+@@ -7,7 +7,7 @@
+ DocPath=kinfocenter/sound/index.html
+ 
+ 
+-X-KDE-Library=info
++X-KDE-Library=kcm_info
+ X-KDE-FactoryName=sound
+ X-KDE-ParentApp=kinfocenter
+ 
+Index: workspace/kcontrol/infocenter/info/partitions.desktop
+===================================================================
+--- workspace/kcontrol/infocenter/info/partitions.desktop	(revisión: 697485)
++++ workspace/kcontrol/infocenter/info/partitions.desktop	(copia de trabajo)
+@@ -7,7 +7,7 @@
+ DocPath=kinfocenter/partitions/index.html
+ 
+ 
+-X-KDE-Library=info
++X-KDE-Library=kcm_info
+ X-KDE-FactoryName=partitions
+ X-KDE-ParentApp=kinfocenter
+ 
+Index: workspace/kcontrol/infocenter/info/xserver.desktop
+===================================================================
+--- workspace/kcontrol/infocenter/info/xserver.desktop	(revisión: 697485)
++++ workspace/kcontrol/infocenter/info/xserver.desktop	(copia de trabajo)
+@@ -7,7 +7,7 @@
+ DocPath=kinfocenter/xserver/index.html
+ 
+ 
+-X-KDE-Library=info
++X-KDE-Library=kcm_info
+ X-KDE-FactoryName=xserver
+ X-KDE-ParentApp=kinfocenter
+ 
+Index: workspace/kcontrol/infocenter/info/ioports.desktop
+===================================================================
+--- workspace/kcontrol/infocenter/info/ioports.desktop	(revisión: 697485)
++++ workspace/kcontrol/infocenter/info/ioports.desktop	(copia de trabajo)
+@@ -8,7 +8,7 @@
+ Categories=Qt;KDE;X-KDE-information;
+ 
+ 
+-X-KDE-Library=info
++X-KDE-Library=kcm_info
+ X-KDE-FactoryName=ioports
+ X-KDE-ParentApp=kinfocenter
+ 
+Index: workspace/kcontrol/infocenter/info/dma.desktop
+===================================================================
+--- workspace/kcontrol/infocenter/info/dma.desktop	(revisión: 697485)
++++ workspace/kcontrol/infocenter/info/dma.desktop	(copia de trabajo)
+@@ -8,7 +8,7 @@
+ Categories=Qt;KDE;X-KDE-information;
+ 
+ 
+-X-KDE-Library=info
++X-KDE-Library=kcm_info
+ X-KDE-FactoryName=dma
+ X-KDE-ParentApp=kinfocenter
+ 
+Index: workspace/kcontrol/infocenter/info/memory.desktop
+===================================================================
+--- workspace/kcontrol/infocenter/info/memory.desktop	(revisión: 697485)
++++ workspace/kcontrol/infocenter/info/memory.desktop	(copia de trabajo)
+@@ -7,7 +7,7 @@
+ DocPath=kinfocenter/memory/index.html
+ 
+ 
+-X-KDE-Library=info
++X-KDE-Library=kcm_info
+ X-KDE-FactoryName=memory
+ X-KDE-ParentApp=kinfocenter
+ 
+Index: workspace/kcontrol/infocenter/info/pci.desktop
+===================================================================
+--- workspace/kcontrol/infocenter/info/pci.desktop	(revisión: 697485)
++++ workspace/kcontrol/infocenter/info/pci.desktop	(copia de trabajo)
+@@ -7,7 +7,7 @@
+ DocPath=kinfocenter/pci/index.html
+ 
+ 
+-X-KDE-Library=info
++X-KDE-Library=kcm_info
+ X-KDE-FactoryName=pci
+ X-KDE-ParentApp=kinfocenter
+ 
+Index: workspace/kcontrol/infocenter/info/interrupts.desktop
+===================================================================
+--- workspace/kcontrol/infocenter/info/interrupts.desktop	(revisión: 697485)
++++ workspace/kcontrol/infocenter/info/interrupts.desktop	(copia de trabajo)
+@@ -8,7 +8,7 @@
+ Categories=Qt;KDE;X-KDE-information;
+ 
+ 
+-X-KDE-Library=info
++X-KDE-Library=kcm_info
+ X-KDE-FactoryName=irq
+ X-KDE-ParentApp=kinfocenter
+ 
+Index: workspace/kcontrol/infocenter/info/opengl.desktop
+===================================================================
+--- workspace/kcontrol/infocenter/info/opengl.desktop	(revisión: 697485)
++++ workspace/kcontrol/infocenter/info/opengl.desktop	(copia de trabajo)
+@@ -7,7 +7,7 @@
+ DocPath=kinfocenter/opengl/index.html
+ 
+ 
+-X-KDE-Library=info
++X-KDE-Library=kcm_info
+ X-KDE-FactoryName=opengl
+ X-KDE-ParentApp=kinfocenter
+ 
+Index: workspace/kcontrol/infocenter/info/scsi.desktop
+===================================================================
+--- workspace/kcontrol/infocenter/info/scsi.desktop	(revisión: 697485)
++++ workspace/kcontrol/infocenter/info/scsi.desktop	(copia de trabajo)
+@@ -7,7 +7,7 @@
+ DocPath=kinfocenter/scsi/index.html
+ 
+ 
+-X-KDE-Library=info
++X-KDE-Library=kcm_info
+ X-KDE-FactoryName=scsi
+ X-KDE-ParentApp=kinfocenter
+ 
+Index: workspace/kcontrol/infocenter/view1394/kcmview1394.desktop
+===================================================================
+--- workspace/kcontrol/infocenter/view1394/kcmview1394.desktop	(revisión: 697485)
++++ workspace/kcontrol/infocenter/view1394/kcmview1394.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ DocPath=kinfocenter/view1394/index.html
+ Exec=kcmshell kcmview1394
+ 
+-X-KDE-Library=view1394
++X-KDE-Library=kcm_view1394
+ X-KDE-ParentApp=kinfocenter
+ 
+ Name=IEEE 1394 Devices
+Index: workspace/kcontrol/infocenter/nics/nic.desktop
+===================================================================
+--- workspace/kcontrol/infocenter/nics/nic.desktop	(revisión: 697485)
++++ workspace/kcontrol/infocenter/nics/nic.desktop	(copia de trabajo)
+@@ -7,7 +7,7 @@
+ Icon=network
+ 
+ 
+-X-KDE-Library=nic
++X-KDE-Library=kcm_nic
+ X-KDE-FactoryName=nic
+ X-KDE-ParentApp=kinfocenter
+ 
+Index: workspace/kcontrol/hardware/joystick/joystick.desktop
+===================================================================
+--- workspace/kcontrol/hardware/joystick/joystick.desktop	(revisión: 697485)
++++ workspace/kcontrol/hardware/joystick/joystick.desktop	(copia de trabajo)
+@@ -141,7 +141,7 @@
+ Type=Service
+ ServiceTypes=KCModule
+ X-KDE-FactoryName=kcm_joystick
+-X-KDE-Library=joystick
++X-KDE-Library=kcm_joystick
+ X-KDE-Test-Module=true
+ Icon=preferences-desktop-gaming
+ Categories=Qt;KDE;X-KDE-settings-hardware;
+Index: workspace/kcontrol/hardware/display/display.desktop
+===================================================================
+--- workspace/kcontrol/hardware/display/display.desktop	(revisión: 697485)
++++ workspace/kcontrol/hardware/display/display.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ ServiceTypes=KCModule
+ DocPath=kcontrol/kcmdisplay/index.html
+ 
+-X-KDE-Library=display
++X-KDE-Library=kcm_display
+ X-KDE-FactoryName=display
+ X-KDE-ParentApp=kcontrol
+ Name=Display
+Index: workspace/kcontrol/input/mouse.desktop
+===================================================================
+--- workspace/kcontrol/input/mouse.desktop	(revisión: 697485)
++++ workspace/kcontrol/input/mouse.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ ServiceTypes=KCModule,KCModuleInit
+ DocPath=kcontrol/mouse/index.html
+ 
+-X-KDE-Library=input
++X-KDE-Library=kcm_input
+ X-KDE-FactoryName=mouse
+ X-KDE-Init-Symbol=mouse
+ X-KDE-ParentApp=kcontrol
+Index: workspace/kcontrol/style/kcmstyle.cpp
+===================================================================
+--- workspace/kcontrol/style/kcmstyle.cpp	(revisión: 697485)
++++ workspace/kcontrol/style/kcmstyle.cpp	(copia de trabajo)
+@@ -64,7 +64,7 @@
+ #include <kgenericfactory.h>
+ 
+ typedef KGenericFactory<KCMStyle, QWidget> KCMStyleFactory;
+-K_EXPORT_COMPONENT_FACTORY( style, KCMStyleFactory("kcmstyle") )
++K_EXPORT_COMPONENT_FACTORY( kcm_style, KCMStyleFactory("kcmstyle") )
+ 
+ extern "C"
+ {
+Index: workspace/kcontrol/colors/colors.desktop
+===================================================================
+--- workspace/kcontrol/colors/colors.desktop	(revisión: 697485)
++++ workspace/kcontrol/colors/colors.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ ServiceTypes=KCModule
+ DocPath=kcontrol/colors/index.html
+ 
+-X-KDE-Library=colors
++X-KDE-Library=kcm_colors
+ X-KDE-FactoryName=colors
+ X-KDE-ParentApp=kcontrol
+ 
+Index: workspace/kcontrol/access/kaccess.desktop
+===================================================================
+--- workspace/kcontrol/access/kaccess.desktop	(revisión: 697485)
++++ workspace/kcontrol/access/kaccess.desktop	(copia de trabajo)
+@@ -61,5 +61,6 @@
+ Name[zh_TW]=KDE 無障礙工具
+ Exec=kaccess
+ X-DBUS-StartupType=None
++X-KDE-Library=kcm_access
+ X-KDE-ParentApp=kcontrol
+ DocPath=kcontrol/kcmaccess/index.html
+Index: workspace/kcontrol/access/kcmaccess.cpp
+===================================================================
+--- workspace/kcontrol/access/kcmaccess.cpp	(revisión: 697485)
++++ workspace/kcontrol/access/kcmaccess.cpp	(copia de trabajo)
+@@ -48,7 +48,7 @@
+ 
+ #include <kgenericfactory.h>
+ typedef KGenericFactory<KAccessConfig, QWidget> KAccessConfigFactory;
+-K_EXPORT_COMPONENT_FACTORY(access, KAccessConfigFactory("kcmaccess"))
++K_EXPORT_COMPONENT_FACTORY(kcm_access, KAccessConfigFactory("kcmaccess"))
+ 
+ ExtendedIntNumInput::ExtendedIntNumInput
+ 				(QWidget* parent)
+Index: workspace/kcontrol/xinerama/kcmxinerama.cpp
+===================================================================
+--- workspace/kcontrol/xinerama/kcmxinerama.cpp	(revisión: 697485)
++++ workspace/kcontrol/xinerama/kcmxinerama.cpp	(copia de trabajo)
+@@ -44,7 +44,7 @@
+ #include "kwin_interface.h"
+ 
+ typedef KGenericFactory<KCMXinerama> KCMXineramaFactory;
+-K_EXPORT_COMPONENT_FACTORY(xinerama, KCMXineramaFactory("kcmxinerama"))
++K_EXPORT_COMPONENT_FACTORY(kcm_xinerama, KCMXineramaFactory("kcmxinerama"))
+ 
+ KCMXinerama::KCMXinerama(QWidget *parent, const QStringList &)
+   : KCModule(KCMXineramaFactory::componentData(), parent) {
+@@ -173,7 +173,7 @@
+ 		int item = xw->_unmanagedDisplay->currentIndex();
+ 		group.writeEntry("Unmanaged", item == _displays ? -3 : item);
+ 		group.sync();
+-                
++
+                 org::kde::KWin kwin("org.kde.kwin", "/KWin", QDBusConnection::sessionBus());
+                 kwin.reconfigure();
+ 
+Index: workspace/kcontrol/xinerama/xinerama.desktop
+===================================================================
+--- workspace/kcontrol/xinerama/xinerama.desktop	(revisión: 697485)
++++ workspace/kcontrol/xinerama/xinerama.desktop	(copia de trabajo)
+@@ -7,7 +7,7 @@
+ Hidden[$e]=$(if test_kcm_xinerama; then echo "false"; else echo "true"; fi)
+ 
+ X-KDE-ParentApp=kcontrol
+-X-KDE-Library=xinerama
++X-KDE-Library=kcm_xinerama
+ 
+ X-KDE-System-Settings-Parent-Category=computer-administration
+ 
+Index: workspace/kcontrol/randr/krandrmodule.cpp
+===================================================================
+--- workspace/kcontrol/randr/krandrmodule.cpp	(revisión: 697485)
++++ workspace/kcontrol/randr/krandrmodule.cpp	(copia de trabajo)
+@@ -28,7 +28,7 @@
+ 
+ // DLL Interface for kcontrol
+ typedef KGenericFactory<KRandRModule, QWidget > KSSFactory;
+-K_EXPORT_COMPONENT_FACTORY (randr, KSSFactory("krandr") )
++K_EXPORT_COMPONENT_FACTORY (kcm_randr, KSSFactory("krandr") )
+ 
+ void KRandRModule::performApplyOnStartup()
+ {
+@@ -46,7 +46,7 @@
+     : KCModule(KSSFactory::componentData(), parent)
+ {
+ 	m_display = new RandRDisplay();
+-	if (!m_display->isValid()) 
++	if (!m_display->isValid())
+ 	{
+ 		QVBoxLayout *topLayout = new QVBoxLayout(this);
+ 		QLabel *label = new QLabel(i18n("Your X server does not support resizing and rotating the display. Please update to version 4.3 or greater. You need the X Resize And Rotate extension (RANDR) version 1.1 or greater to use this feature."), this);
+@@ -61,7 +61,7 @@
+ 	topLayout->setSpacing(KDialog::spacingHint());
+ 
+ #ifdef HAS_RANDR_1_2
+-	if (RandR::has_1_2) 
++	if (RandR::has_1_2)
+ 	{
+ 		m_config = new RandRConfig(this, m_display);
+ 		connect(m_config, SIGNAL(changed(bool)), SIGNAL(changed(bool)));
+Index: workspace/kcontrol/randr/randr.desktop
+===================================================================
+--- workspace/kcontrol/randr/randr.desktop	(revisión: 697485)
++++ workspace/kcontrol/randr/randr.desktop	(copia de trabajo)
+@@ -4,7 +4,7 @@
+ Icon=preferences-desktop-display-randr
+ Type=Service
+ ServiceTypes=KCModule
+-X-KDE-Library=randr
++X-KDE-Library=kcm_randr
+ Hidden[$e]=$(if xdpyinfo|grep RANDR > /dev/null; then echo "false"; else echo "true"; fi)
+ 
+ X-KDE-System-Settings-Parent-Category=computer-administration
+Index: workspace/kcontrol/smserver/kcmsmserver.desktop
+===================================================================
+--- workspace/kcontrol/smserver/kcmsmserver.desktop	(revisión: 697485)
++++ workspace/kcontrol/smserver/kcmsmserver.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ ServiceTypes=KCModule
+ DocPath=kcontrol/kcmsmserver/index.html
+ 
+-X-KDE-Library=smserver
++X-KDE-Library=kcm_smserver
+ X-KDE-FactoryName=smserver
+ X-KDE-ParentApp=kcontrol
+ 
+Index: workspace/kcontrol/kthememanager/kthememanager.cpp
+===================================================================
+--- workspace/kcontrol/kthememanager/kthememanager.cpp	(revisión: 697485)
++++ workspace/kcontrol/kthememanager/kthememanager.cpp	(copia de trabajo)
+@@ -49,7 +49,7 @@
+ #include <kgenericfactory.h>
+ 
+ typedef KGenericFactory<kthememanager> kthememanagerFactory;
+-K_EXPORT_COMPONENT_FACTORY(kthememanager, kthememanagerFactory("kthememanager"))
++K_EXPORT_COMPONENT_FACTORY(kcm_kthememanager, kthememanagerFactory("kthememanager"))
+ 
+ kthememanager::kthememanager( QWidget *parent, const QStringList & )
+     : KCModule( kthememanagerFactory::componentData(), parent ), m_theme( 0 ), m_origTheme( 0 )
+Index: workspace/kcontrol/launch/kcmlaunch.desktop
+===================================================================
+--- workspace/kcontrol/launch/kcmlaunch.desktop	(revisión: 697485)
++++ workspace/kcontrol/launch/kcmlaunch.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ DocPath=kcontrol/kcmlaunch/index.html
+ Exec=kcmshell kcmlaunch
+ 
+-X-KDE-Library=launch
++X-KDE-Library=kcm_launch
+ X-KDE-FactoryName=launch
+ X-KDE-ParentApp=kcontrol
+ 
+Index: workspace/kcontrol/kdm/kdm.desktop
+===================================================================
+--- workspace/kcontrol/kdm/kdm.desktop	(revisión: 697485)
++++ workspace/kcontrol/kdm/kdm.desktop	(copia de trabajo)
+@@ -8,7 +8,7 @@
+ 
+ X-KDE-SubstituteUID=true
+ 
+-X-KDE-Library=kdm
++X-KDE-Library=kcm_kdm
+ X-KDE-RootOnly=true
+ X-KDE-ParentApp=kcontrol
+ 
+Index: workspace/kcontrol/kdm/main.cpp
+===================================================================
+--- workspace/kcontrol/kdm/main.cpp	(revisión: 697485)
++++ workspace/kcontrol/kdm/main.cpp	(copia de trabajo)
+@@ -56,7 +56,7 @@
+ #include <grp.h>
+ 
+ typedef KGenericFactory<KDModule, QWidget> KDMFactory;
+-K_EXPORT_COMPONENT_FACTORY( kdm, KDMFactory( "kdmconfig" ) )
++K_EXPORT_COMPONENT_FACTORY( kcm_kdm, KDMFactory( "kdmconfig" ) )
+ 
+ KUrl *decodeImgDrop( QDropEvent *e, QWidget *wdg )
+ {
+Index: workspace/kcontrol/keys/keys.desktop
+===================================================================
+--- workspace/kcontrol/keys/keys.desktop	(revisión: 697485)
++++ workspace/kcontrol/keys/keys.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ ServiceTypes=KCModule,KCModuleInit
+ DocPath=kcontrol/keys/index.html
+ 
+-X-KDE-Library=keys
++X-KDE-Library=kcm_keys
+ X-KDE-Init-Symbol=keys
+ X-KDE-ParentApp=kcontrol
+ 
+Index: workspace/kcontrol/keys/main.cpp
+===================================================================
+--- workspace/kcontrol/keys/main.cpp	(revisión: 697485)
++++ workspace/kcontrol/keys/main.cpp	(copia de trabajo)
+@@ -39,7 +39,7 @@
+ #include "khotkeys.h"
+ 
+ typedef KGenericFactory<KeyModule> KeyModuleFactory;
+-K_EXPORT_COMPONENT_FACTORY(keys, KeyModuleFactory("kcmkeys"))
++K_EXPORT_COMPONENT_FACTORY(kcm_keys, KeyModuleFactory("kcmkeys"))
+ 
+ /*
+ | Shortcut Schemes | Modifier Keys |
+Index: workspace/kcontrol/bell/bell.cpp
+===================================================================
+--- workspace/kcontrol/bell/bell.cpp	(revisión: 697485)
++++ workspace/kcontrol/bell/bell.cpp	(copia de trabajo)
+@@ -46,7 +46,7 @@
+ #include <kgenericfactory.h>
+ 
+ typedef KGenericFactory<KBellConfig> KBellConfigFactory;
+-K_EXPORT_COMPONENT_FACTORY(bell, KBellConfigFactory("kcmbell"))
++K_EXPORT_COMPONENT_FACTORY(kcm_bell, KBellConfigFactory("kcmbell"))
+ 
+ extern "C"
+ {
+Index: workspace/kcontrol/bell/bell.desktop
+===================================================================
+--- workspace/kcontrol/bell/bell.desktop	(revisión: 697485)
++++ workspace/kcontrol/bell/bell.desktop	(copia de trabajo)
+@@ -7,7 +7,7 @@
+ DocPath=kcontrol/bell/index.html
+ Categories=Qt;KDE;X-KDE-settings-sound;
+ 
+-X-KDE-Library=bell
++X-KDE-Library=kcm_bell
+ X-KDE-Init-Symbol=bell
+ X-KDE-ParentApp=kcontrol
+ 
+Index: workspace/kcminit/main.cpp
+===================================================================
+--- workspace/kcminit/main.cpp	(revisión: 697485)
++++ workspace/kcminit/main.cpp	(copia de trabajo)
+@@ -115,8 +115,6 @@
+       else
+       {
+           library = service->library();
+-          if( !library.startsWith( QLatin1String( "kcm_" ) ) )
+-              library = QLatin1String( "kcm_" ) + library;
+       }
+ 
+       if (library.isEmpty())
+Index: workspace/kicker/settings/kicker_config_appearance.desktop
+===================================================================
+--- workspace/kicker/settings/kicker_config_appearance.desktop	(revisión: 697485)
++++ workspace/kicker/settings/kicker_config_appearance.desktop	(copia de trabajo)
+@@ -7,7 +7,7 @@
+ Exec=kcmshell kicker_appearance
+ 
+ 
+-X-KDE-Library=kicker
++X-KDE-Library=kcm_kicker
+ X-KDE-FactoryName=kicker_appearance
+ X-KDE-ParentApp=kicker
+ 
+Index: workspace/kicker/settings/kicker_config_arrangement.desktop
+===================================================================
+--- workspace/kicker/settings/kicker_config_arrangement.desktop	(revisión: 697485)
++++ workspace/kicker/settings/kicker_config_arrangement.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ ServiceTypes=KCModule
+ Exec=kcmshell randr
+ 
+-X-KDE-Library=kicker
++X-KDE-Library=kcm_kicker
+ X-KDE-FactoryName=kicker_arrangement
+ X-KDE-ParentApp=kicker
+ 
+Index: workspace/kicker/settings/kicker_config.desktop
+===================================================================
+--- workspace/kicker/settings/kicker_config.desktop	(revisión: 697485)
++++ workspace/kicker/settings/kicker_config.desktop	(copia de trabajo)
+@@ -7,7 +7,7 @@
+ Exec=kcmshell panel
+ 
+ 
+-X-KDE-Library=kicker
++X-KDE-Library=kcm_kicker
+ X-KDE-FactoryName=kicker
+ X-KDE-ParentApp=kicker
+ 
+Index: workspace/kicker/settings/kicker_config_menus.desktop
+===================================================================
+--- workspace/kicker/settings/kicker_config_menus.desktop	(revisión: 697485)
++++ workspace/kicker/settings/kicker_config_menus.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ DocPath=kcontrol/panel/index.html#panel-menus
+ Exec=kcmshell kicker_menus
+ 
+-X-KDE-Library=kicker
++X-KDE-Library=kcm_kicker
+ X-KDE-FactoryName=kicker_menus
+ X-KDE-ParentApp=kicker
+ 
+Index: workspace/ksplash/kcm/ksplashthememgr.desktop
+===================================================================
+--- workspace/ksplash/kcm/ksplashthememgr.desktop	(revisión: 697485)
++++ workspace/ksplash/kcm/ksplashthememgr.desktop	(copia de trabajo)
+@@ -7,7 +7,7 @@
+ Type=Service
+ ServiceTypes=KCModule
+ 
+-X-KDE-Library=ksplashthemes
++X-KDE-Library=kcm_ksplashthemes
+ X-KDE-FactoryName=ksplashthemes
+ X-KDE-ParentApp=kcontrol
+ 
+Index: workspace/kwin/kcmkwin/kwindecoration/kwindecoration.desktop
+===================================================================
+--- workspace/kwin/kcmkwin/kwindecoration/kwindecoration.desktop	(revisión: 697485)
++++ workspace/kwin/kcmkwin/kwindecoration/kwindecoration.desktop	(copia de trabajo)
+@@ -69,7 +69,7 @@
+ Name[uz]=Ойнанинг безаклари
+ Name[wa]=Gåliotaedjes des purneas
+ Name[x-test]=xxWindow Decorationsxx
+-Name[xh]=Izihombiso zeWindow 
++Name[xh]=Izihombiso zeWindow
+ Name[zh_TW]=視窗裝飾
+ 
+ Comment=Configure the look and feel of window titles
+Index: workspace/kwin/kcmkwin/kwindecoration/CMakeLists.txt
+===================================================================
+--- workspace/kwin/kcmkwin/kwindecoration/CMakeLists.txt	(revisión: 697485)
++++ workspace/kwin/kcmkwin/kwindecoration/CMakeLists.txt	(copia de trabajo)
+@@ -1,16 +1,8 @@
+ ########### next target ###############
+ 
+ set(kcm_kwindecoration_PART_SRCS kwindecoration.cpp buttons.cpp preview.cpp )
+-
+-
+-
+-
+ kde4_add_plugin(kcm_kwindecoration ${kcm_kwindecoration_PART_SRCS})
+-
+-
+-
+ target_link_libraries(kcm_kwindecoration ${KDE4_KDE3SUPPORT_LIBS} kdecorations ${X11_LIBRARIES})
+-
+ install(TARGETS kcm_kwindecoration  DESTINATION ${PLUGIN_INSTALL_DIR} )
+ 
+ 
+Index: workspace/kwin/kcmkwin/kwinrules/kwinrules.desktop
+===================================================================
+--- workspace/kwin/kcmkwin/kwinrules/kwinrules.desktop	(revisión: 697485)
++++ workspace/kwin/kcmkwin/kwinrules/kwinrules.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ ServiceTypes=KCModule
+ DocPath=kcontrol/windowmanagement/index.html
+ 
+-X-KDE-Library=kwinrules
++X-KDE-Library=kcm_kwinrules
+ X-KDE-FactoryName=kwinrules
+ X-KDE-ParentApp=kcontrol
+ 
+Index: workspace/kwin/kcmkwin/kwinoptions/kwinfocus.desktop
+===================================================================
+--- workspace/kwin/kcmkwin/kwinoptions/kwinfocus.desktop	(revisión: 697485)
++++ workspace/kwin/kcmkwin/kwinoptions/kwinfocus.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ Exec=kcmshell kwinfocus
+ DocPath=kcontrol/windowmanagement/index.html#action-focus
+ 
+-X-KDE-Library=kwinoptions
++X-KDE-Library=kcm_kwinoptions
+ X-KDE-FactoryName=kwinfocus
+ 
+ Name=Focus
+Index: workspace/kwin/kcmkwin/kwinoptions/kwinmoving.desktop
+===================================================================
+--- workspace/kwin/kcmkwin/kwinoptions/kwinmoving.desktop	(revisión: 697485)
++++ workspace/kwin/kcmkwin/kwinoptions/kwinmoving.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ Exec=kcmshell kwinmoving
+ DocPath=kcontrol/windowmanagement/index.html#action-moving
+ 
+-X-KDE-Library=kwinoptions
++X-KDE-Library=kcm_kwinoptions
+ X-KDE-FactoryName=kwinmoving
+ 
+ Name=Moving
+Index: workspace/kwin/kcmkwin/kwinoptions/kwinactions.desktop
+===================================================================
+--- workspace/kwin/kcmkwin/kwinoptions/kwinactions.desktop	(revisión: 697485)
++++ workspace/kwin/kcmkwin/kwinoptions/kwinactions.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ Exec=kcmshell kwinactions
+ DocPath=kcontrol/windowmanagement/index.html#action-actions
+ 
+-X-KDE-Library=kwinoptions
++X-KDE-Library=kcm_kwinoptions
+ X-KDE-FactoryName=kwinactions
+ 
+ Name=Actions
+Index: workspace/kwin/kcmkwin/kwinoptions/kwinadvanced.desktop
+===================================================================
+--- workspace/kwin/kcmkwin/kwinoptions/kwinadvanced.desktop	(revisión: 697485)
++++ workspace/kwin/kcmkwin/kwinoptions/kwinadvanced.desktop	(copia de trabajo)
+@@ -6,7 +6,7 @@
+ Exec=kcmshell kwinadvanced
+ DocPath=kcontrol/windowmanagement/index.html#action-advanced
+ 
+-X-KDE-Library=kwinoptions
++X-KDE-Library=kcm_kwinoptions
+ X-KDE-FactoryName=kwinadvanced
+ 
+ Name=Advanced
+Index: workspace/kwin/kcmkwin/kwinoptions/CMakeLists.txt
+===================================================================
+--- workspace/kwin/kcmkwin/kwinoptions/CMakeLists.txt	(revisión: 697485)
++++ workspace/kwin/kcmkwin/kwinoptions/CMakeLists.txt	(copia de trabajo)
+@@ -1,18 +1,8 @@
+-
+-
+-
+ ########### next target ###############
+ 
+ set(kcm_kwinoptions_PART_SRCS windows.cpp mouse.cpp main.cpp )
+-
+-
+-
+ kde4_add_plugin(kcm_kwinoptions ${kcm_kwinoptions_PART_SRCS})
+-
+-
+-
+ target_link_libraries(kcm_kwinoptions  ${KDE4_KDEUI_LIBS} ${QT_QTGUI_LIBRARY} ${QT_QT3SUPPORT_LIBRARY})
+-
+ install(TARGETS kcm_kwinoptions  DESTINATION ${PLUGIN_INSTALL_DIR} )
+ 
+ 

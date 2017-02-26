@@ -1,0 +1,48 @@
+Application: Un visor global (visorglobal), signal SIGSEGV
+
+Thread 1 (Thread 0xb62e4a60 (LWP 10537)):
+[KCrash Handler]
+#6  0x0816d939 in ?? ()
+#7  0xb6bdd85b in KParts::Part::slotWidgetDestroyed (this=0x80d3a10) at /home/ereslibre/kdesvn/trunk/KDE/kdelibs/kparts/part.cpp:355
+#8  0xb6bdd902 in KParts::Part::qt_metacall (this=0x80d3a10, _c=QMetaObject::InvokeMetaMethod, _id=135735032, _a=0xbfa64e1c) at /home/ereslibre/kdesvn/trunk/build/kdelibs/kparts/part.moc:75
+#9  0xb6bdd95a in KParts::ReadOnlyPart::qt_metacall (this=0x80d3a10, _c=QMetaObject::InvokeMetaMethod, _id=6, _a=0xbfa64e1c) at /home/ereslibre/kdesvn/trunk/build/kdelibs/kparts/part.moc:151
+#10 0xb4afabaa in Part::qt_metacall (this=0x80d3a10, _c=QMetaObject::InvokeMetaMethod, _id=6, _a=0xbfa64e1c) at /home/ereslibre/kdesvn/trunk/build/kdegraphics/okular/part.moc:161
+#11 0xb6d94a89 in QMetaObject::activate (sender=0x8143c98, from_signal_index=0, to_signal_index=1, argv=0xbfa64e1c) at kernel/qobject.cpp:3013
+#12 0xb6d94c92 in QMetaObject::activate (sender=0x8143c98, m=0xb6e2b458, from_local_signal_index=0, to_local_signal_index=1, argv=0xbfa64e1c) at kernel/qobject.cpp:3106
+#13 0xb6d94cea in QObject::destroyed (this=0x8143c98, _t1=0x8143c98) at .moc/debug-shared/moc_qobject.cpp:115
+#14 0xb6d9652d in ~QObject (this=0x8143c98) at kernel/qobject.cpp:796
+#15 0xb7036d88 in ~QWidget (this=0x8143c98) at kernel/qwidget.cpp:1354
+#16 0xb4b6ebec in ~Sidebar (this=0x8143c98) at /home/ereslibre/kdesvn/trunk/KDE/kdegraphics/okular/ui/sidebar.cpp:418
+#17 0xb6d8f0de in QObjectPrivate::deleteChildren (this=0x80dd780) at kernel/qobject.cpp:1869
+#18 0xb7036cdb in ~QWidget (this=0x80dd628) at kernel/qwidget.cpp:1341
+#19 0xb73cb4e1 in ~QMainWindow (this=0x80dd628) at widgets/qmainwindow.cpp:329
+#20 0xb7ed6500 in ~KMainWindow (this=0x80dd628) at /home/ereslibre/kdesvn/trunk/KDE/kdelibs/kdeui/widgets/kmainwindow.cpp:446
+#21 0xb7f136d7 in ~KXmlGuiWindow (this=0x80dd628, __vtt_parm=0x804da88) at /home/ereslibre/kdesvn/trunk/KDE/kdelibs/kdeui/xmlgui/kxmlguiwindow.cpp:118
+#22 0xb6be84b8 in ~MainWindow (this=0x80dd628, __vtt_parm=0x804da84) at /home/ereslibre/kdesvn/trunk/KDE/kdelibs/kparts/mainwindow.cpp:77
+#23 0x0804cab7 in ~MainWindow (this=0x80dd628) at /home/ereslibre/parts/mainwindow.cpp:29
+#24 0xb6d8eb2f in qDeleteInEventHandler (o=0x80dd628) at kernel/qobject.cpp:3644
+#25 0xb6d92d66 in QObject::event (this=0x80dd628, e=0x83affa0) at kernel/qobject.cpp:1124
+#26 0xb703abe5 in QWidget::event (this=0x80dd628, event=0x83affa0) at kernel/qwidget.cpp:7407
+#27 0xb73cb3d3 in QMainWindow::event (this=0x80dd628, event=0x83affa0) at widgets/qmainwindow.cpp:1274
+#28 0xb7ed7e92 in KMainWindow::event (this=0x80dd628, ev=0x83affa0) at /home/ereslibre/kdesvn/trunk/KDE/kdelibs/kdeui/widgets/kmainwindow.cpp:1058
+#29 0xb7f1340c in KXmlGuiWindow::event (this=0x80dd628, ev=0x83affa0) at /home/ereslibre/kdesvn/trunk/KDE/kdelibs/kdeui/xmlgui/kxmlguiwindow.cpp:122
+#30 0xb6fdcc6d in QApplicationPrivate::notify_helper (this=0x805fe88, receiver=0x80dd628, e=0x83affa0) at kernel/qapplication.cpp:3800
+#31 0xb6fde856 in QApplication::notify (this=0xbfa65a2c, receiver=0x80dd628, e=0x83affa0) at kernel/qapplication.cpp:3765
+#32 0xb7e1bad3 in KApplication::notify (this=0xbfa65a2c, receiver=0x80dd628, event=0x83affa0) at /home/ereslibre/kdesvn/trunk/KDE/kdelibs/kdeui/kernel/kapplication.cpp:311
+#33 0xb6d7fb52 in QCoreApplication::notifyInternal (this=0xbfa65a2c, receiver=0x80dd628, event=0x83affa0) at kernel/qcoreapplication.cpp:587
+#34 0xb6fd98e5 in QCoreApplication::sendEvent (receiver=0x80dd628, event=0x83affa0) at ../../include/QtCore/../../src/corelib/kernel/qcoreapplication.h:215
+#35 0xb6d8006a in QCoreApplicationPrivate::sendPostedEvents (receiver=0x0, event_type=0, data=0x8050758) at kernel/qcoreapplication.cpp:1199
+#36 0xb6d8021b in QCoreApplication::sendPostedEvents (receiver=0x0, event_type=0) at kernel/qcoreapplication.cpp:1095
+#37 0xb7086cd6 in QCoreApplication::sendPostedEvents () at ../../include/QtCore/../../src/corelib/kernel/qcoreapplication.h:220
+#38 0xb6dafd17 in postEventSourceDispatch (s=0x8061af0) at kernel/qeventdispatcher_glib.cpp:211
+#39 0xb64bddd6 in g_main_context_dispatch () from /usr/lib/libglib-2.0.so.0
+#40 0xb64c1193 in ?? () from /usr/lib/libglib-2.0.so.0
+#41 0xb64c174e in g_main_context_iteration () from /usr/lib/libglib-2.0.so.0
+#42 0xb6daf130 in QEventDispatcherGlib::processEvents (this=0x805fe48, flags=@0xbfa65914) at kernel/qeventdispatcher_glib.cpp:325
+#43 0xb708531c in QGuiEventDispatcherGlib::processEvents (this=0x805fe48, flags=@0xbfa65944) at kernel/qguieventdispatcher_glib.cpp:204
+#44 0xb6d7ca12 in QEventLoop::processEvents (this=0xbfa659c0, flags=@0xbfa65984) at kernel/qeventloop.cpp:149
+#45 0xb6d7cc51 in QEventLoop::exec (this=0xbfa659c0, flags=@0xbfa659c8) at kernel/qeventloop.cpp:196
+#46 0xb6d8033b in QCoreApplication::exec () at kernel/qcoreapplication.cpp:849
+#47 0xb6fdc986 in QApplication::exec () at kernel/qapplication.cpp:3330
+#48 0x0804c8bc in main (argc=2, argv=0xbfa65b44) at /home/ereslibre/parts/main.cpp:33
+

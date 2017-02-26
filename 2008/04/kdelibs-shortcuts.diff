@@ -1,0 +1,155 @@
+Index: kdeui/itemviews/kextendableitemdelegate.cpp
+===================================================================
+--- kdeui/itemviews/kextendableitemdelegate.cpp	(revisión: 797808)
++++ kdeui/itemviews/kextendableitemdelegate.cpp	(copia de trabajo)
+@@ -28,10 +28,11 @@
+ 
+ class KExtendableItemDelegate::Private {
+ public:
+-	Private(KExtendableItemDelegate *parent) :
++	Private(KExtendableItemDelegate *parent, QAbstractItemView *itemView) :
+ 		q(parent),
+ 		stateTick(0),
+-		hasExtenders(false)
++		hasExtenders(false),
++		itemView(itemView)
+ 	{}
+ 
+ 	void _k_extenderDestructionHandler(QObject *destroyed);
+@@ -57,12 +58,14 @@
+ 	//mostly for quick startup - don't look for extenders while the view
+ 	//is being populated.
+ 	bool hasExtenders;
++
++	QAbstractItemView *itemView;
+ };
+ 
+ 
+ KExtendableItemDelegate::KExtendableItemDelegate(QAbstractItemView* parent)
+  : QStyledItemDelegate(parent),
+-   d(new Private(this))
++   d(new Private(this, parent))
+ {
+ 	//parent->installEventFilter(this); //not sure if this is good
+ }
+@@ -172,10 +175,27 @@
+ 
+ 	QStyleOptionViewItemV4 indicatorOption(option);
+ 	initStyleOption(&indicatorOption, index);
+-	indicatorOption.viewItemPosition = QStyleOptionViewItemV4::Beginning;
++	indicatorOption.state &= ~QStyle::State_MouseOver;
++	indicatorOption.state &= ~QStyle::State_HasFocus;
++	indicatorOption.state &= ~QStyle::State_Selected;
+ 	QStyleOptionViewItemV4 itemOption(option);
+ 	initStyleOption(&itemOption, index);
+-	itemOption.viewItemPosition = QStyleOptionViewItemV4::End;
++	itemOption.state &= ~QStyle::State_MouseOver;
++	itemOption.state &= ~QStyle::State_HasFocus;
++	itemOption.state &= ~QStyle::State_Selected;
++	QStyleOptionViewItemV4 fullRowOption(option);
++	initStyleOption(&fullRowOption, index);
++	fullRowOption.viewItemPosition = QStyleOptionViewItemV4::OnlyOne;
++	fullRowOption.rect = indicatorOption.rect.united(itemOption.rect);
++
++	//indexOfExtendedColumnInSameRow() is very expensive, try to avoid calling it.
++	static int cachedStateTick = -1;
++	static int cachedRow = -20; //Qt uses -1 for invalid indices
++	static QModelIndex cachedParentIndex;
++	static QWidget *extender = 0;
++	static int extenderHeight;
++	int row = index.row();
++	QModelIndex parentIndex = index.parent();
+ 
+ 	const bool showExtensionIndicator = index.model()->data(index, ShowExtensionIndicatorRole).toBool();
+ 
+@@ -192,28 +212,6 @@
+ 		indicatorY = option.rect.top() + ((option.rect.height() - d->extendPixmap.height()) >> 1);
+ 	}
+ 
+-	//fast path
+-	if (!d->hasExtenders) {
+-		QStyledItemDelegate::paint(painter, itemOption, index);
+-		if (showExtensionIndicator) {
+-			painter->save();
+-			QApplication::style()->drawPrimitive(QStyle::PE_PanelItemViewItem, &indicatorOption,
+-			                                     painter);
+-			painter->restore();
+-			painter->drawPixmap(indicatorX, indicatorY, d->extendPixmap);
+-		}
+-		return;
+-	}
+-
+-	//indexOfExtendedColumnInSameRow() is very expensive, try to avoid calling it.
+-	static int cachedStateTick = -1;
+-	static int cachedRow = -20; //Qt uses -1 for invalid indices
+-	static QModelIndex cachedParentIndex;
+-	static QWidget *extender = 0;
+-	static int extenderHeight;
+-	int row = index.row();
+-	QModelIndex parentIndex = index.parent();
+-
+ 	if (row != cachedRow || cachedStateTick != d->stateTick
+ 		|| cachedParentIndex != parentIndex) {
+ 		extender = d->extenders.value(d->indexOfExtendedColumnInSameRow(index));
+@@ -225,15 +223,39 @@
+ 		}
+ 	}
+ 
+-	if (!extender) {
++	if (d->itemView->currentIndex().isValid() && index.isValid() && extender &&
++		(d->itemView->currentIndex().row() == index.row())) {
++		fullRowOption.rect.setHeight(fullRowOption.rect.height() - extender->sizeHint().height());
++	}
++
++	if (option.state & QStyle::State_Selected)
++	{
++		itemOption.palette.setColor(QPalette::Text, itemOption.palette.highlightedText().color());
++	}
++
++	//fast path
++	if (!d->hasExtenders) {
++		painter->save();
++		QApplication::style()->drawPrimitive(QStyle::PE_PanelItemViewItem, &fullRowOption,
++		                                     painter);
++		painter->restore();
++		if (showExtensionIndicator) {
++			painter->drawPixmap(indicatorX, indicatorY, d->extendPixmap);
++		}
+ 		QStyledItemDelegate::paint(painter, itemOption, index);
++		return;
++	}
++
++	painter->save();
++	QApplication::style()->drawPrimitive(QStyle::PE_PanelItemViewItem, &fullRowOption,
++	                                     painter);
++	painter->restore();
++
++	if (!extender) {
+ 		if (showExtensionIndicator) {
+-			painter->save();
+-			QApplication::style()->drawPrimitive(QStyle::PE_PanelItemViewItem, &indicatorOption,
+-			                                     painter);
+-			painter->restore();
+ 			painter->drawPixmap(indicatorX, indicatorY, d->extendPixmap);
+ 		}
++		QStyledItemDelegate::paint(painter, itemOption, index);
+ 		return;
+ 	}
+ 
+@@ -254,15 +276,10 @@
+ 	//same height as the unchanged option.rect if no extender is present
+ 	//(seems to work OK)
+ 	QStyledItemDelegate::paint(painter, itemOption, index);
+-	
++
+ 	if (showExtensionIndicator) {
+ 		//indicatorOption's height changed, change this too
+ 		indicatorY = indicatorOption.rect.top() + ((indicatorOption.rect.height() - d->extendPixmap.height()) >> 1);
+-		painter->save();
+-		QApplication::style()->drawPrimitive(QStyle::PE_PanelItemViewItem, &indicatorOption,
+-		                                     painter);
+-		painter->restore();
+-
+ 		if (d->extenders.contains(index))
+ 			painter->drawPixmap(indicatorX, indicatorY, d->contractPixmap);
+ 		else

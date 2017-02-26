@@ -1,0 +1,25 @@
+diff --git a/kdeui/widgets/kcompletionbox.cpp b/kdeui/widgets/kcompletionbox.cpp
+index 30b6ae5..d2fa8b1 100644
+--- a/kdeui/widgets/kcompletionbox.cpp
++++ b/kdeui/widgets/kcompletionbox.cpp
+@@ -272,15 +272,20 @@ void KCompletionBox::popup()
+         hide();
+     else {
+         //TODO KDE 4 - Port: ensureCurrentVisible();
++        bool active = isActiveWindow();
++
+         bool block = signalsBlocked();
+         blockSignals( true );
+         setCurrentItem( 0 );
+         blockSignals( block );
+         clearSelection();
++        Q_ASSERT(active == isActiveWindow()); // right
+         if ( !isVisible() )
+             show();
+         else if ( size().height() != sizeHint().height() )
+             sizeAndPosition();
++
++        Q_ASSERT(active == isActiveWindow()); // wrong ( assert fails ! )
+     }
+ 
+     // Make sure we give the focus back to the parent widget (ereslibre)

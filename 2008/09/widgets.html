@@ -1,0 +1,417 @@
+<head>
+
+<script type="text/javascript" src="/static/js/analytics.js" ></script>
+<link type="text/css" rel="stylesheet" href="/static/css/banner-styles.css"/>
+
+
+
+
+<script type="text/javascript">
+
+/******************************************
+* Popup Box- By Jim Silver @ jimsilver47@yahoo.com
+* Visit /web/20120630012721/http://www.dynamicdrive.com/ for full source code
+* This notice must stay intact for use
+******************************************/
+
+var ns4=document.layers
+var ie4=document.all
+var ns6=document.getElementById&&!document.all
+
+//drag drop function for NS 4////
+/////////////////////////////////
+
+var dragswitch=0
+var nsx
+var nsy
+var nstemp
+
+function drag_dropns(name){
+if (!ns4)
+return
+temp=eval(name)
+temp.captureEvents(Event.MOUSEDOWN | Event.MOUSEUP)
+temp.onmousedown=gons
+temp.onmousemove=dragns
+temp.onmouseup=stopns
+}
+
+function gons(e){
+temp.captureEvents(Event.MOUSEMOVE)
+nsx=e.x
+nsy=e.y
+}
+function dragns(e){
+if (dragswitch==1){
+temp.moveBy(e.x-nsx,e.y-nsy)
+return false
+}
+}
+
+function stopns(){
+temp.releaseEvents(Event.MOUSEMOVE)
+}
+
+//drag drop function for ie4+ and NS6////
+/////////////////////////////////
+
+
+function drag_drop(e){
+if (ie4&&dragapproved){
+crossobj.style.left=tempx+event.clientX-offsetx
+crossobj.style.top=tempy+event.clientY-offsety
+return false
+}
+else if (ns6&&dragapproved){
+crossobj.style.left=tempx+e.clientX-offsetx+"px"
+crossobj.style.top=tempy+e.clientY-offsety+"px"
+return false
+}
+}
+
+function initializedrag(e){
+crossobj=ns6? document.getElementById("showimage") : document.all.showimage
+var firedobj=ns6? e.target : event.srcElement
+var topelement=ns6? "html" : document.compatMode && document.compatMode!="BackCompat"? "documentElement" : "body"
+while (firedobj.tagName!=topelement.toUpperCase() && firedobj.id!="dragbar"){
+firedobj=ns6? firedobj.parentNode : firedobj.parentElement
+}
+
+if (firedobj.id=="dragbar"){
+offsetx=ie4? event.clientX : e.clientX
+offsety=ie4? event.clientY : e.clientY
+
+tempx=parseInt(crossobj.style.left)
+tempy=parseInt(crossobj.style.top)
+
+dragapproved=true
+document.onmousemove=drag_drop
+}
+}
+document.onmouseup=new Function("dragapproved=false")
+
+////drag drop functions end here//////
+
+function hidebox(){
+crossobj=ns6? document.getElementById("showimage") : document.all.showimage
+if (ie4||ns6)
+crossobj.style.visibility="hidden"
+else if (ns4)
+document.showimage.visibility="hide"
+}
+
+</script>
+</head>
+
+<!-- BEGIN WAYBACK TOOLBAR INSERT -->
+<script> if (window.archive_analytics) { window.archive_analytics.values['server_name']="wwwb-app19.us.archive.org";}; </script>
+
+<script type="text/javascript" src="/static/js/disclaim-element.js" ></script>
+<script type="text/javascript" src="/static/js/graph-calc.js" ></script>
+<script type="text/javascript" src="/static/jflot/jquery.min.js" ></script>
+<script type="text/javascript">
+//<![CDATA[
+var firstDate = 820454400000;
+var lastDate = 1420070399999;
+var wbPrefix = "/web/";
+var wbCurrentUrl = "http:\/\/media.ereslibre.es\/2008\/09\/widgets.html";
+
+var curYear = -1;
+var curMonth = -1;
+var yearCount = 18;
+var firstYear = 1996;
+var imgWidth = 475;
+var yearImgWidth = 25;
+var monthImgWidth = 2;
+var trackerVal = "none";
+var displayDay = "30";
+var displayMonth = "Jun";
+var displayYear = "2012";
+var prettyMonths = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function showTrackers(val) {
+	if(val == trackerVal) {
+		return;
+	}
+	if(val == "inline") {
+		document.getElementById("displayYearEl").style.color = "#ec008c";
+		document.getElementById("displayMonthEl").style.color = "#ec008c";
+		document.getElementById("displayDayEl").style.color = "#ec008c";		
+	} else {
+		document.getElementById("displayYearEl").innerHTML = displayYear;
+		document.getElementById("displayYearEl").style.color = "#ff0";
+		document.getElementById("displayMonthEl").innerHTML = displayMonth;
+		document.getElementById("displayMonthEl").style.color = "#ff0";
+		document.getElementById("displayDayEl").innerHTML = displayDay;
+		document.getElementById("displayDayEl").style.color = "#ff0";
+	}
+   document.getElementById("wbMouseTrackYearImg").style.display = val;
+   document.getElementById("wbMouseTrackMonthImg").style.display = val;
+   trackerVal = val;
+}
+function getElementX2(obj) {
+	var thing = jQuery(obj);
+	if((thing == undefined) 
+			|| (typeof thing == "undefined") 
+			|| (typeof thing.offset == "undefined")) {
+		return getElementX(obj);
+	}
+	return Math.round(thing.offset().left);
+}
+function trackMouseMove(event,element) {
+
+   var eventX = getEventX(event);
+   var elementX = getElementX2(element);
+   var xOff = eventX - elementX;
+	if(xOff < 0) {
+		xOff = 0;
+	} else if(xOff > imgWidth) {
+		xOff = imgWidth;
+	}
+   var monthOff = xOff % yearImgWidth;
+
+   var year = Math.floor(xOff / yearImgWidth);
+	var yearStart = year * yearImgWidth;
+   var monthOfYear = Math.floor(monthOff / monthImgWidth);
+   if(monthOfYear > 11) {
+       monthOfYear = 11;
+   }
+   // 1 extra border pixel at the left edge of the year:
+   var month = (year * 12) + monthOfYear;
+   var day = 1;
+	if(monthOff % 2 == 1) {
+		day = 15;
+	}
+	var dateString = 
+		zeroPad(year + firstYear) + 
+		zeroPad(monthOfYear+1,2) +
+		zeroPad(day,2) + "000000";
+
+	var monthString = prettyMonths[monthOfYear];
+	document.getElementById("displayYearEl").innerHTML = year + 1996;
+	document.getElementById("displayMonthEl").innerHTML = monthString;
+	// looks too jarring when it changes..
+	//document.getElementById("displayDayEl").innerHTML = zeroPad(day,2);
+
+	var url = wbPrefix + dateString + '/' +  wbCurrentUrl;
+	document.getElementById('wm-graph-anchor').href = url;
+
+   //document.getElementById("wmtbURL").value="evX("+eventX+") elX("+elementX+") xO("+xOff+") y("+year+") m("+month+") monthOff("+monthOff+") DS("+dateString+") Moy("+monthOfYear+") ms("+monthString+")";
+   if(curYear != year) {
+       var yrOff = year * yearImgWidth;
+       document.getElementById("wbMouseTrackYearImg").style.left = yrOff + "px";
+       curYear = year;
+   }
+   if(curMonth != month) {
+       var mtOff = year + (month * monthImgWidth) + 1;
+       document.getElementById("wbMouseTrackMonthImg").style.left = mtOff + "px";
+       curMonth = month;
+   }
+}
+//]]>
+</script>
+
+<style type="text/css">body{margin-top:0!important;padding-top:0!important;min-width:800px!important;}#wm-ipp a:hover{text-decoration:underline!important;}</style>
+<div id="wm-ipp" lang="en" class="__wb_banner_div" style="display:none; position:relative;padding:0 5px;min-height:70px;min-width:800px">
+
+
+<div id="wm-ipp-inside" class="__wb_banner_div" style="position:fixed;padding:0!important;margin:0!important;width:97%;min-width:780px;border:5px solid #000;border-top:none;background-image:url(/static/images/toolbar/wm_tb_bk_trns.png);text-align:center;-moz-box-shadow:1px 1px 3px #333;-webkit-box-shadow:1px 1px 3px #333;box-shadow:1px 1px 3px #333;font-size:11px!important;font-family:'Lucida Grande','Arial',sans-serif!important;">
+   <table style="border-collapse:collapse;margin:0;padding:0;width:100%;"><tbody><tr>
+   <td style="padding:10px;vertical-align:top;min-width:110px;">
+   <a href="/web/" title="Wayback Machine home page" style="background-color:transparent;border:none;"><img src="/static/images/toolbar/wayback-toolbar-logo.png" alt="Wayback Machine" width="110" height="39" border="0"/></a>
+   </td>
+   <td style="padding:0!important;text-align:center;vertical-align:top;width:100%;">
+
+       <table style="border-collapse:collapse;margin:0 auto;padding:0;width:570px;"><tbody><tr>
+       <td style="padding:3px 0;" colspan="2">
+       <form target="_top" method="get" action="/web/form-submit.jsp" name="wmtb" id="wmtb" style="margin:0!important;padding:0!important;"><input type="text" name="url" id="wmtbURL" value="http://media.ereslibre.es/2008/09/widgets.html" style="width:400px;font-size:11px;font-family:'Lucida Grande','Arial',sans-serif;" onfocus="javascript:this.focus();this.select();" /><input type="hidden" name="type" value="replay" /><input type="hidden" name="date" value="20120630012721" /><input type="submit" value="Go" style="font-size:11px;font-family:'Lucida Grande','Arial',sans-serif;margin-left:5px;width: inherit !important" /><span id="wm_tb_options" style="display:block;"></span></form>
+       </td>
+       <td style="vertical-align:bottom;padding:5px 0 0 0!important;" rowspan="2">
+           <table style="border-collapse:collapse;width:110px;color:#99a;font-family:'Helvetica','Lucida Grande','Arial',sans-serif;"><tbody>
+			
+           <!-- NEXT/PREV MONTH NAV AND MONTH INDICATOR -->
+           <tr style="width:110px;height:16px;font-size:10px!important;">
+           	<td style="padding-right:9px;font-size:11px!important;font-weight:bold;text-transform:uppercase;text-align:right;white-space:nowrap;overflow:visible;" nowrap="nowrap">
+               
+		                <a href="/web/20110905171902/http://media.ereslibre.es/2008/09/widgets.html" style="text-decoration:none;color:#33f;font-weight:bold;background-color:transparent;border:none;" title="5 Sep 2011"><strong>SEP</strong></a>
+		                
+               </td>
+               <td id="displayMonthEl" style="background:#000;color:#ff0;font-size:11px!important;font-weight:bold;text-transform:uppercase;width:34px;height:15px;padding-top:1px;text-align:center;" title="You are here: 1:27:21 Jun 30, 2012">JUN</td>
+				<td style="padding-left:9px;font-size:11px!important;font-weight:bold;text-transform:uppercase;white-space:nowrap;overflow:visible;" nowrap="nowrap">
+               
+                       Jul
+                       
+               </td>
+           </tr>
+
+           <!-- NEXT/PREV CAPTURE NAV AND DAY OF MONTH INDICATOR -->
+           <tr>
+               <td style="padding-right:9px;white-space:nowrap;overflow:visible;text-align:right!important;vertical-align:middle!important;" nowrap="nowrap">
+               
+		                <a href="/web/20120629042252/http://media.ereslibre.es/2008/09/widgets.html" title="4:22:52 Jun 29, 2012" style="background-color:transparent;border:none;"><img src="/static/images/toolbar/wm_tb_prv_on.png" alt="Previous capture" width="14" height="16" border="0" /></a>
+		                
+               </td>
+               <td id="displayDayEl" style="background:#000;color:#ff0;width:34px;height:24px;padding:2px 0 0 0;text-align:center;font-size:24px;font-weight: bold;" title="You are here: 1:27:21 Jun 30, 2012">30</td>
+				<td style="padding-left:9px;white-space:nowrap;overflow:visible;text-align:left!important;vertical-align:middle!important;" nowrap="nowrap">
+               
+                       <img src="/static/images/toolbar/wm_tb_nxt_off.png" alt="Next capture" width="14" height="16" border="0"/>
+                       
+			    </td>
+           </tr>
+
+           <!-- NEXT/PREV YEAR NAV AND YEAR INDICATOR -->
+           <tr style="width:110px;height:13px;font-size:9px!important;">
+				<td style="padding-right:9px;font-size:11px!important;font-weight: bold;text-align:right;white-space:nowrap;overflow:visible;" nowrap="nowrap">
+               
+		                <a href="/web/20100629203838/http://media.ereslibre.es/2008/09/widgets.html" style="text-decoration:none;color:#33f;font-weight:bold;background-color:transparent;border:none;" title="29 Jun 2010"><strong>2010</strong></a>
+		                
+               </td>
+               <td id="displayYearEl" style="background:#000;color:#ff0;font-size:11px!important;font-weight: bold;padding-top:1px;width:34px;height:13px;text-align:center;" title="You are here: 1:27:21 Jun 30, 2012">2012</td>
+				<td style="padding-left:9px;font-size:11px!important;font-weight: bold;white-space:nowrap;overflow:visible;" nowrap="nowrap">
+               
+                       2013
+                       
+				</td>
+           </tr>
+           </tbody></table>
+       </td>
+
+       </tr>
+       <tr>
+       <td style="vertical-align:middle;padding:0!important;">
+           <a href="/web/20120630012721*/http://media.ereslibre.es/2008/09/widgets.html" style="color:#33f;font-size:11px;font-weight:bold;background-color:transparent;border:none;" title="See a list of every capture for this URL"><strong>5 captures</strong></a>
+           <div class="__wb_banner_div" style="margin:0!important;padding:0!important;color:#666;font-size:9px;padding-top:2px!important;white-space:nowrap;" title="Timespan for captures of this URL">11 Dec 09 - 30 Jun 12</div>
+       </td>
+       <td style="padding:0!important;">
+       <a style="position:relative; white-space:nowrap; width:475px;height:27px;" href="" id="wm-graph-anchor">
+       <div class="__wb_banner_div" id="wm-ipp-sparkline" style="position:relative; white-space:nowrap; width:475px;height:27px;background-color:#fff;cursor:pointer;border-right:1px solid #ccc;" title="Explore captures for this URL">
+			<img id="sparklineImgId" style="position:absolute; z-index:9012; top:0px; left:0px;"
+				onmouseover="showTrackers('inline');" 
+				onmouseout="showTrackers('none');"
+				onmousemove="trackMouseMove(event,this)"
+				alt="sparklines"
+				width="475"
+				height="27"
+				border="0"
+				src="/web/jsp/graph.jsp?graphdata=475_27_1996:-1:000000000000_1997:-1:000000000000_1998:-1:000000000000_1999:-1:000000000000_2000:-1:000000000000_2001:-1:000000000000_2002:-1:000000000000_2003:-1:000000000000_2004:-1:000000000000_2005:-1:000000000000_2006:-1:000000000000_2007:-1:000000000000_2008:-1:000000000000_2009:-1:000000000001_2010:-1:000001000000_2011:-1:000000001000_2012:5:000002000000_2013:-1:000000000000_2014:-1:000000000000"></img>
+			<img id="wbMouseTrackYearImg" 
+				style="display:none; position:absolute; z-index:9010;"
+				width="25" 
+				height="27"
+				border="0"
+				src="/static/images/toolbar/transp-yellow-pixel.png"></img>
+			<img id="wbMouseTrackMonthImg"
+				style="display:none; position:absolute; z-index:9011; " 
+				width="2"
+				height="27" 
+				border="0"
+				src="/static/images/toolbar/transp-red-pixel.png"></img>
+       </div>
+		</a>
+
+       </td>
+       </tr></tbody></table>
+   </td>
+   <td style="text-align:right;padding:5px;width:65px;font-size:11px!important;">
+       <a href="javascript:;" onclick="document.getElementById('wm-ipp').style.display='none';" style="display:block;padding-right:18px;background:url(/static/images/toolbar/wm_tb_close.png) no-repeat 100% 0;color:#33f;font-family:'Lucida Grande','Arial',sans-serif;margin-bottom:23px;background-color:transparent;border:none;" title="Close the toolbar">Close</a>
+       <a href="http://faq.web.archive.org/" style="display:block;padding-right:18px;background:url(/static/images/toolbar/wm_tb_help.png) no-repeat 100% 0;color:#33f;font-family:'Lucida Grande','Arial',sans-serif;background-color:transparent;border:none;" title="Get some help using the Wayback Machine">Help</a>
+   </td>
+   </tr></tbody></table>
+
+</div>
+</div>
+<script type="text/javascript">
+ var wmDisclaimBanner = document.getElementById("wm-ipp");
+ if(wmDisclaimBanner != null) {
+   disclaimElement(wmDisclaimBanner);
+ }
+</script>
+<!-- END WAYBACK TOOLBAR INSERT -->
+<div style=width:900px>Better scrolldown a bit before interacting with widgets (in order to catch scroll-offset regressions)...<br>
+Selection within iframes is also fragile, so it s a good idea to regularly test that too.</div>
+<div style=height:200px></div>
+<input type="text">
+<input type="button" value="Lorem ipsum dolor sit amet">
+<textarea size=12>
+Quod siquis vera vitam ratione gubernet, 
+Divitiae grandes homini sunt, vivere parce 
+Aequo animo : neque enim est unquam penuria parvi.
+</textarea>
+<input type="file">
+<input type="checkbox" value=test>
+<input type="radio" value=test>
+<select><option>1</option><option>2</option><option>3</option></select>
+<select size=0><option>1</option><option>2</option><option>3</option></select>
+<select size=1><option>1</option><option>2</option><option>3</option></select>
+<select size=3><option>1</option><option>2</option><option>3</option></select>
+<select size=1 multiple><option>1</option><option>2</option><option>3</option></select>
+<select size=3 multiple><option>1</option><option>2</option><option>3</option></select>
+<div style="height:100px;width:200px;overflow:scroll;border:blue solid">Try selecting text within this box..<br>
+Lorem ipsum dolor sit amet consectur et in sculi seculorum qui sedes ad dextram patris miserere nobis et tu brute aquila moscas non capit.
+</div>
+<BR CLEAR="all">
+
+<iframe style=height:300px;width:600px src='data:text/html,
+<div style=width:900px>Better scrolldown a bit before interacting with widgets (in order to catch scroll-offset regressions)...<br>
+Selection within iframes is also fragile, so it s a good idea to regularly test that too.</div>
+<div style=height:200px></div>
+<input type="text">
+<input type="button" value="Lorem ipsum dolor sit amet">
+<textarea size=12>
+Quod siquis vera vitam ratione gubernet, 
+Divitiae grandes homini sunt, vivere parce 
+Aequo animo : neque enim est unquam penuria parvi.
+</textarea>
+<input type="file">
+<input type="checkbox" value=test>
+<input type="radio" value=test>
+<select><option>1</option><option>2</option><option>3</option></select>
+<select size=0><option>1</option><option>2</option><option>3</option></select>
+<select size=1><option>1</option><option>2</option><option>3</option></select>
+<select size=3><option>1</option><option>2</option><option>3</option></select>
+<select size=1 multiple><option>1</option><option>2</option><option>3</option></select>
+<select size=3 multiple><option>1</option><option>2</option><option>3</option></select>
+<div style="height:100px;width:200px;overflow:scroll;border:blue solid">Try selecting text within this box..<br>
+Lorem ipsum dolor sit amet consectur et in sculi seculorum qui sedes ad dextram patris miserere nobis et tu brute aquila moscas non capit.
+</div>
+
+'></iframe>
+<div style=height:500px></div>
+
+<div>
+<div id="showimage" style="position:absolute;width:250px;left:250px;top:80px">
+<table border="0" width="250"  cellspacing="0" cellpadding="2">
+  <tr>
+    <td width="100%"><table border="0" width="100%" cellspacing="0" cellpadding="0"
+    height="36px">
+      <tr style="background-color:#000080">
+        <td id="dragbar" style="cursor:hand; cursor:pointer;" width="100%" onMousedown="initializedrag(event)"><ilayer width="100%" onSelectStart="return false"><layer width="100%" onMouseover="dragswitch=1;if (ns4) drag_dropns(showimage)" onMouseout="dragswitch=0"><font face="Verdana"
+        color="#FFFFFF"><strong><small>drag me around</small></strong></font></layer></ilayer></td>
+        <td style="cursor:hand"><a href="/web/20120630012721/http://media.ereslibre.es/2008/09/widgets.html#" onClick="hidebox();return false">[<span style="color:white">x</span>]</a></td>
+      </tr>
+      <tr>
+        <td width="100%" style="padding:4px; background-color:hsla(0,80%,25%,0.3);" colspan="2">
+
+This is a movable window with high stacking index
+
+</td>
+      </tr>
+    </table>
+    </td>
+  </tr>
+</table>
+</div>
+</BODY>
+</HTML>
+
+
+
+
+<!--
+     FILE ARCHIVED ON 1:27:21 Jun 30, 2012 AND RETRIEVED FROM THE
+     INTERNET ARCHIVE ON 17:23:39 Jan 17, 2014.
+     JAVASCRIPT APPENDED BY WAYBACK MACHINE, COPYRIGHT INTERNET ARCHIVE.
+
+     ALL OTHER CONTENT MAY ALSO BE PROTECTED BY COPYRIGHT (17 U.S.C.
+     SECTION 108(a)(3)).
+-->

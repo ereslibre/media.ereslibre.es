@@ -1,0 +1,115 @@
+diff --git a/kontact/src/iconsidepane.cpp b/kontact/src/iconsidepane.cpp
+index a950932..110cc60 100644
+--- a/kontact/src/iconsidepane.cpp
++++ b/kontact/src/iconsidepane.cpp
+@@ -30,6 +30,7 @@
+ #include <QtGui/QDragEnterEvent>
+ #include <QtGui/QDragMoveEvent>
+ #include <QtGui/QStyledItemDelegate>
++#include <QtGui/QScrollBar>
+ 
+ #include <KLocalizedString>
+ #include <KDialog>
+@@ -147,24 +148,17 @@ class Delegate : public QStyledItemDelegate
+       QStyleOptionViewItemV4 optionCopy( *static_cast<const QStyleOptionViewItemV4*>( &option ) );
+       optionCopy.decorationPosition = QStyleOptionViewItem::Top;
+       optionCopy.decorationSize = QSize( mNavigator->iconSize(), mNavigator->iconSize() );
++      optionCopy.textElideMode = Qt::ElideNone;
+       QStyledItemDelegate::paint( painter, optionCopy, index );
+     }
+ 
+     QSize sizeHint( const QStyleOptionViewItem &option, const QModelIndex &index ) const
+     {
+-      QString title = index.model()->data( index ).toString();
+-
+-      if ( !mNavigator->showText() ) {
+-        return QSize( mNavigator->iconSize(), mNavigator->iconSize() + KDialog::spacingHint() );
+-      }
+-
+-      if ( !mNavigator->showIcons() ) {
+-        return QSize( option.fontMetrics.width( title ),
+-                      option.fontMetrics.height() + KDialog::spacingHint() );
+-      }
+-
+-      return QSize( qMax( mNavigator->iconSize(), option.fontMetrics.width( title ) ),
+-                   mNavigator->iconSize() + option.fontMetrics.height() + KDialog::spacingHint() );
++      QStyleOptionViewItemV4 optionCopy( *static_cast<const QStyleOptionViewItemV4*>( &option ) );
++      optionCopy.decorationPosition = QStyleOptionViewItem::Top;
++      optionCopy.decorationSize = mNavigator->showIcons() ? QSize( mNavigator->iconSize(), mNavigator->iconSize() ) : QSize();
++      optionCopy.textElideMode = Qt::ElideNone;
++      return QStyledItemDelegate::sizeHint(optionCopy, index);
+     }
+ 
+   private:
+@@ -244,6 +238,8 @@ Navigator::Navigator( SidePaneBase *parent )
+ 
+   connect( selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex)),
+            this, SLOT(slotCurrentChanged(QModelIndex)) );
++
++  setSizePolicy( QSizePolicy::Fixed, QSizePolicy::Preferred );
+ }
+ 
+ void Navigator::updatePlugins( QList<Kontact::Plugin*> plugins_ )
+@@ -274,6 +270,29 @@ void Navigator::setCurrentPlugin( const QString &plugin )
+   }
+ }
+ 
++QSize Navigator::sizeHint() const
++{
++    //### TODO: We can cache this value, so this reply is faster. Since here we won't
++    //          have too many elements, it is not that important. When caching this value
++    //          make sure it is updated correctly when new rows have been added or
++    //          removed. (ereslibre)
++
++    int maxWidth = 0;
++    for ( int i = 0; i < model()->rowCount(); i++ ) {
++        const QModelIndex index = model()->index( i, 0 );
++        maxWidth = qMax( maxWidth, sizeHintForIndex( index ).width() );
++    }
++
++    int viewHeight = QListView::sizeHint().height();
++
++    maxWidth += verticalScrollBar()->isVisible() ? style()->pixelMetric( QStyle::PM_ScrollBarExtent ) : 0;
++    maxWidth += style()->pixelMetric( QStyle::PM_FocusFrameVMargin ) * 2;
++    maxWidth += style()->pixelMetric( QStyle::PM_LayoutLeftMargin );
++    maxWidth += style()->pixelMetric( QStyle::PM_LayoutRightMargin );
++
++    return QSize( maxWidth, viewHeight );
++}
++
+ void Navigator::dragEnterEvent( QDragEnterEvent *event )
+ {
+   if ( event->proposedAction() == Qt::IgnoreAction ) {
+@@ -365,6 +384,7 @@ void Navigator::slotActionTriggered( bool checked )
+   Prefs::self()->setSidePaneShowText( mShowText );
+ 
+   scheduleDelayedItemsLayout();
++  updateGeometry();
+ }
+ 
+ IconSidePane::IconSidePane( Core *core, QWidget *parent )
+diff --git a/kontact/src/iconsidepane.h b/kontact/src/iconsidepane.h
+index dd7847f..04c41de 100644
+--- a/kontact/src/iconsidepane.h
++++ b/kontact/src/iconsidepane.h
+@@ -67,6 +67,8 @@ class Navigator : public QListView
+       return mShowText;
+     }
+ 
++    virtual QSize sizeHint() const;
++
+   signals:
+     void pluginActivated( Kontact::Plugin *plugin );
+ 
+diff --git a/kontact/src/mainwindow.cpp b/kontact/src/mainwindow.cpp
+index 8378333..074d43f 100644
+--- a/kontact/src/mainwindow.cpp
++++ b/kontact/src/mainwindow.cpp
+@@ -276,7 +276,6 @@ void MainWindow::initWidgets()
+   mSplitter = new QSplitter( mTopWidget );
+   mBox = new KHBox( mTopWidget );
+   mSidePane = new IconSidePane( this, mSplitter );
+-  mSidePane->setSizePolicy( QSizePolicy( QSizePolicy::Maximum, QSizePolicy::Preferred ) );
+ /*
+   // don't occupy screen estate on load
+ 

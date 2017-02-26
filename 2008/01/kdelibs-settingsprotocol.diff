@@ -1,0 +1,13 @@
+Index: kio/kio/kdirmodel.cpp
+===================================================================
+--- kio/kio/kdirmodel.cpp	(revisión: 755475)
++++ kio/kio/kdirmodel.cpp	(copia de trabajo)
+@@ -293,7 +293,7 @@
+ 
+     //kDebug(7008) << "dir=" << dir;
+ 
+-    const QPair<int, KDirModelNode*> result = nodeForUrl(dir); // O(n*m)
++    const QPair<int, KDirModelNode*> result = nodeForUrl(dir, true); // O(n*m)
+     Q_ASSERT(result.second); // Are you calling KDirLister::openUrl(url,true,false)? Please use expandToUrl() instead.
+     Q_ASSERT(isDir(result.second));
+     KDirModelDirNode* dirNode = static_cast<KDirModelDirNode *>(result.second);

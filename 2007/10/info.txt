@@ -1,0 +1,9 @@
+dolphin(25374)/kio (KDirListerCache) KDirListerCache::listDir: DolphinDirLister(0x819f3b0) url= KUrl("file:///usr/include") keep= false reload= false
+dolphin(25374)/kio (KDirListerCache) KDirListerCache::forgetDirs: DolphinDirLister(0x819f3b0)  item moved into cache:  KUrl("file:///usr")
+dolphin(25374)/kio (KDirListerCache) KDirListerCache::listDir: Entry not in cache or reloaded: KUrl("file:///usr/include")
+dolphin(25374)/kio (KDirWatch) KDirWatchPrivate::addEntry: Added Dir "/usr/include" for "" ["KDirWatch-1"]
+dolphin(25374)/kio (KDirWatch) KDirWatchPrivate::useINotify: trying to use inotify for monitoring
+dolphin(25374)/kio (KDirWatch) KDirWatchPrivate::useINotify: inotify successfully used for monitoring
+dolphin(25374)/kio (KDirListerCache) KDirListerCache::slotEntries: new entries for  KUrl("file:///usr/include")
+dolphin(25374)/kio (KDirModel) KDirModelPrivate::_k_slotNewItems: 244  in  KUrl("file:///usr/include")  index= "[invalid index, i.e. root]"  newRowCount= 244
+dolphin(25374)/kio (KDirListerCache) KDirListerCache::slotResult: finished listing KUrl("file:///usr/include")

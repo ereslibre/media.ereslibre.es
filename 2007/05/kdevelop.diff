@@ -1,0 +1,16 @@
+Index: plugins/filemanager/drilldownview.cpp
+===================================================================
+--- plugins/filemanager/drilldownview.cpp	(revisión: 668826)
++++ plugins/filemanager/drilldownview.cpp	(copia de trabajo)
+@@ -255,10 +255,7 @@ void DrillDownView::scrollContentsBy(int
+ QRect DrillDownView::normalizeDrillIconRect(const QRect &rect)
+ {
+     QRect r(rect);
+-    int left = maximumViewportSize().width() - 16;
+-    if (verticalScrollBar() && verticalScrollBar()->isVisible())
+-        left -= verticalScrollBar()->width();
+-    r.setLeft(left);
++    r.setLeft(viewport()->width() - 16);
+     r.setWidth(16);
+     return r;
+ }

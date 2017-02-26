@@ -1,0 +1,55 @@
+Initial commit
+
+o                               (master)
+↑
+
+Some work
+
+o - o - o - o - o - ... - o
+↑   ↑   ↑       ↑
+
+Now it is time to tag v0.0.1. We now create a branch named v0.0
+
+                            o   (v0.0.1 tag)
+                           /
+o - o - o - o - o - ... - o     (master)
+↑   ↑   ↑       ↑         ↑
+
+And some people can keep working for v0.0.2 bugfixes:
+
+                            o - o - o - ... - o     (v0.0.2 tag)
+                           /
+o - o - o - o - o - ... - o                         (master)
+↑   ↑   ↑       ↑         ↑
+
+While others kept working on new features for v0.1.x series:
+
+                            o - o - o - ... - o                     (v0.0.2 tag)
+                           /
+o - o - o - o - o - ... - o - o - o - ... - o - o - o - o - o       (master)
+    ↑   ↑   ↑       ↑     ↑       ↑         ↑       ↑       ↑
+
+It seems to be time for tagging v0.0.3 and v0.1.0. So we will create a branch named v0.1
+
+                            o - o - o - ... - o - o - o - o - o     (v0.0.3 tag)
+                           /
+o - o - o - o - o - ... - o - o - o - ... - o - o - o - o - o       (master)
+                                                             \
+                                                              o     (v0.1.0 tag)
+    ↑   ↑   ↑       ↑     ↑       ↑         ↑       ↑       ↑
+
+Now we will release v0.0.4 as well as v0.1.1 while others kept working for v0.2.x series:
+
+                            o - o - o - ... - o - o - o - o - o - o - o - o         (v0.0.4 tag)
+                           /
+o - o - o - o - o - ... - o - o - o - ... - o - o - o - o - o - ... - o             (master)
+                                                             \        ↑
+                                                              o - o - o - o - o     (v0.1.1 tag)
+    ↑   ↑   ↑       ↑     ↑       ↑         ↑       ↑       ↑
+
+****
+
+Note: ↑ denotes a commit that introduces a new feature.
+
+Note: Always that a bugfix has been committed to a branch (such as v0.0, v0.1, v0.2...) you will
+      very likely want to forward-port it to master branch by the use of git merge.

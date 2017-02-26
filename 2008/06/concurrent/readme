@@ -1,0 +1,14 @@
+This is a trivial example on creating threads and using classes (C++). You can type on your shell:
+
+> make concurrent1
+> make concurrent2
+> make concurrent3
+> ./concurrent1
+> ./concurrent2
+> ./concurrent3
+
+Read Makefile header for more information on these programs.
+
+
+Regards,
+Rafael Fernández López.

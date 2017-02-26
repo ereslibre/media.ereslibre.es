@@ -1,0 +1,32 @@
+diff --git a/apps/konqueror/src/konqviewmanager.cpp b/apps/konqueror/src/konqviewmanager.cpp
+index e9669fa..11cd131 100644
+--- a/apps/konqueror/src/konqviewmanager.cpp
++++ b/apps/konqueror/src/konqviewmanager.cpp
+@@ -312,7 +312,8 @@ void KonqViewManager::breakOffTab( KonqFrameBase* currentFrame, const QSize& win
+ 
+   KonqMainWindow *mainWindow = new KonqMainWindow(KUrl(), m_pMainWindow->xmlFile());
+ 
+-  mainWindow->viewManager()->loadViewProfileFromGroup( profileGroup, QString() );
++  mainWindow->viewManager()->loadViewProfileFromGroup( profileGroup, currentProfile() );
++  mainWindow->applyMainWindowSettings( m_pMainWindow->autoSaveConfigGroup() );
+ 
+   KonqFrameTabs * kft = mainWindow->viewManager()->tabContainer();
+   KonqFrameBase *newFrame = dynamic_cast<KonqFrameBase*>(kft->currentWidget());
+@@ -1003,8 +1004,6 @@ void KonqViewManager::setActivePart( KParts::Part *part, bool immediate )
+     if (m_pMainWindow && m_pMainWindow->currentView())
+       m_pMainWindow->currentView()->setLocationBarURL(m_pMainWindow->locationBarURL());
+ 
+-    KParts::PartManager::setActivePart( part );
+-
+     if (part && part->widget())
+         part->widget()->setFocus();
+ 
+@@ -1022,6 +1021,8 @@ void KonqViewManager::setActivePart( KParts::Part *part, bool immediate )
+         m_activePartChangedTimer->stop();
+         emitActivePartChanged();
+     }
++
++    KParts::PartManager::setActivePart( part );
+ }
+ 
+ void KonqViewManager::slotActivePartChanged ( KParts::Part *newPart )

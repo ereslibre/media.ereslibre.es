@@ -1,0 +1,111 @@
+diff --git a/kfile/kdiroperator.cpp b/kfile/kdiroperator.cpp
+index 573456a..ca3fc74 100644
+--- a/kfile/kdiroperator.cpp
++++ b/kfile/kdiroperator.cpp
+@@ -222,6 +222,7 @@ public:
+     void _k_assureVisibleSelection();
+     void _k_synchronizeSortingState(int, Qt::SortOrder);
+     void _k_slotChangeDecorationPosition();
++    void _k_slotExpandToUrl(const QModelIndex&);
+ 
+     void updateListViewGrid();
+     int iconSizeForViewType(QAbstractItemView *itemView) const;
+@@ -279,6 +280,7 @@ public:
+ 
+     KActionMenu *decorationMenu;
+     KToggleAction *leftAction;
++    KUrl::List itemsToBeSetAsCurrent;
+ };
+ 
+ KDirOperator::Private::Private(KDirOperator *_parent) :
+@@ -1531,6 +1533,11 @@ void KDirOperator::setView(QAbstractItemView *view)
+     // needs to be done here, and not in createView, since we can be set an external view
+     d->decorationMenu->setEnabled(qobject_cast<QListView*>(d->itemView));
+ 
++    if (qobject_cast<QTreeView*>(view)) {
++        connect(d->dirModel, SIGNAL(expand(QModelIndex)), view, SLOT(expand(QModelIndex)));
++        connect(d->dirModel, SIGNAL(expand(QModelIndex)), this, SLOT(_k_slotExpandToUrl(QModelIndex)));
++    }
++
+     d->previewGenerator = new KFilePreviewGenerator(d->itemView, static_cast<QAbstractProxyModel*>(d->itemView->model()));
+     int maxSize = KIconLoader::SizeEnormous;
+     int val = maxSize * d->iconsZoom / 100;
+@@ -1610,10 +1617,13 @@ void KDirOperator::setCurrentItem(const QString& url)
+ {
+     kDebug();
+ 
+-    KFileItem item;
+-    if ( !url.isNull() ) {
+-        item = d->dirLister->findByUrl(url);
++    KFileItem item = d->dirLister->findByUrl(url);
++    if (item.isNull()) {
++        d->itemsToBeSetAsCurrent << url;
++        d->dirModel->expandToUrl(url);
++        return;
+     }
++
+     setCurrentItem(item);
+ }
+ 
+@@ -1621,7 +1631,7 @@ void KDirOperator::setCurrentItem(const KFileItem& item)
+ {
+     kDebug();
+ 
+-    if (d->itemView == 0) {
++    if (!d->itemView) {
+         return;
+     }
+ 
+@@ -1641,10 +1651,21 @@ void KDirOperator::setCurrentItems(const QStringList& urls)
+ {
+     kDebug();
+ 
++    if (!d->itemView) {
++        return;
++    }
++
+     KFileItemList itemList;
+     foreach (const QString &url, urls) {
+-        itemList << KFileItem(d->dirLister->findByUrl(url));
++        KFileItem item = d->dirLister->findByUrl(url);
++        if (item.isNull()) {
++            d->itemsToBeSetAsCurrent << url;
++            d->dirModel->expandToUrl(url);
++            continue;
++        }
++        itemList << item;
+     }
++
+     setCurrentItems(itemList);
+ }
+ 
+@@ -2395,6 +2416,17 @@ void KDirOperator::Private::_k_slotChangeDecorationPosition()
+     itemView->update();
+ }
+ 
++void KDirOperator::Private::_k_slotExpandToUrl(const QModelIndex &index)
++{
++    Q_ASSERT(0);
++    kDebug();
++
++    const KFileItem item = dirModel->itemForIndex(index);
++    Q_ASSERT(!item.isNull());
++    parent->setCurrentItems(itemsToBeSetAsCurrent.toStringList());
++    itemsToBeSetAsCurrent.clear();
++}
++
+ void KDirOperator::Private::updateListViewGrid()
+ {
+     if (!itemView) {
+diff --git a/kfile/kdiroperator.h b/kfile/kdiroperator.h
+index b6c238e..3494248 100644
+--- a/kfile/kdiroperator.h
++++ b/kfile/kdiroperator.h
+@@ -851,6 +851,7 @@ private:
+     Q_PRIVATE_SLOT( d, void _k_assureVisibleSelection() )
+     Q_PRIVATE_SLOT( d, void _k_synchronizeSortingState(int, Qt::SortOrder) )
+     Q_PRIVATE_SLOT( d, void _k_slotChangeDecorationPosition() )
++    Q_PRIVATE_SLOT( d, void _k_slotExpandToUrl(const QModelIndex&) )
+ };
+ 
+ #endif

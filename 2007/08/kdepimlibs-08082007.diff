@@ -1,0 +1,13 @@
+Index: mailtransport/kcm_mailtransport.desktop
+===================================================================
+--- mailtransport/kcm_mailtransport.desktop	(revisión: 697485)
++++ mailtransport/kcm_mailtransport.desktop	(copia de trabajo)
+@@ -5,7 +5,7 @@
+ ServiceTypes=KCModule
+ 
+ X-KDE-ModuleType=Library
+-X-KDE-Library=mailtransport
++X-KDE-Library=kcm_mailtransport
+ X-KDE-FactoryName=kcm_mailtransport
+ X-KDE-HasReadOnlyMode=false
+ X-KDE-ParentApp=

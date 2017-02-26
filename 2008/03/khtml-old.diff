@@ -1,0 +1,27 @@
+Index: khtml/rendering/render_replaced.cpp
+===================================================================
+--- khtml/rendering/render_replaced.cpp	(revisión: 784900)
++++ khtml/rendering/render_replaced.cpp	(copia de trabajo)
+@@ -31,6 +31,7 @@
+ 
+ #include <assert.h>
+ #include <QtGui/QWidget>
++#include <QtGui/QBitmap>
+ #include <QtGui/QPainter>
+ #include <QtGui/QActionEvent>
+ #include <QtGui/QApplication>
+@@ -604,7 +605,13 @@ static void copyWidget(const QRect& r, Q
+ 
+     setInPaintEventFlag( widget, false );
+ 
+-    widget->render( d, (buffered ? QPoint(0,0) : thePoint) + r.topLeft(), r);
++    QPixmap &pixmap = static_cast<QPixmap&>(*d);
++    pixmap.setMask(pixmap.createMaskFromColor(Qt::transparent, Qt::MaskOutColor));
++    QPainter pp(&pixmap);
++    pp.fillRect(r, Qt::transparent);
++    pp.end();
++
++    widget->render( d, (buffered ? QPoint(0,0) : thePoint) + r.topLeft(), r, QWidget::DrawChildren );
+ 
+     setInPaintEventFlag( widget );
+ 

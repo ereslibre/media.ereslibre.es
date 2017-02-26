@@ -1,0 +1,108 @@
+diff --git a/kfile/kdiroperator.cpp b/kfile/kdiroperator.cpp
+index 399d9e1..7fd8da9 100644
+--- a/kfile/kdiroperator.cpp
++++ b/kfile/kdiroperator.cpp
+@@ -225,6 +225,7 @@ public:
+     void _k_slotExpandToUrl(const QModelIndex&);
+ 
+     void updateListViewGrid();
++    void updatePreviewGenerator();
+     int iconSizeForViewType(QAbstractItemView *itemView) const;
+ 
+     // private members
+@@ -282,6 +283,7 @@ public:
+     KToggleAction *leftAction;
+     KUrl::List itemsToBeSetAsCurrent;
+     bool shouldFetchForItems;
++    bool waitingForDirLister;
+ };
+ 
+ KDirOperator::Private::Private(KDirOperator *_parent) :
+@@ -306,7 +308,8 @@ KDirOperator::Private::Private(KDirOperator *_parent) :
+     previewGenerator(0),
+     decorationMenu(0),
+     leftAction(0),
+-    shouldFetchForItems(false)
++    shouldFetchForItems(false),
++    waitingForDirLister(false)
+ {
+ }
+ 
+@@ -1545,7 +1548,10 @@ void KDirOperator::setView(QAbstractItemView *view)
+ 
+     if (listDir) {
+         QApplication::setOverrideCursor(Qt::WaitCursor);
++        d->waitingForDirLister = true;
+         d->openUrl(d->currUrl);
++    } else {
++        d->updatePreviewGenerator();
+     }
+ 
+     if (selectionModel != 0) {
+@@ -1571,13 +1577,6 @@ void KDirOperator::setView(QAbstractItemView *view)
+         d->itemsToBeSetAsCurrent.clear();
+     }
+ 
+-    d->previewGenerator = new KFilePreviewGenerator(d->itemView);
+-    int maxSize = KIconLoader::SizeEnormous;
+-    int val = maxSize * d->iconsZoom / 100;
+-    val = qMax(val, (int) KIconLoader::SizeSmall);
+-    d->itemView->setIconSize(QSize(val, val));
+-    d->previewGenerator->setPreviewShown(d->showPreviews);
+-
+     // ensure we change everything needed
+     d->_k_slotChangeDecorationPosition();
+ 
+@@ -1630,6 +1629,12 @@ void KDirOperator::setDirLister(KDirLister *lister)
+     connect(d->dirLister, SIGNAL(canceled()), SLOT(_k_slotCanceled()));
+     connect(d->dirLister, SIGNAL(redirection(const KUrl&)),
+             SLOT(_k_slotRedirected(const KUrl&)));
++
++    if (d->itemView) {
++        delete d->previewGenerator;
++        d->itemView->setModel(d->proxyModel);
++        d->updatePreviewGenerator();
++    }
+ }
+ 
+ void KDirOperator::selectDir(const KFileItem &item)
+@@ -2214,8 +2219,12 @@ void KDirOperator::Private::_k_slotIOFinished()
+     if (preview) {
+         preview->clearPreview();
+     }
+-}
+ 
++    if (waitingForDirLister) {
++        waitingForDirLister = false;
++        updatePreviewGenerator();
++    }
++}
+ void KDirOperator::Private::_k_slotCanceled()
+ {
+     emit parent->finishedLoading();
+@@ -2403,7 +2412,7 @@ void KDirOperator::Private::_k_assureVisibleSelection()
+     }
+ 
+     QItemSelectionModel* selModel = itemView->selectionModel();
+-    if (selModel->hasSelection()) {
++    if (selModel && selModel->hasSelection()) {
+         const QModelIndex index = selModel->currentIndex();
+         itemView->scrollTo(index, QAbstractItemView::EnsureVisible);
+         _k_triggerPreview(index);
+@@ -2532,6 +2541,16 @@ void KDirOperator::Private::updateListViewGrid()
+     }
+ }
+ 
++void KDirOperator::Private::updatePreviewGenerator()
++{
++    previewGenerator = new KFilePreviewGenerator(itemView);
++    int maxSize = KIconLoader::SizeEnormous;
++    int val = maxSize * iconsZoom / 100;
++    val = qMax(val, (int) KIconLoader::SizeSmall);
++    itemView->setIconSize(QSize(val, val));
++    _k_toggleInlinePreviews(showPreviews);
++}
++
+ int KDirOperator::Private::iconSizeForViewType(QAbstractItemView *itemView) const
+ {
+     if (!itemView || !configGroup) {

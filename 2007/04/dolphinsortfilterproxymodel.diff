@@ -1,0 +1,30 @@
+Index: src/dolphinsortfilterproxymodel.cpp
+===================================================================
+--- src/dolphinsortfilterproxymodel.cpp (revisión: 651441)
++++ src/dolphinsortfilterproxymodel.cpp (copia de trabajo)
+@@ -84,6 +84,7 @@ void DolphinSortFilterProxyModel::sort(i
+     m_sorting = (column >= 0) && (column < dolphinMapSize) ?
+                 dirModelColumnToDolphinView[column]  :
+                 DolphinView::SortByName;
++    setSortRole(column);
+     QSortFilterProxyModel::sort(column, sortOrder);
+ }
+ 
+@@ -110,7 +111,7 @@ DolphinView::Sorting DolphinSortFilterPr
+ bool DolphinSortFilterProxyModel::lessThan(const QModelIndex& left,
+                                            const QModelIndex& right) const
+ {
+-    KDirModel* dirModel = static_cast<KDirModel*>(sourceModel());
++    /*KDirModel* dirModel = static_cast<KDirModel*>(sourceModel());
+ 
+     QVariant leftData  = dirModel->data(left,  sortRole());
+     QVariant rightData = dirModel->data(right, sortRole());
+@@ -135,7 +136,7 @@ bool DolphinSortFilterProxyModel::lessTh
+ 
+         return sortCaseSensitivity() ? (naturalCompare(leftStr, rightStr) < 0) :
+                                        (naturalCompare(leftStr.toLower(), rightStr.toLower()) < 0);
+-    }
++    }*/
+ 
+     // We have set a SortRole and trust the ProxyModel to do
+     // the right thing for now.

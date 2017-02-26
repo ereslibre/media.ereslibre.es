@@ -1,0 +1,13 @@
+diff --git a/kdecore/io/kurl.cpp b/kdecore/io/kurl.cpp
+index 1785c45..93bcb39 100644
+--- a/kdecore/io/kurl.cpp
++++ b/kdecore/io/kurl.cpp
+@@ -210,7 +210,7 @@ QStringList KUrl::List::toStringList() const
+         it != end();
+         ++it)
+    {
+-      lst.append( (*it).url() );
++      lst.append( (*it).prettyUrl() );
+    }
+    return lst;
+ }

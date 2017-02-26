@@ -1,0 +1,202 @@
+diff --git a/workspace/systemsettings/CMakeLists.txt b/workspace/systemsettings/CMakeLists.txt
+index 114855d..983da0f 100644
+--- a/workspace/systemsettings/CMakeLists.txt
++++ b/workspace/systemsettings/CMakeLists.txt
+@@ -10,6 +10,7 @@ SET(systemsettings_SRCS
+    mainwindow.cpp
+    menuitem.cpp
+    moduleiconitem.cpp
++   categorydrawer.cpp
+    )
+ 
+ kde4_add_app_icon(systemsettings_SRCS "${KDE4_ICON_INSTALL_DIR}/oxygen/*/categories/preferences-system.png")
+diff --git a/workspace/systemsettings/categorydrawer.cpp b/workspace/systemsettings/categorydrawer.cpp
+new file mode 100644
+index 0000000..81d1951
+--- /dev/null
++++ b/workspace/systemsettings/categorydrawer.cpp
+@@ -0,0 +1,103 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2008 Rafael Fernández López <ereslibre@kde.org>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#include "categorydrawer.h"
++
++#include <QPainter>
++#include <QStyleOption>
++#include <QApplication>
++
++#include <kcategorizedsortfilterproxymodel.h>
++
++#define VERTICAL_SEPARATION 5
++
++CategoryDrawer::CategoryDrawer()
++    : KCategoryDrawer()
++{
++}
++
++CategoryDrawer::~CategoryDrawer()
++{
++}
++
++void CategoryDrawer::drawCategory(const QModelIndex &index,
++                                  int /*sortRole*/,
++                                  const QStyleOption &option,
++                                  QPainter *painter) const
++{
++    const QString category = index.model()->data(index, KCategorizedSortFilterProxyModel::CategoryDisplayRole).toString();
++
++    QColor color;
++
++    if (option.state & QStyle::State_Selected)
++    {
++        color = option.palette.color(QPalette::HighlightedText);
++    }
++    else
++    {
++        color = option.palette.color(QPalette::Text);
++    }
++
++    painter->save();
++    painter->setRenderHint(QPainter::Antialiasing);
++
++    QStyleOptionViewItemV4 viewOptions;
++    viewOptions.rect = option.rect;
++    viewOptions.palette = option.palette;
++    viewOptions.direction = option.direction;
++    viewOptions.state = option.state;
++    viewOptions.viewItemPosition = QStyleOptionViewItemV4::OnlyOne;
++    QApplication::style()->drawPrimitive(QStyle::PE_PanelItemViewItem, &viewOptions, painter, 0);
++
++    QFont painterFont = painter->font();
++    painterFont.setWeight(QFont::Bold);
++    QFontMetrics metrics(painterFont);
++    painter->setFont(painterFont);
++
++    if (index.row()) {
++        QRect lineRect(option.rect.left(),
++                       option.rect.top(),
++                       option.rect.width(),
++                       1);
++
++        QLinearGradient gradient(option.rect.topLeft(),
++                                option.rect.bottomRight());
++        gradient.setColorAt(option.direction == Qt::LeftToRight ? 0
++                                                                : 1, color);
++        gradient.setColorAt(option.direction == Qt::LeftToRight ? 1
++                                                                : 0, Qt::transparent);
++
++        painter->fillRect(lineRect, gradient);
++    }
++
++    painter->setPen(color);
++
++    QRect textRect(option.rect);
++    textRect.setTop(textRect.top() + VERTICAL_SEPARATION);
++    painter->drawText(textRect, Qt::AlignBottom | Qt::AlignLeft,
++    metrics.elidedText(category, Qt::ElideRight, option.rect.width()));
++
++    painter->restore();
++}
++
++int CategoryDrawer::categoryHeight(const QModelIndex &index, const QStyleOption &option) const
++{
++    return option.fontMetrics.height() + 4 /* 3 separator; 1 gradient */ + VERTICAL_SEPARATION;
++}
+diff --git a/workspace/systemsettings/categorydrawer.h b/workspace/systemsettings/categorydrawer.h
+new file mode 100644
+index 0000000..a729b86
+--- /dev/null
++++ b/workspace/systemsettings/categorydrawer.h
+@@ -0,0 +1,46 @@
++/**
++  * This file is part of the KDE project
++  * Copyright (C) 2008 Rafael Fernández López <ereslibre@kde.org>
++  *
++  * This library is free software; you can redistribute it and/or
++  * modify it under the terms of the GNU Library General Public
++  * License as published by the Free Software Foundation; either
++  * version 2 of the License, or (at your option) any later version.
++  *
++  * This library is distributed in the hope that it will be useful,
++  * but WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * Library General Public License for more details.
++  *
++  * You should have received a copy of the GNU Library General Public License
++  * along with this library; see the file COPYING.LIB.  If not, write to
++  * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++  * Boston, MA 02110-1301, USA.
++  */
++
++#ifndef CATEGORYDRAWER_H
++#define CATEGORYDRAWER_H
++
++#include <kcategorydrawer.h>
++
++class QPainter;
++class QModelIndex;
++class QStyleOption;
++
++class CategoryDrawer
++    : public KCategoryDrawer
++{
++public:
++    CategoryDrawer();
++
++    virtual ~CategoryDrawer();
++
++    virtual void drawCategory(const QModelIndex &index,
++                              int sortRole,
++                              const QStyleOption &option,
++                              QPainter *painter) const;
++
++    virtual int categoryHeight(const QModelIndex &index, const QStyleOption &option) const;
++};
++
++#endif // CATEGORYDRAWER_H
+diff --git a/workspace/systemsettings/mainwindow.cpp b/workspace/systemsettings/mainwindow.cpp
+index 408bf23..ff42184 100644
+--- a/workspace/systemsettings/mainwindow.cpp
++++ b/workspace/systemsettings/mainwindow.cpp
+@@ -43,7 +43,6 @@
+ #include <KTabWidget>
+ #include <kcategorizedsortfilterproxymodel.h>
+ #include <kcategorizedview.h>
+-#include <kcategorydrawer.h>
+ #include <kiconloader.h>
+ #include <kfileitemdelegate.h>
+ 
+@@ -51,6 +50,7 @@
+ #include "kcmultiwidget.h"
+ #include "menuitem.h"
+ #include "moduleiconitem.h"
++#include "categorydrawer.h"
+ 
+ Q_DECLARE_METATYPE(MenuItem *)
+ 
+@@ -157,7 +157,7 @@ void MainWindow::buildMainWidget()
+ 
+     foreach ( MenuItem* item, rootItem->children ) {
+         model = new KCModuleModel( item, this );
+-        KCategoryDrawer * drawer = new KCategoryDrawer;
++        CategoryDrawer * drawer = new CategoryDrawer;
+         KCategorizedView * tv = new KCategorizedView( this );
+         tv->setSelectionMode(QAbstractItemView::SingleSelection);
+         tv->setSpacing(KDialog::spacingHint());

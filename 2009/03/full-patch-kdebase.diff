@@ -1,0 +1,786 @@
+diff --git a/apps/dolphin/src/dolphincategorydrawer.cpp b/apps/dolphin/src/dolphincategorydrawer.cpp
+index b06f975..b5c3983 100644
+--- a/apps/dolphin/src/dolphincategorydrawer.cpp
++++ b/apps/dolphin/src/dolphincategorydrawer.cpp
+@@ -43,6 +43,7 @@
+ #define HORIZONTAL_HINT 3
+ 
+ DolphinCategoryDrawer::DolphinCategoryDrawer()
++    : KCategoryDrawer()
+ {
+ }
+ 
+@@ -53,203 +54,153 @@ DolphinCategoryDrawer::~DolphinCategoryDrawer()
+ void DolphinCategoryDrawer::drawCategory(const QModelIndex &index, int sortRole,
+                                          const QStyleOption &option, QPainter *painter) const
+ {
+-    Q_UNUSED(sortRole);
++    painter->setRenderHint(QPainter::Antialiasing);
+ 
+-    QRect starRect = option.rect;
++    const QString category = index.model()->data(index, KCategorizedSortFilterProxyModel::CategoryDisplayRole).toString();
++    const QRect optRect = option.rect;
++    QFont font(QApplication::font());
++    font.setBold(true);
++    const QFontMetrics fontMetrics = QFontMetrics(font);
++    const int height = categoryHeight(index, option);
+ 
+-    int iconSize = KIconLoader::global()->currentSize(KIconLoader::Small);
+-    QVariant categoryVariant = index.model()->data(index, KCategorizedSortFilterProxyModel::CategoryDisplayRole);
++    QColor outlineColor = option.palette.text().color();
++    outlineColor.setAlphaF(0.35);
+ 
+-    if (!categoryVariant.isValid())
++    //BEGIN: top left corner
+     {
+-        return;
++        painter->save();
++        painter->setPen(outlineColor);
++        const QPointF topLeft(optRect.topLeft());
++        QRectF arc(topLeft, QSizeF(4, 4));
++        arc.translate(0.5, 0.5);
++        painter->drawArc(arc, 1440, 1440);
++        painter->restore();
+     }
++    //END: top left corner
+ 
+-    const QString category = categoryVariant.toString();
+-
+-    QColor color;
+-
+-    if (option.state & QStyle::State_Selected)
++    //BEGIN: left vertical line
+     {
+-        color = option.palette.color(QPalette::HighlightedText);
++        QPoint start(optRect.topLeft());
++        start.ry() += 3;
++        QPoint verticalGradBottom(optRect.topLeft());
++        verticalGradBottom.ry() += fontMetrics.height() + 5;
++        QLinearGradient gradient(start, verticalGradBottom);
++        gradient.setColorAt(0, outlineColor);
++        gradient.setColorAt(1, Qt::transparent);
++        painter->fillRect(QRect(start, QSize(1, fontMetrics.height() + 5)), gradient);
+     }
+-    else
++    //END: left vertical line
++
++    //BEGIN: horizontal line
+     {
+-        color = option.palette.color(QPalette::Text);
++        QPoint start(optRect.topLeft());
++        start.rx() += 3;
++        QPoint horizontalGradTop(optRect.topLeft());
++        horizontalGradTop.rx() += optRect.width() - 6;
++        painter->fillRect(QRect(start, QSize(optRect.width() - 6, 1)), outlineColor);
+     }
++    //END: horizontal line
+ 
+-    painter->save();
+-    painter->setRenderHint(QPainter::Antialiasing);
+-
+-    QStyleOptionButton opt;
+-
+-    opt.rect = option.rect;
+-    opt.rect.setLeft(opt.rect.left() + HORIZONTAL_HINT);
+-    opt.rect.setRight(opt.rect.right() - HORIZONTAL_HINT);
+-    opt.palette = option.palette;
+-    opt.direction = option.direction;
+-    opt.text = category;
+-
+-    QStyleOptionViewItemV4 viewOptions;
+-    viewOptions.rect = option.rect;
+-    viewOptions.palette = option.palette;
+-    viewOptions.direction = option.direction;
+-    viewOptions.state = option.state;
+-    viewOptions.viewItemPosition = QStyleOptionViewItemV4::OnlyOne;
+-    QApplication::style()->drawPrimitive(QStyle::PE_PanelItemViewItem, &viewOptions, painter, 0);
+-
+-    QFont painterFont = painter->font();
+-    painterFont.setWeight(QFont::Bold);
+-    QFontMetrics metrics(painterFont);
+-    painter->setFont(painterFont);
+-
+-    QPainterPath path;
+-    path.addRect(option.rect.left(),
+-                 option.rect.bottom() - 1,
+-                 option.rect.width(),
+-                 1);
+-
+-    QLinearGradient gradient(option.rect.topLeft(),
+-                             option.rect.bottomRight());
+-    gradient.setColorAt(option.direction == Qt::LeftToRight ? 0
+-                                                            : 1, color);
+-    gradient.setColorAt(option.direction == Qt::LeftToRight ? 1
+-                                                            : 0, Qt::transparent);
+-
+-    painter->setBrush(gradient);
+-    painter->fillPath(path, gradient);
+-
+-    if (option.direction == Qt::LeftToRight)
++    //BEGIN: top right corner
+     {
+-        opt.rect.setLeft(opt.rect.left());
+-        starRect.setLeft(starRect.left());
+-        starRect.setRight(starRect.right());
++        painter->save();
++        painter->setPen(outlineColor);
++        QPointF topRight(optRect.topRight());
++        topRight.rx() -= 4;
++        QRectF arc(topRight, QSizeF(4, 4));
++        arc.translate(0.5, 0.5);
++        painter->drawArc(arc, 0, 1440);
++        painter->restore();
+     }
+-    else
++    //END: top right corner
++
++    //BEGIN: right vertical line
+     {
+-        opt.rect.setRight(opt.rect.width());
+-        starRect.setLeft(starRect.width());
+-        starRect.setRight(starRect.width());
++        QPoint start(optRect.topRight());
++        start.ry() += 3;
++        QPoint verticalGradBottom(optRect.topRight());
++        verticalGradBottom.ry() += fontMetrics.height() + 5;
++        QLinearGradient gradient(start, verticalGradBottom);
++        gradient.setColorAt(0, outlineColor);
++        gradient.setColorAt(1, Qt::transparent);
++        painter->fillRect(QRect(start, QSize(1, fontMetrics.height() + 5)), gradient);
+     }
++    //END: right vertical line
+ 
+-    bool paintIcon = true;
+-    bool paintText = true;
+-
+-    QPixmap icon;
+-    switch (index.column()) {
+-        case KDirModel::Name:
+-            paintIcon = false;
+-            break;
+-
+-        case KDirModel::Size:
+-            paintIcon = false;
+-            break;
+-
+-        case KDirModel::ModifiedTime:
+-            paintIcon = false;
+-            break;
+-
+-        case KDirModel::Permissions:
+-            paintIcon = false; // TODO: let's think about how to represent permissions
+-            break;
+-
+-        case KDirModel::Owner: {
+-            opt.rect.setTop(option.rect.bottom() - (iconSize / 4));
+-            KUser user(category);
+-            QString faceIconPath = user.faceIconPath();
+-
+-            if (!faceIconPath.isEmpty())
+-            {
+-                icon = QPixmap::fromImage(QImage(faceIconPath).scaledToHeight(option.fontMetrics.height(), Qt::SmoothTransformation));
+-            }
+-            else
+-            {
+-                icon = KIconLoader::global()->loadIcon("user-identity", KIconLoader::NoGroup, option.fontMetrics.height());
+-            }
+-
+-            opt.rect.setTop(opt.rect.top() - icon.height());
+-
+-            break;
+-        }
+-
+-        case KDirModel::Group:
+-            paintIcon = false;
+-            break;
+-
+-        case KDirModel::Type: {
+-            opt.rect.setTop(option.rect.bottom() - (iconSize / 4));
+-            const KCategorizedSortFilterProxyModel *proxyModel = static_cast<const KCategorizedSortFilterProxyModel*>(index.model());
+-            const DolphinModel *model = static_cast<const DolphinModel*>(proxyModel->sourceModel());
+-            KFileItem item = model->itemForIndex(proxyModel->mapToSource(index));
+-            // This is the only way of getting the icon right. Others will fail on corner
+-            // cases like the item representing this group has been set a different icon,
+-            // so the group icon drawn is that one particularly. This way assures the drawn
+-            // icon is the one of the mimetype of the group itself. (ereslibre)
+-            icon = KIconLoader::global()->loadMimeTypeIcon(item.mimeTypePtr()->iconName(),
+-                                                           KIconLoader::NoGroup, option.fontMetrics.height());
+-
+-            opt.rect.setTop(opt.rect.top() - icon.height());
+-
+-            break;
++    //BEGIN: category information
++    {
++        const int iconSize = KIconLoader::global()->currentSize(KIconLoader::Small);
++
++        bool paintIcon;
++        QPixmap icon;
++        switch (index.column()) {
++            case KDirModel::Owner: {
++                    paintIcon = true;
++                    KUser user(category);
++                    const QString faceIconPath = user.faceIconPath();
++                    if (faceIconPath.isEmpty()) {
++                        icon = KIconLoader::global()->loadIcon("user-identity", KIconLoader::NoGroup, iconSize);
++                    } else {
++                        icon = QPixmap::fromImage(QImage(faceIconPath).scaledToHeight(iconSize, Qt::SmoothTransformation));
++                    }
++                }
++                break;
++            case KDirModel::Type: {
++                    paintIcon = true;
++                    const KCategorizedSortFilterProxyModel *proxyModel = static_cast<const KCategorizedSortFilterProxyModel*>(index.model());
++                    const DolphinModel *model = static_cast<const DolphinModel*>(proxyModel->sourceModel());
++                    KFileItem item = model->itemForIndex(proxyModel->mapToSource(index));
++                    // This is the only way of getting the icon right. Others will fail on corner
++                    // cases like the item representing this group has been set a different icon,
++                    // so the group icon drawn is that one particularly. This way assures the drawn
++                    // icon is the one of the mimetype of the group itself. (ereslibre)
++                    icon = KIconLoader::global()->loadMimeTypeIcon(item.mimeTypePtr()->iconName(), KIconLoader::NoGroup, iconSize);
++                }
++                break;
++            default:
++                paintIcon = false;
+         }
+ 
+-#ifdef HAVE_NEPOMUK
+-        case DolphinModel::Rating: {
+-            paintText = false;
+-            paintIcon = false;
++        if (paintIcon) {
++            QRect iconRect(option.rect);
++            iconRect.setTop(iconRect.top() + 4);
++            iconRect.setLeft(iconRect.left() + 7);
++            iconRect.setSize(QSize(iconSize, iconSize));
+ 
+-            painter->setLayoutDirection( option.direction );
+-            QRect ratingRect( option.rect );
+-            ratingRect.setTop(option.rect.top() + (option.rect.height() / 2) - (iconSize / 2));
+-            ratingRect.setHeight( iconSize );
+-            KRatingPainter::paintRating( painter, ratingRect, Qt::AlignLeft, category.toInt() );
+-            break;
++            painter->drawPixmap(iconRect, icon);
+         }
+ 
+-        case DolphinModel::Tags:
+-            paintIcon = false;
+-            break;
+-#endif
+-    }
+-
+-    if (paintIcon) {
+-        painter->drawPixmap(QRect(option.direction == Qt::LeftToRight ? opt.rect.left()
+-                                                                      : opt.rect.right() - icon.width() + (iconSize / 4), opt.rect.top(), icon.width(), icon.height()), icon);
+-
+-        if (option.direction == Qt::LeftToRight)
+-        {
+-            opt.rect.setLeft(opt.rect.left() + icon.width() + (iconSize / 4));
+-        }
+-        else
++        //BEGIN: text
+         {
+-            opt.rect.setRight(opt.rect.right() + (iconSize / 4));
++            QRect textRect(option.rect);
++            textRect.setTop(textRect.top() + 7);
++            textRect.setLeft(textRect.left() + 7 + (paintIcon ? (iconSize + 6) : 0));
++            textRect.setHeight(qMax(fontMetrics.height(), iconSize));
++            textRect.setRight(textRect.right() - 7);
++            textRect.setBottom(textRect.bottom() - 5); // only one pixel separation here (no gradient)
++
++            painter->save();
++            painter->setFont(font);
++            QColor penColor(option.palette.text().color());
++            penColor.setAlphaF(0.6);
++            painter->setPen(penColor);
++            painter->drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, category);
++            painter->restore();
+         }
++        //END: text
+     }
+-
+-    if (paintText) {
+-        opt.rect.setTop(option.rect.top() + (iconSize / 4));
+-        opt.rect.setBottom(opt.rect.bottom() - 1);
+-        painter->setPen(color);
+-
+-        QRect textRect = opt.rect;
+-
+-        if (option.direction == Qt::RightToLeft)
+-        {
+-            textRect.setWidth(textRect.width() - (paintIcon ? icon.width() + (iconSize / 4)
+-                                                            : -(iconSize / 4)));
+-        }
+-
+-        painter->drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft,
+-        metrics.elidedText(category, Qt::ElideRight, textRect.width()));
+-    }
+-
+-    painter->restore();
++    //BEGIN: category information
+ }
+ 
+ int DolphinCategoryDrawer::categoryHeight(const QModelIndex &index, const QStyleOption &option) const
+ {
+-    int iconSize = KIconLoader::global()->currentSize(KIconLoader::Small);
+-    int heightWithoutIcon = option.fontMetrics.height() + (iconSize / 4) * 2 + 1; /* 1 pixel-width gradient */
++    QFont font(QApplication::font());
++    font.setBold(true);
++    QFontMetrics fontMetrics(font);
++
++    const int iconSize = KIconLoader::global()->currentSize(KIconLoader::Small);
++    const int heightWithoutIcon = fontMetrics.height() + 1 /* 1 pixel-width gradient */
++                                                       + 11 /* top and bottom separation */;
+     bool paintIcon;
+ 
+     switch (index.column()) {
+@@ -261,8 +212,10 @@ int DolphinCategoryDrawer::categoryHeight(const QModelIndex &index, const QStyle
+             paintIcon = false;
+     }
+ 
+-    if (paintIcon)
+-        return qMax(heightWithoutIcon, iconSize + (iconSize / 4) * 2 + 1) /* 1 pixel-width gradient */;
++    if (paintIcon) {
++        return qMax(heightWithoutIcon, iconSize + 1 /* 1 pixel-width gradient */
++                                                + 11 /* top and bottom separation */);
++    }
+ 
+     return heightWithoutIcon;
+ }
+diff --git a/apps/dolphin/src/dolphiniconsview.cpp b/apps/dolphin/src/dolphiniconsview.cpp
+index f5b69ba..fee1ac5 100644
+--- a/apps/dolphin/src/dolphiniconsview.cpp
++++ b/apps/dolphin/src/dolphiniconsview.cpp
+@@ -451,7 +451,7 @@ void DolphinIconsView::updateGridSize(bool showPreview, int additionalInfoCount)
+     }
+ 
+     m_itemSize = QSize(itemWidth, itemHeight);
+-    setGridSize(QSize(itemWidth + spacing * 2, itemHeight + spacing));
++    setGridSizeOwn(QSize(itemWidth + spacing * 2, itemHeight + spacing));
+ 
+     KFileItemDelegate* delegate = dynamic_cast<KFileItemDelegate*>(itemDelegate());
+     if (delegate != 0) {
+diff --git a/runtime/kioslave/thumbnail/htmlcreator.cpp b/runtime/kioslave/thumbnail/htmlcreator.cpp
+index c623606..c2544a7 100644
+--- a/runtime/kioslave/thumbnail/htmlcreator.cpp
++++ b/runtime/kioslave/thumbnail/htmlcreator.cpp
+@@ -94,6 +94,8 @@ bool HTMLCreator::create(const QString &path, int width, int height, QImage &img
+     m_html->paint(&p, rc);
+     p.end();
+ 
++    p.fillRect(QRect(0, 0, width, height), Qt::red);
++
+     img = pix.toImage();
+ 
+     m_html->closeUrl();
+@@ -113,7 +115,7 @@ void HTMLCreator::slotCompleted()
+ 
+ ThumbCreator::Flags HTMLCreator::flags() const
+ {
+-    return DrawFrame;
++    return None;
+ }
+ 
+ #include "htmlcreator.moc"
+diff --git a/runtime/kioslave/thumbnail/thumbnail.cpp b/runtime/kioslave/thumbnail/thumbnail.cpp
+index 3d95ad6..7e72204 100644
+--- a/runtime/kioslave/thumbnail/thumbnail.cpp
++++ b/runtime/kioslave/thumbnail/thumbnail.cpp
+@@ -58,8 +58,6 @@
+ #include <kio/thumbcreator.h>
+ #include <kconfiggroup.h>
+ 
+-// Use correctly KComponentData instead of KApplication (but then no QPixmap)
+-#undef USE_KINSTANCE
+ // Fix thumbnail: protocol
+ #define THUMBNAIL_HACK (1)
+ 
+@@ -99,9 +97,6 @@ int kdemain(int argc, char **argv)
+     nice( 5 );
+ #endif
+ 
+-#ifdef USE_KINSTANCE
+-    KComponentData componentData("kio_thumbnail");
+-#else
+     // creating KApplication in a slave in not a very good idea,
+     // as dispatchLoop() doesn't allow it to process its messages,
+     // so it for example wouldn't reply to ksmserver - on the other
+@@ -114,7 +109,6 @@ int kdemain(int argc, char **argv)
+     KCmdLineArgs::init(&about);
+ 
+     KApplication app( true);
+-#endif
+ 
+     if (argc != 4)
+     {
+@@ -302,43 +296,6 @@ void ThumbnailProtocol::get(const KUrl &url)
+             img = img.scaled(m_width, int(qMax((double)m_width * imgRatio, 1.0)), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+     }
+ 
+-// ### FIXME
+-#ifndef USE_KINSTANCE
+-    if (flags & ThumbCreator::DrawFrame)
+-    {
+-        QPixmap pix = QPixmap::fromImage( img );
+-        int x2 = pix.width() - 1;
+-        int y2 = pix.height() - 1;
+-        // paint a black rectangle around the "page"
+-        QPainter p;
+-        p.begin( &pix );
+-        p.setPen( QColor( 48, 48, 48 ));
+-        p.drawLine( x2, 0, x2, y2 );
+-        p.drawLine( 0, y2, x2, y2 );
+-        p.setPen( QColor( 215, 215, 215 ));
+-        p.drawLine( 0, 0, x2, 0 );
+-        p.drawLine( 0, 0, 0, y2 );
+-        p.end();
+-
+-        const QBitmap& mask = pix.mask();
+-        if ( !mask.isNull() ) // need to update it so we can see the frame
+-        {
+-            QBitmap bitmap( mask );
+-            QPainter painter;
+-            painter.begin( &bitmap );
+-            painter.drawLine( x2, 0, x2, y2 );
+-            painter.drawLine( 0, y2, x2, y2 );
+-            painter.drawLine( 0, 0, x2, 0 );
+-            painter.drawLine( 0, 0, 0, y2 );
+-            painter.end();
+-
+-            pix.setMask( bitmap );
+-        }
+-
+-        img = pix.toImage();
+-    }
+-#endif
+-
+     if ((flags & ThumbCreator::BlendIcon) && KIconLoader::global()->alphaBlending(KIconLoader::Desktop))
+     {
+         // blending the mimetype icon in
+diff --git a/workspace/kcontrol/style/kcmstyle.cpp b/workspace/kcontrol/style/kcmstyle.cpp
+index ad8a6e7..26ed8cb 100644
+--- a/workspace/kcontrol/style/kcmstyle.cpp
++++ b/workspace/kcontrol/style/kcmstyle.cpp
+@@ -234,7 +234,6 @@ KCMStyle::KCMStyle( QWidget* parent, const QVariantList& )
+ 	QFormLayout* page2Layout = new QFormLayout( page2 );
+ 
+ 	comboGraphicEffectsLevel = new KComboBox( page2 );
+-	comboGraphicEffectsLevel->setVisible(false);
+ 	comboGraphicEffectsLevel->setObjectName( "cbGraphicEffectsLevel" );
+ 	comboGraphicEffectsLevel->setEditable( false );
+ 	comboGraphicEffectsLevel->addItem(i18n("Low display resolution and Low CPU"), KGlobalSettings::NoEffects);
+@@ -243,7 +242,7 @@ KCMStyle::KCMStyle( QWidget* parent, const QVariantList& )
+ 	comboGraphicEffectsLevel->addItem(i18n("High display resolution and High CPU"), (int) (KGlobalSettings::SimpleAnimationEffects | KGlobalSettings::GradientEffects));
+ 	comboGraphicEffectsLevel->addItem(i18n("Low display resolution and Very High CPU"), KGlobalSettings::ComplexAnimationEffects);
+ 	comboGraphicEffectsLevel->addItem(i18n("High display resolution and Very High CPU"), (int) (KGlobalSettings::ComplexAnimationEffects | KGlobalSettings::GradientEffects));
+-	//page2Layout->addRow(i18nc("@label:listbox","Graphical User Interface:"), comboGraphicEffectsLevel);
++	page2Layout->addRow(i18nc("@label:listbox","Graphical User Interface:"), comboGraphicEffectsLevel);
+ 
+ 	comboToolbarIcons = new QComboBox( page2 );
+ 	comboToolbarIcons->setEditable( false );
+diff --git a/workspace/systemsettings/mainwindow.cpp b/workspace/systemsettings/mainwindow.cpp
+index 3b21557..ec50433 100644
+--- a/workspace/systemsettings/mainwindow.cpp
++++ b/workspace/systemsettings/mainwindow.cpp
+@@ -23,6 +23,7 @@
+ #include "mainwindow.h"
+ 
+ #include <QApplication>
++#include <QPainter>
+ #include <QLabel>
+ 
+ #include <QLayout>
+@@ -54,6 +55,227 @@
+ 
+ Q_DECLARE_METATYPE(MenuItem *)
+ 
++class CategoryDrawer
++    : public KCategoryDrawer
++{
++public:
++    CategoryDrawer();
++
++    virtual void drawCategory(const QModelIndex &index,
++                              int sortRole,
++                              const QStyleOption &option,
++                              QPainter *painter) const;
++
++    virtual int categoryHeight(const QModelIndex &index, const QStyleOption &option) const;
++};
++
++CategoryDrawer::CategoryDrawer()
++    : KCategoryDrawer()
++{
++    setLeftMargin(7);
++    setRightMargin(7);
++}
++
++void CategoryDrawer::drawCategory(const QModelIndex &index, int sortRole, const QStyleOption &option,
++                                  QPainter *painter) const
++{
++    painter->setRenderHint(QPainter::Antialiasing);
++
++    const QRect optRect = option.rect;
++    QFont font(QApplication::font());
++    font.setBold(true);
++    const QFontMetrics fontMetrics = QFontMetrics(font);
++    const int height = categoryHeight(index, option);
++
++    //BEGIN: decoration gradient
++    {
++        QPainterPath path(optRect.bottomLeft());
++        path.lineTo(QPoint(optRect.topLeft().x(), optRect.topLeft().y() - 3));
++        const QPointF topLeft(optRect.topLeft());
++        QRectF arc(topLeft, QSizeF(4, 4));
++        path.arcTo(arc, 180, -90);
++        path.lineTo(optRect.topRight());
++        path.lineTo(optRect.bottomRight());
++        path.lineTo(optRect.bottomLeft());
++
++        QColor window(option.palette.window().color());
++        const QColor base(option.palette.base().color());
++
++        window.setAlphaF(0.4);
++
++        QLinearGradient decoGradient1(optRect.topLeft(), optRect.bottomLeft());
++        decoGradient1.setColorAt(0, window);
++        decoGradient1.setColorAt(1, Qt::transparent);
++
++        QLinearGradient decoGradient2(optRect.topLeft(), optRect.topRight());
++        decoGradient2.setColorAt(0, Qt::transparent);
++        decoGradient2.setColorAt(1, base);
++
++        painter->fillPath(path, decoGradient1);
++        painter->fillPath(path, decoGradient2);
++    }
++    //END: decoration gradient
++
++    {
++        QRect newOptRect(optRect);
++        newOptRect.setLeft(newOptRect.left() + 1);
++        newOptRect.setTop(newOptRect.top() + 1);
++
++        //BEGIN: inner top left corner
++        {
++            painter->save();
++            painter->setPen(option.palette.base().color());
++            const QPointF topLeft(newOptRect.topLeft());
++            QRectF arc(topLeft, QSizeF(4, 4));
++            arc.translate(0.5, 0.5);
++            painter->drawArc(arc, 1440, 1440);
++            painter->restore();
++        }
++        //END: inner top left corner
++
++        //BEGIN: inner left vertical line
++        {
++            QPoint start(newOptRect.topLeft());
++            start.ry() += 3;
++            QPoint verticalGradBottom(newOptRect.topLeft());
++            verticalGradBottom.ry() += newOptRect.height() - 3;
++            QLinearGradient gradient(start, verticalGradBottom);
++            gradient.setColorAt(0, option.palette.base().color());
++            gradient.setColorAt(1, Qt::transparent);
++            painter->fillRect(QRect(start, QSize(1, newOptRect.height() - 3)), gradient);
++        }
++        //END: inner left vertical line
++
++        //BEGIN: inner horizontal line
++        {
++            QPoint start(newOptRect.topLeft());
++            start.rx() += 3;
++            QPoint horizontalGradTop(newOptRect.topLeft());
++            horizontalGradTop.rx() += newOptRect.width() - 3;
++            QLinearGradient gradient(start, horizontalGradTop);
++            gradient.setColorAt(0, option.palette.base().color());
++            gradient.setColorAt(1, Qt::transparent);
++            painter->fillRect(QRect(start, QSize(newOptRect.width() - 3, 1)), gradient);
++        }
++        //END: inner horizontal line
++    }
++
++    QColor outlineColor = option.palette.text().color();
++    outlineColor.setAlphaF(0.35);
++
++    //BEGIN: top left corner
++    {
++        painter->save();
++        painter->setPen(outlineColor);
++        const QPointF topLeft(optRect.topLeft());
++        QRectF arc(topLeft, QSizeF(4, 4));
++        arc.translate(0.5, 0.5);
++        painter->drawArc(arc, 1440, 1440);
++        painter->restore();
++    }
++    //END: top left corner
++
++    //BEGIN: left vertical line
++    {
++        QPoint start(optRect.topLeft());
++        start.ry() += 3;
++        QPoint verticalGradBottom(optRect.topLeft());
++        verticalGradBottom.ry() += optRect.height() - 3;
++        QLinearGradient gradient(start, verticalGradBottom);
++        gradient.setColorAt(0, outlineColor);
++        gradient.setColorAt(1, option.palette.base().color());
++        painter->fillRect(QRect(start, QSize(1, optRect.height() - 3)), gradient);
++    }
++    //END: left vertical line
++
++    //BEGIN: horizontal line
++    {
++        QPoint start(optRect.topLeft());
++        start.rx() += 3;
++        QPoint horizontalGradTop(optRect.topLeft());
++        horizontalGradTop.rx() += optRect.width() - 3;
++        QLinearGradient gradient(start, horizontalGradTop);
++        gradient.setColorAt(0, outlineColor);
++        gradient.setColorAt(1, option.palette.base().color());
++        painter->fillRect(QRect(start, QSize(optRect.width() - 3, 1)), gradient);
++    }
++    //END: horizontal line
++
++    //BEGIN: draw text
++    {
++        const QString category = index.model()->data(index, KCategorizedSortFilterProxyModel::CategoryDisplayRole).toString();
++        QRect textRect = QRect(option.rect.topLeft(), QSize(option.rect.width(), height));
++        textRect.setTop(textRect.top() + 2 + 3 /* corner */);
++        textRect.setLeft(textRect.left() + 2 + 3 /* corner */ + 3 /* a bit of margin */);
++        painter->save();
++        painter->setFont(font);
++        QColor penColor(option.palette.text().color());
++        penColor.setAlphaF(0.6);
++        painter->setPen(penColor);
++        painter->drawText(textRect, Qt::AlignLeft | Qt::AlignTop, category);
++        painter->restore();
++    }
++    //END: draw text
++}
++
++int CategoryDrawer::categoryHeight(const QModelIndex &index, const QStyleOption &option) const
++{
++    QFont font(QApplication::font());
++    font.setBold(true);
++    const QFontMetrics fontMetrics = QFontMetrics(font);
++
++    return fontMetrics.height() + 2 + 12 /* vertical spacing */;
++}
++
++CategorizedView::CategorizedView(QWidget *parent)
++    : KCategorizedView(parent)
++{
++}
++
++CategorizedView::~CategorizedView()
++{
++}
++
++void CategorizedView::setModel(QAbstractItemModel *model)
++{
++    KCategorizedView::setModel(model);
++
++    for (int i = 0; i <= model->rowCount(); ++i) {
++        const QModelIndex index = model->index(i, modelColumn(), rootIndex());
++        const QSize size = sizeHintForIndex(index);
++        maxSize.setHeight(qMax(maxSize.height(), size.height()));
++        maxSize.setWidth(qMax(maxSize.width(), size.width()));
++    }
++
++    QSize size(maxSize);
++    size.setHeight(maxSize.height() + QFontMetrics(font()).height() + 10);
++    size.setWidth((maxSize.width() * 2.0 / 3.0) + 10);
++    setGridSize(size);
++    qobject_cast<KFileItemDelegate*>(itemDelegate())->setMaximumSize(size);
++}
++
++void CategorizedView::rowsInserted(const QModelIndex &parent, int start, int end)
++{
++    setWordWrap(false);
++
++    KCategorizedView::rowsInserted(parent, start, end);
++
++    for (int i = start; i <= end; ++i) {
++        const QModelIndex index = model()->index(i, modelColumn(), rootIndex());
++        const QSize size = sizeHintForIndex(index);
++        maxSize.setHeight(qMax(maxSize.height(), size.height()));
++        maxSize.setWidth(qMax(maxSize.width(), size.width()));
++    }
++
++    QSize size(maxSize);
++    size.setHeight(maxSize.height() + QFontMetrics(font()).height() + 10);
++    size.setWidth((maxSize.width() * 2.0 / 3.0) + 10);
++    setGridSize(size);
++    qobject_cast<KFileItemDelegate*>(itemDelegate())->setMaximumSize(size);
++
++    setWordWrap(true);
++}
++
+ MainWindow::MainWindow(QWidget *parent) :
+     KXmlGuiWindow(parent),
+     categories( KServiceTypeTrader::self()->query("SystemSettingsCategory") ),
+@@ -164,10 +386,9 @@ void MainWindow::buildMainWidget()
+ 
+     foreach ( MenuItem* item, rootItem->children ) {
+         model = new KCModuleModel( item, this );
+-        KCategoryDrawer * drawer = new KCategoryDrawer;
+-        KCategorizedView * tv = new KCategorizedView( this );
++        CategoryDrawer * drawer = new CategoryDrawer;
++        CategorizedView * tv = new CategorizedView( this );
+         tv->setSelectionMode(QAbstractItemView::SingleSelection);
+-        tv->setSpacing(KDialog::spacingHint());
+         tv->setCategoryDrawer( drawer );
+         tv->setViewMode( QListView::IconMode );
+         tv->setMouseTracking( true );
+@@ -181,6 +402,7 @@ void MainWindow::buildMainWidget()
+         kcsfpm->setFilterCaseSensitivity( Qt::CaseInsensitive );
+         kcsfpm->sort( 0 );
+         tv->setModel( kcsfpm );
++        tv->setWordWrap(true);
+         connect( tv,
+                 SIGNAL(activated(const QModelIndex&)),
+                 SLOT(selectionChanged(const QModelIndex&)) );
+@@ -197,8 +419,6 @@ void MainWindow::buildMainWidget()
+                 this, SLOT(updateSearchHits()) );
+         moduleTabs->addTab(tv, item->service->name() );
+ 
+-
+-
+         // record the index of the newly added tab so that we can later update the label showing
+         // number of search hits
+         modelToTabHash.insert( kcsfpm, moduleTabs->count() - 1 );
+diff --git a/workspace/systemsettings/mainwindow.h b/workspace/systemsettings/mainwindow.h
+index 0e8db29..92b14ef 100644
+--- a/workspace/systemsettings/mainwindow.h
++++ b/workspace/systemsettings/mainwindow.h
+@@ -25,6 +25,7 @@
+ // KDE
+ #include <KService>
+ #include <KXmlGuiWindow>
++#include <KCategorizedView>
+ 
+ class QAbstractItemModel;
+ class QAction;
+@@ -88,6 +89,24 @@ private:
+ 	QLabel *advancedHitLabel;
+ };
+ 
++class CategorizedView
++    : public KCategorizedView
++{
++    Q_OBJECT
++
++public:
++    CategorizedView(QWidget *parent = 0);
++    ~CategorizedView();
++
++    void setModel(QAbstractItemModel *model);
++
++protected:
++    void rowsInserted(const QModelIndex &parent, int start, int end);
++
++private:
++    QSize maxSize;
++};
++
+ bool pageLessThan( MenuItem *page1, MenuItem *page2 );
+ 
+ #endif

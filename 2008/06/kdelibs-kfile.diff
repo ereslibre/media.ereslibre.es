@@ -1,0 +1,13 @@
+diff --git a/kfile/kfileplacesview.cpp b/kfile/kfileplacesview.cpp
+index fd2927e..d92645f 100644
+--- a/kfile/kfileplacesview.cpp
++++ b/kfile/kfileplacesview.cpp
+@@ -252,8 +252,6 @@ KFilePlacesView::KFilePlacesView(QWidget *parent)
+     setDropIndicatorShown(false);
+     setFrameStyle(QFrame::NoFrame);
+ 
+-    setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+-
+     setResizeMode(Adjust);
+     setItemDelegate(new KFilePlacesViewDelegate(this));
+ 

@@ -1,0 +1,13 @@
+diff --git a/apps/konqueror/src/konqmainwindow.cpp b/apps/konqueror/src/konqmainwindow.cpp
+index e76b016..7931e86 100644
+--- a/apps/konqueror/src/konqmainwindow.cpp
++++ b/apps/konqueror/src/konqmainwindow.cpp
+@@ -1251,7 +1251,7 @@ void KonqMainWindow::slotCreateNewWindow( const KUrl &url,
+     KConfigGroup profileGroup(cfg, "Profile");
+ 
+     // First, apply default size from profile
+-    mainWindow->applyWindowSizeFromProfile(profileGroup);
++    mainWindow->applyMainWindowSettings(profileGroup);
+ 
+     int width;
+     if ( windowArgs.width() != -1 )

@@ -1,0 +1,17 @@
+diff --git a/kdeui/widgets/kmainwindow.cpp b/kdeui/widgets/kmainwindow.cpp
+index 7448991..49626a5 100644
+--- a/kdeui/widgets/kmainwindow.cpp
++++ b/kdeui/widgets/kmainwindow.cpp
+@@ -228,9 +228,10 @@ void KMainWindowPrivate::init(KMainWindow *_q)
+ 
+     q = _q;
+ 
+-    q->setAnimated(KGlobalSettings::graphicEffectsLevel() & KGlobalSettings::SimpleAnimationEffects);
++    q->setAttribute(Qt::WA_QuitOnClose);
++    q->setAttribute(Qt::WA_DeleteOnClose, false);
+ 
+-    q->setAttribute( Qt::WA_DeleteOnClose );
++    q->setAnimated(KGlobalSettings::graphicEffectsLevel() & KGlobalSettings::SimpleAnimationEffects);
+ 
+     KWhatsThisManager::init ();
+ 

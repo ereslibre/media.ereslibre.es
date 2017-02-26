@@ -1,0 +1,278 @@
+{
+    "phonon": {
+        "source": "kde/phonon",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:phonon"
+    },
+
+    "phonon_gstreamer": {
+        "source": "kde/phonon-gstreamer",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:phonon-gstreamer"
+    },
+
+    "phonon_full": {
+        "dependencies": ["phonon", "phonon_gstreamer"]
+    },
+
+    "polkit_qt_1": {
+        "source": "kde/polkit-qt-1",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:polkit-qt-1"
+    },
+
+    "automoc": {
+        "source": "kde/automoc",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:automoc"
+    },
+
+    "akonadi": {
+        "source": "kde/akonadi",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:akonadi"
+    },
+
+    "attica": {
+        "source": "kde/attica",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:attica",
+        "dependencies": ["automoc"]
+    },
+
+    "soprano": {
+        "source": "kde/soprano",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:soprano",
+        "dependencies": ["automoc"]
+    },
+
+    "kdesupport": {
+        "source": "kde/kdesupport",
+        "repositoryType": "svn",
+        "repository": "svn+ssh://svn.kde.org/home/kde/trunk/kdesupport",
+        "dependencies": ["phonon_full", "polkit_qt_1", "akonadi", "attica", "soprano"]
+    },
+
+    "kdelibs": {
+        "source": "kde/KDE/kdelibs",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:kdelibs",
+        "dependencies": ["kdesupport"]
+    },
+
+    "kdepimlibs": {
+        "source": "kde/KDE/kdepimlibs",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:kdepimlibs",
+        "dependencies": ["kdelibs"]
+    },
+
+    "konsole": {
+        "source": "kde/KDE/kdebase-konsole",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:konsole",
+        "dependencies": ["kdelibs"]
+    },
+
+    "kate": {
+        "source": "kde/KDE/kdebase-kate",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:kate",
+        "dependencies": ["kdelibs"]
+    },
+
+    "kde_baseapps": {
+        "source": "kde/KDE/kde-baseapps",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:kde-baseapps",
+        "dependencies": ["kdelibs"]
+    },
+
+    "kde_workspace": {
+        "source": "kde/KDE/kde-workspace",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:kde-workspace",
+        "dependencies": ["kdelibs"]
+    },
+
+    "kde_runtime": {
+        "source": "kde/KDE/kde-runtime",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:kde-runtime",
+        "dependencies": ["kdelibs"]
+    },
+
+    "kdebase": {
+        "dependencies": ["kdepimlibs", "konsole", "kate", "kde_baseapps", "kde_workspace", "kde_runtime"]
+    },
+
+    "kdegraphics": {
+        "source": "kde/KDE/kdegraphics",
+        "repositoryType": "svn",
+        "repository": "svn+ssh://svn.kde.org/home/kde/trunk/KDE/kdegraphics",
+        "dependencies": ["kdelibs"]
+    },
+
+    "kdemultimedia": {
+        "source": "kde/KDE/kdemultimedia",
+        "repositoryType": "svn",
+        "repository": "svn+ssh://svn.kde.org/home/kde/trunk/KDE/kdemultimedia",
+        "dependencies": ["kdelibs"]
+    },
+
+    "kdenetwork": {
+        "source": "kde/KDE/kdenetwork",
+        "repositoryType": "svn",
+        "repository": "svn+ssh://svn.kde.org/home/kde/trunk/KDE/kdenetwork",
+        "dependencies": ["kdelibs"]
+    },
+
+    "kdeplasma_addons": {
+        "source": "kde/KDE/kdeplasma-addons",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:kdeplasma-addons",
+        "dependencies": ["kdelibs"]
+    },
+
+    "kdesdk": {
+        "source": "kde/KDE/kdesdk",
+        "repositoryType": "svn",
+        "repository": "svn+ssh://svn.kde.org/home/kde/trunk/KDE/kdesdk",
+        "dependencies": ["kdelibs"]
+    },
+
+    "kdepim_runtime": {
+        "source": "kde/KDE/kdepim-runtime",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:kdepim-runtime",
+        "dependencies": ["kdepimlibs"]
+    },
+
+    "kdepim": {
+        "source": "kde/KDE/kdepim",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:kdepim",
+        "dependencies": ["kdepim_runtime"]
+    },
+
+    "kdeedu": {
+        "source": "kde/KDE/kdeedu",
+        "repositoryType": "svn",
+        "repository": "svn+ssh://svn.kde.org/home/kde/trunk/KDE/kdeedu",
+        "dependencies": ["kdelibs"]
+    },
+
+    "kdeutils": {
+        "source": "kde/KDE/kdeutils",
+        "repositoryType": "svn",
+        "repository": "svn+ssh://svn.kde.org/home/kde/trunk/KDE/kdeutils",
+        "dependencies": ["kdelibs"]
+    },
+
+    "kdegames": {
+        "source": "kde/KDE/kdegames",
+        "repositoryType": "svn",
+        "repository": "svn+ssh://svn.kde.org/home/kde/trunk/KDE/kdegames",
+        "dependencies": ["kdelibs"]
+    },
+
+    "kdetoys": {
+        "source": "kde/KDE/kdetoys",
+        "repositoryType": "svn",
+        "repository": "svn+ssh://svn.kde.org/home/kde/trunk/KDE/kdetoys",
+        "dependencies": ["kdelibs"]
+    },
+
+    "network_management": {
+        "source": "kde/networkmanagement",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:kdepim",
+        "dependencies": ["kdebase"]
+    },
+
+    "kwebkitpart": {
+        "source": "kde/kwebkitpart",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:kwebkitpart",
+        "dependencies": ["kdebase"]
+    },
+
+    "kdereview": {
+        "source": "kde/kdereview",
+        "repositoryType": "svn",
+        "repository": "svn+ssh://svn.kde.org/home/kde/trunk/kdereview",
+        "dependencies": ["kdelibs"]
+    },
+
+    "rekonq": {
+        "source": "kde/rekonq",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:rekonq",
+        "dependencies": ["kdelibs"]
+    },
+
+    "gwenview": {
+        "source": "kde/gwenview",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:gwenview",
+        "dependencies": ["kdelibs"]
+    },
+
+    "calligra": {
+        "source": "kde/calligra",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:calligra",
+        "dependencies": ["kdelibs"]
+    },
+
+    "kdevplatform": {
+        "source": "kde/kdevplatform",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:kdevplatform",
+        "dependencies": ["kdelibs"]
+    },
+
+    "kdevelop": {
+        "source": "kde/kdevelop",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:kdevelop",
+        "dependencies": ["kdevplatform"]
+    },
+
+    "kdevelop_pg_qt": {
+        "source": "kde/kdevelop-pg-qt",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:kdevelop-pg-qt",
+        "dependencies": ["kdevelop"]
+    },
+
+    "kdevelop_php": {
+        "source": "kde/kdevelop-php",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:kdev-php",
+        "dependencies": ["kdevelop_pg_qt"]
+    },
+
+    "kdevelop_php_docs": {
+        "source": "kde/kdevelop-php-docs",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:kdev-php-docs"
+    },
+
+    "kdevelop_full": {
+        "dependencies": ["kdevelop_php", "kdevelop_php_docs"]
+    },
+
+    "konversation": {
+        "source": "kde/konversation",
+        "repositoryType": "git",
+        "repository": "git@git.kde.org:konversation",
+        "dependencies": ["kdelibs"]
+    },
+
+    "full_kde": {
+        "dependencies": ["kdebase", "kdegraphics", "kdemultimedia", "kdenetwork", "kdeplasma_addons", "kdesdk", "kdepim", "kdeutils", "kdegames", "kdetoys", "network_management", "kwebkitpart", "kdereview", "rekonq", "gwenview", "calligra", "kdevelop_full", "konversation"]
+    }
+
+}

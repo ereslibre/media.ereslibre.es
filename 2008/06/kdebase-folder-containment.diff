@@ -1,0 +1,71 @@
+diff --git a/workspace/plasma/containments/folderview/folderview.cpp b/workspace/plasma/containments/folderview/folderview.cpp
+index 43a84f3..e8e16ca 100644
+--- a/workspace/plasma/containments/folderview/folderview.cpp
++++ b/workspace/plasma/containments/folderview/folderview.cpp
+@@ -78,7 +78,8 @@ void FolderView::init()
+ 
+     KDirLister *lister = new KDirLister(this);
+     lister->openUrl(m_url);
+-    lister->setNameFilter(m_filterFiles);
++
++    m_model->setFilterFixedString(m_filterFiles);
+ 
+     m_dirModel->setDirLister(lister);
+ }
+@@ -121,7 +122,7 @@ void FolderView::configAccepted()
+ 
+     if (m_url != url || m_filterFiles != ui.filterFiles->text()) {
+         m_dirModel->dirLister()->openUrl(url);
+-        m_dirModel->dirLister()->setNameFilter(ui.filterFiles->text());
++        m_model->setFilterFixedString(ui.filterFiles->text());
+         m_url = url;
+         m_filterFiles = ui.filterFiles->text();
+  
+diff --git a/workspace/plasma/containments/folderview/proxymodel.cpp b/workspace/plasma/containments/folderview/proxymodel.cpp
+index 77b494c..e403027 100644
+--- a/workspace/plasma/containments/folderview/proxymodel.cpp
++++ b/workspace/plasma/containments/folderview/proxymodel.cpp
+@@ -1,5 +1,6 @@
+ /*
+  *   Copyright © 2008 Fredrik Höglund <fredrik@kde.org>
++ *   Copyright © 2008 Rafael Fernández López <ereslibre@kde.org>
+  *
+  *   This library is free software; you can redistribute it and/or
+  *   modify it under the terms of the GNU Library General Public
+@@ -59,3 +60,22 @@ bool ProxyModel::lessThan(const QModelIndex &left, const QModelIndex &right) con
+     return QSortFilterProxyModel::lessThan(left, right);
+ }
+ 
++bool ProxyModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const
++{
++    const KDirModel *dirModel = static_cast<KDirModel*>(sourceModel());
++    const KFileItem item = dirModel->itemForIndex(dirModel->index(sourceRow, KDirModel::Name, sourceParent));
++
++    const QString regExpOrig = filterRegExp().pattern();
++    const QStringList regExps = regExpOrig.split(';');
++    foreach (const QString &regExpStr, regExps) {
++        QRegExp regExp(regExpStr);
++        regExp.setPatternSyntax(QRegExp::Wildcard);
++
++        if (regExp.indexIn(item.name()) != -1) {
++            return true;
++        }
++    }
++
++    return false;
++}
++
+diff --git a/workspace/plasma/containments/folderview/proxymodel.h b/workspace/plasma/containments/folderview/proxymodel.h
+index af3813a..aaf044d 100644
+--- a/workspace/plasma/containments/folderview/proxymodel.h
++++ b/workspace/plasma/containments/folderview/proxymodel.h
+@@ -34,6 +34,9 @@ public:
+     QModelIndex indexForUrl(const KUrl &url) const;
+     KFileItem itemForIndex(const QModelIndex &index) const;
+     bool lessThan(const QModelIndex &left, const QModelIndex &right) const;
++
++protected:
++    bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const;
+ };
+ 
+ #endif

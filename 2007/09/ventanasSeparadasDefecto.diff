@@ -1,0 +1,77 @@
+Index: kio/kio/global.cpp
+===================================================================
+--- kio/kio/global.cpp	(revisión: 708700)
++++ kio/kio/global.cpp	(copia de trabajo)
+@@ -30,7 +30,7 @@
+ #include <kprotocolmanager.h>
+ #include <kde_file.h>
+ #include <kmimetype.h>
+-#include <kuiserverjobtracker.h>
++#include <kwidgetjobtracker.h>
+ 
+ #include <QtCore/QByteArray>
+ #include <QtCore/QDate>
+@@ -47,7 +47,7 @@
+ #include <unistd.h>
+ #include <stdio.h>
+ 
+-K_GLOBAL_STATIC(KUiServerJobTracker, globalJobTracker)
++K_GLOBAL_STATIC(KWidgetJobTracker, globalJobTracker)
+ 
+ // If someone wants the SI-standard prefixes kB/MB/GB/TB, I would recommend
+ // a hidden kconfig option and getting the code from #57240 into the same
+Index: kdeui/jobs/kwidgetjobtracker.cpp
+===================================================================
+--- kdeui/jobs/kwidgetjobtracker.cpp	(revisión: 708700)
++++ kdeui/jobs/kwidgetjobtracker.cpp	(copia de trabajo)
+@@ -114,6 +114,24 @@
+     return d->widget;
+ }
+ 
++void KWidgetJobTracker::registerJob(KJob *job)
++{
++    // When we register the job, we want to show the widget
++    d->widget->show();
++
++    KAbstractWidgetJobTracker::registerJob(job);
++}
++
++
++void KWidgetJobTracker::unregisterJob(KJob *job)
++{
++    // When we try to unregister the job, the widget is useless
++    d->widget->close();
++
++    KAbstractWidgetJobTracker::unregisterJob(job);
++}
++
++
+ bool KWidgetJobTracker::keepOpen() const
+ {
+     return d->keepOpenChecked;
+Index: kdeui/jobs/kwidgetjobtracker.h
+===================================================================
+--- kdeui/jobs/kwidgetjobtracker.h	(revisión: 708700)
++++ kdeui/jobs/kwidgetjobtracker.h	(copia de trabajo)
+@@ -51,6 +51,21 @@
+      */
+     virtual QWidget *widget();
+ 
++    /**
++     * Register a new job in this tracker.
++     *
++     * @param job the job to register
++     */
++    virtual void registerJob(KJob *job);
++
++    /**
++     * Unregister a job from this tracker.
++     *
++     * @param job the job to unregister
++     */
++    virtual void unregisterJob(KJob *job);
++
++
+     bool keepOpen() const;
+ 
+ protected Q_SLOTS:

@@ -1,0 +1,416 @@
+Index: dialogs/katedialogs.cpp
+===================================================================
+--- dialogs/katedialogs.cpp	(revisión: 672375)
++++ dialogs/katedialogs.cpp	(copia de trabajo)
+@@ -33,6 +33,7 @@
+ #include "kateglobal.h"
+ #include "kateschema.h"
+ #include "katesyntaxdocument.h"
++#include "katemodeconfigpage.h"
+ #include "kateview.h"
+ 
+ // auto generated ui files
+@@ -80,6 +81,7 @@
+ #include <kactioncollection.h>
+ #include <kplugininfo.h>
+ #include <kutils/kpluginselector.h>
++#include <ktabwidget.h>
+ //#include <knewstuff/knewstuff.h>
+ #include <QtGui/QCheckBox>
+ #include <QtGui/QComboBox>
+@@ -292,12 +294,18 @@ void KateSelectConfigTab::reload ()
+ 
+ //BEGIN KateEditConfigTab
+ KateEditConfigTab::KateEditConfigTab(QWidget *parent)
+-  : KateConfigPage(parent)
++  : selectConfigTab(new KateSelectConfigTab(0))
++  , indentConfigTab(new KateIndentConfigTab(0))
++  , KateConfigPage(parent)
+ {
++  QVBoxLayout *layout = new QVBoxLayout;
++  KTabWidget *tabWidget = new KTabWidget(this);
+   uint configFlags = KateDocumentConfig::global()->configFlags();
+ 
++  // Let's set up the first config page on the tab widget
++  QWidget *newWidget = new QWidget(tabWidget);
+   ui = new Ui::EditConfigWidget();
+-  ui->setupUi( this );
++  ui->setupUi( newWidget );
+ 
+   ui->chkReplaceTabs->setChecked( configFlags & KateDocumentConfig::cfReplaceTabsDyn );
+   connect( ui->chkReplaceTabs, SIGNAL(toggled(bool)), this, SLOT(slotChanged()) );
+@@ -340,10 +348,25 @@ KateEditConfigTab::KateEditConfigTab(QWi
+   connect(ui->cmbSmartSearch, SIGNAL(activated(int)), this, SLOT(slotChanged()));
+ 
+   // What is this? help is in the ui-file
++
++  tabWidget->insertTab(0, newWidget, i18n("General"));
++
++  // = new KateSelectConfigTab(tabWidget);
++  tabWidget->insertTab(1, selectConfigTab, i18n("Cursor & Selection"));
++
++  // = new KateIndentConfigTab(tabWidget);
++  tabWidget->insertTab(2, indentConfigTab, i18n("Indentation"));
++
++  layout->addWidget(tabWidget);
++  setLayout(layout);
+ }
+ 
+ void KateEditConfigTab::apply ()
+ {
++  // try to update the rest of tabs
++  selectConfigTab->apply();
++  indentConfigTab->apply();
++
+   // nothing changed, no need to apply stuff
+   if (!hasChanged())
+     return;
+@@ -384,6 +407,8 @@ void KateEditConfigTab::apply ()
+ 
+ void KateEditConfigTab::reload ()
+ {
++  selectConfigTab->reload();
++  indentConfigTab->reload();
+ }
+ //END KateEditConfigTab
+ 
+@@ -525,10 +550,16 @@ void KateEditKeyConfiguration::apply()
+ 
+ //BEGIN KateSaveConfigTab
+ KateSaveConfigTab::KateSaveConfigTab( QWidget *parent )
+-  : KateConfigPage( parent )
++  : modeConfigPage( new ModeConfigPage( 0 ) )
++  , KateConfigPage( parent )
+ {
++  QVBoxLayout *layout = new QVBoxLayout;
++  KTabWidget *tabWidget = new KTabWidget(this);
++
++  // Let's set up the first config page on the tab widget
++  QWidget *newWidget = new QWidget(tabWidget);
+   ui = new Ui::OpenSaveConfigWidget();
+-  ui->setupUi( this );
++  ui->setupUi( newWidget );
+ //  layout->setSpacing( KDialog::spacingHint() );
+ 
+   // What's this help is added in ui/opensaveconfigwidget.ui
+@@ -548,10 +579,21 @@ KateSaveConfigTab::KateSaveConfigTab( QW
+   connect( ui->sbConfigFileSearchDepth, SIGNAL(valueChanged(int)), this, SLOT(slotChanged()));
+   connect( ui->edtBackupPrefix, SIGNAL( textChanged ( const QString & ) ), this, SLOT( slotChanged() ) );
+   connect( ui->edtBackupSuffix, SIGNAL( textChanged ( const QString & ) ), this, SLOT( slotChanged() ) );
++
++  tabWidget->insertTab(0, newWidget, i18n("General"));
++
++  // Let's add the second
++  //modeConfigPage = new ModeConfigPage(tabWidget);
++  tabWidget->insertTab(1, modeConfigPage, i18n("Modes & Filetypes"));
++
++  layout->addWidget(tabWidget);
++  setLayout(layout);
+ }
+ 
+ void KateSaveConfigTab::apply()
+ {
++  modeConfigPage->apply();
++
+   // nothing changed, no need to apply stuff
+   if (!hasChanged())
+     return;
+@@ -599,6 +641,8 @@ void KateSaveConfigTab::apply()
+ 
+ void KateSaveConfigTab::reload()
+ {
++  modeConfigPage->reload();
++
+   // encoding
+   ui->cmbEncoding->clear ();
+   ui->cmbEncoding->addItem (i18n("KDE Default"));
+@@ -657,10 +701,13 @@ void KateSaveConfigTab::reload()
+ 
+ void KateSaveConfigTab::reset()
+ {
++  modeConfigPage->reset();
+ }
+ 
+ void KateSaveConfigTab::defaults()
+ {
++  modeConfigPage->defaults();
++
+   ui->chkBackupLocalFiles->setChecked( true );
+   ui->chkBackupRemoteFiles->setChecked( false );
+   ui->edtBackupPrefix->setText( "" );
+@@ -670,10 +717,16 @@ void KateSaveConfigTab::defaults()
+ //END KateSaveConfigTab
+ 
+ //BEGIN KatePartPluginConfigPage
+-KatePartPluginConfigPage::KatePartPluginConfigPage (QWidget *parent) : KateConfigPage (parent, "")
++KatePartPluginConfigPage::KatePartPluginConfigPage (QWidget *parent)
++  : scriptConfigPage(new KateScriptConfigPage(0))
++  , KateConfigPage (parent, "")
+ {
++  QVBoxLayout *generalLayout = new QVBoxLayout;
++  KTabWidget *tabWidget = new KTabWidget(this);
++
++  QWidget *newWidget = new QWidget(tabWidget);
+   QVBoxLayout *layout = new QVBoxLayout;
+-  setLayout(layout);
++  newWidget->setLayout(layout);
+   layout->setMargin(0);
+ 
+   plugins.clear();
+@@ -695,6 +748,14 @@ KatePartPluginConfigPage::KatePartPlugin
+ 
+   selector->addPlugins(plugins, KPluginSelector::IgnoreConfigFile, i18n("Editor Plugins"), "Editor");
+   layout->addWidget(selector);
++
++  tabWidget->insertTab(0, newWidget, i18n("Plugins"));
++
++  //scriptConfigPage = new KateScriptConfigPage(tabWidget);
++  tabWidget->insertTab(1, scriptConfigPage, i18n("Scripts"));
++
++  generalLayout->addWidget(tabWidget);
++  setLayout(generalLayout);
+ }
+ 
+ KatePartPluginConfigPage::~KatePartPluginConfigPage ()
+@@ -703,6 +764,8 @@ KatePartPluginConfigPage::~KatePartPlugi
+ 
+ void KatePartPluginConfigPage::apply ()
+ {
++  scriptConfigPage->apply();
++
+   selector->updatePluginsState();
+ 
+   KateDocumentConfig::global()->configStart ();
+@@ -715,11 +778,15 @@ void KatePartPluginConfigPage::apply ()
+ 
+ void KatePartPluginConfigPage::reload ()
+ {
++  scriptConfigPage->reload();
++
+   selector->load();
+ }
+ 
+ void KatePartPluginConfigPage::defaults ()
+ {
++  scriptConfigPage->defaults();
++
+   selector->defaults();
+ }
+ //END KatePartPluginConfigPage
+Index: dialogs/katedialogs.h
+===================================================================
+--- dialogs/katedialogs.h	(revisión: 672375)
++++ dialogs/katedialogs.h	(copia de trabajo)
+@@ -43,6 +43,8 @@
+ 
+ struct syntaxContextData;
+ 
++class KateScriptConfigPage;
++class ModeConfigPage;
+ class KateDocument;
+ class KateView;
+ 
+@@ -170,6 +172,10 @@ public Q_SLOTS:
+   void reload ();
+   void reset () {}
+   void defaults () {}
++
++private:
++  KateSelectConfigTab *selectConfigTab;
++  KateIndentConfigTab *indentConfigTab;
+ };
+ 
+ class KateViewDefaultsConfig : public KateConfigPage
+@@ -216,16 +222,17 @@ class KateEditKeyConfiguration: public K
+ class KateSaveConfigTab : public KateConfigPage
+ {
+   Q_OBJECT
+-public:
++
++  public:
+   KateSaveConfigTab( QWidget *parent );
+ 
+-public Q_SLOTS:
++  public Q_SLOTS:
+   void apply();
+   void reload();
+   void reset();
+   void defaults();
+ 
+-protected:
++  protected:
+   //why?
+   //KComboBox *m_encoding, *m_encodingDetection, *m_eol;
+   QCheckBox *cbLocalFiles, *cbRemoteFiles;
+@@ -236,8 +243,9 @@ protected:
+   class QSpinBox *blockCount;
+   class QLabel *blockCountLabel;
+ 
+-private:
++  private:
+   Ui::OpenSaveConfigWidget* ui;
++    ModeConfigPage *modeConfigPage;
+ };
+ 
+ class KatePartPluginConfigPage : public KateConfigPage
+@@ -257,6 +265,7 @@ class KatePartPluginConfigPage : public 
+   private:
+     KPluginSelector *selector;
+     QList<KPluginInfo*> plugins;
++    KateScriptConfigPage *scriptConfigPage;
+ };
+ 
+ class KateScriptNewStuff;
+Index: utils/kateglobal.cpp
+===================================================================
+--- utils/kateglobal.cpp	(revisión: 672375)
++++ utils/kateglobal.cpp	(copia de trabajo)
+@@ -24,7 +24,6 @@
+ #include "katerenderer.h"
+ #include "katecmds.h"
+ #include "katemodemanager.h"
+-#include "katemodeconfigpage.h"
+ #include "kateschema.h"
+ #include "kateconfig.h"
+ #include "katejscript.h"
+@@ -263,7 +262,7 @@ void KateGlobal::configDialog(QWidget *p
+ 
+ int KateGlobal::configPages () const
+ {
+-  return 10;
++  return 6;
+ }
+ 
+ KTextEditor::ConfigPage *KateGlobal::configPage (int number, QWidget *parent)
+@@ -277,29 +276,17 @@ KTextEditor::ConfigPage *KateGlobal::con
+       return new KateSchemaConfigPage (parent, 0);
+ 
+     case 2:
+-      return new KateSelectConfigTab (parent);
+-
+-    case 3:
+       return new KateEditConfigTab (parent);
+ 
+-    case 4:
+-      return new KateIndentConfigTab (parent);
+-
+-    case 5:
++    case 3:
+       return new KateSaveConfigTab (parent);
+ 
+-    case 6:
+-      return new ModeConfigPage (parent);
+-
+-    case 7:
++    case 4:
+       return new KateEditKeyConfiguration (parent, 0);
+ 
+-    case 8:
++    case 5:
+       return new KatePartPluginConfigPage (parent);
+ 
+-    case 9:
+-      return new KateScriptConfigPage (parent);
+-
+     default:
+       return 0;
+   }
+@@ -318,28 +305,16 @@ QString KateGlobal::configPageName (int 
+       return i18n ("Fonts & Colors");
+ 
+     case 2:
+-      return i18n ("Cursor & Selection");
+-
+-    case 3:
+       return i18n ("Editing");
+ 
+-    case 4:
+-      return i18n ("Indentation");
+-
+-    case 5:
++    case 3:
+       return i18n("Open/Save");
+ 
+-    case 6:
+-      return i18n("Modes");
+-
+-    case 7:
++    case 4:
+       return i18n ("Shortcuts");
+ 
+-    case 8:
+-      return i18n ("Plugins");
+-
+-    case 9:
+-      return i18n("Scripts");
++    case 5:
++      return i18n ("Extensions");
+ 
+     default:
+       return QString ("");
+@@ -359,28 +334,16 @@ QString KateGlobal::configPageFullName (
+       return i18n ("Font & Color Schemas");
+ 
+     case 2:
+-      return i18n ("Cursor & Selection Behavior");
+-
+-    case 3:
+       return i18n ("Editing Options");
+ 
+-    case 4:
+-      return i18n ("Indentation Rules");
+-
+-    case 5:
++    case 3:
+       return i18n("File Opening & Saving");
+ 
+-    case 6:
+-      return i18n("Mode Specific Settings");
+-
+-    case 7:
++    case 4:
+       return i18n ("Shortcuts Configuration");
+ 
+-    case 8:
+-      return i18n ("Plugin Manager");
+-
+-    case 9:
+-      return i18n ("Script Manager");
++    case 5:
++      return i18n ("Extensions Manager");
+ 
+     default:
+       return QString ("");
+@@ -400,29 +363,17 @@ KIcon KateGlobal::configPageIcon (int nu
+       return KIcon("color-line");
+ 
+     case 2:
+-        return KIcon("frame-edit");
+-
+-    case 3:
+       return KIcon("text");
+ 
+-    case 4:
+-      return KIcon("format-indent-more");
+-
+-    case 5:
++    case 3:
+       return KIcon("document-save");
+ 
+-    case 6:
+-      return KIcon("text-plain");
+-
+-    case 7:
++    case 4:
+       return KIcon("browser-go");
+ 
+-    case 8:
++    case 5:
+       return KIcon("connection-established");
+ 
+-    case 9:
+-      return KIcon("edit");
+-
+     default:
+       return KIcon("edit");
+   }

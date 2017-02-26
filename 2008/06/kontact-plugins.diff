@@ -1,0 +1,40 @@
+diff --git a/kontact/plugins/kaddressbook/kaddressbook_plugin.cpp b/kontact/plugins/kaddressbook/kaddressbook_plugin.cpp
+index 62ffba7..05a4b15 100644
+--- a/kontact/plugins/kaddressbook/kaddressbook_plugin.cpp
++++ b/kontact/plugins/kaddressbook/kaddressbook_plugin.cpp
+@@ -162,7 +162,7 @@ bool KAddressbookPlugin::isRunningStandalone()
+ 
+ bool KAddressbookPlugin::canDecodeMimeData( const QMimeData * mimeData )
+ {
+-  return mimeData->hasText() || KPIM::MailList::canDecode( mimeData );
++  return KPIM::MailList::canDecode( mimeData );
+ }
+ 
+ void KAddressbookPlugin::processDropEvent( QDropEvent *event )
+diff --git a/kontact/plugins/korganizer/korganizerplugin.cpp b/kontact/plugins/korganizer/korganizerplugin.cpp
+index c6c7fc0..0c0254e 100644
+--- a/kontact/plugins/korganizer/korganizerplugin.cpp
++++ b/kontact/plugins/korganizer/korganizerplugin.cpp
+@@ -169,7 +169,7 @@ bool KOrganizerPlugin::isRunningStandalone()
+ 
+ bool KOrganizerPlugin::canDecodeMimeData( const QMimeData *mimeData )
+ {
+-  return mimeData->hasText() || KPIM::MailList::canDecode( mimeData );
++  return mimeData->hasText() || KPIM::MailList::canDecode( mimeData ) || KPIM::KVCardDrag::canDecode( mimeData );
+ }
+ 
+ void KOrganizerPlugin::processDropEvent( QDropEvent *event )
+diff --git a/kontact/plugins/korganizer/todoplugin.cpp b/kontact/plugins/korganizer/todoplugin.cpp
+index 34b48a5..22dd6e2 100644
+--- a/kontact/plugins/korganizer/todoplugin.cpp
++++ b/kontact/plugins/korganizer/todoplugin.cpp
+@@ -165,7 +165,8 @@ bool TodoPlugin::createDBUSInterface( const QString &serviceType )
+ 
+ bool TodoPlugin::canDecodeMimeData( const QMimeData *mimeData )
+ {
+-  return mimeData->hasText() || KPIM::MailList::canDecode( mimeData );
++  return mimeData->hasText() || KPIM::MailList::canDecode( mimeData ) ||
++         KPIM::KVCardDrag::canDecode( mimeData ) || KCal::ICalDrag::canDecode( mimeData );
+ }
+ 
+ bool TodoPlugin::isRunningStandalone()

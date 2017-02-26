@@ -1,0 +1,50 @@
+diff --git a/kdeui/jobs/kwidgetjobtracker.cpp b/kdeui/jobs/kwidgetjobtracker.cpp
+index 7650460..ccb725a 100644
+--- a/kdeui/jobs/kwidgetjobtracker.cpp
++++ b/kdeui/jobs/kwidgetjobtracker.cpp
+@@ -228,9 +228,14 @@ void KWidgetJobTracker::Private::ProgressWidget::deref()
+     if (!refCount) {
+         if (!keepOpenChecked || !tracker->widget(job)) {
+             hide();
++
+             if (tracker->autoDelete(job)) {
+                 deleteLater();
+             }
++
++            if (keepOpenChecked) {
++                KGlobal::deref();
++            }
+         } else {
+             slotClean();
+         }
+@@ -433,9 +438,7 @@ void KWidgetJobTracker::Private::ProgressWidget::closeEvent(QCloseEvent *event)
+ 
+     QWidget::closeEvent(event);
+ 
+-    if (keepOpenChecked) {
+-        KGlobal::deref();
+-    }
++    deref();
+ }
+ 
+ void KWidgetJobTracker::Private::ProgressWidget::init()
+@@ -625,7 +628,7 @@ void KWidgetJobTracker::Private::ProgressWidget::_k_openLocation()
+ 
+ void KWidgetJobTracker::Private::ProgressWidget::_k_pauseResumeClicked()
+ {
+-    if ( !suspendedProperty ) {
++    if (!suspendedProperty) {
+         tracker->slotSuspend(job);
+     } else {
+         tracker->slotResume(job);
+@@ -636,10 +639,6 @@ void KWidgetJobTracker::Private::ProgressWidget::_k_stop()
+ {
+     tracker->slotStop(job);
+     deref();
+-
+-    if (keepOpenChecked) {
+-        KGlobal::deref();
+-    }
+ }
+ 
+ #include "kwidgetjobtracker.moc"

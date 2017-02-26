@@ -1,0 +1,33 @@
+Index: src/gui/widgets/qtoolbutton.h
+===================================================================
+--- src/gui/widgets/qtoolbutton.h	(revisión: 794246)
++++ src/gui/widgets/qtoolbutton.h	(copia de trabajo)
+@@ -58,12 +58,15 @@ class QToolButtonPrivate;
+ class QMenu;
+ class QStyleOptionToolButton;
+ 
++Q_DECLARE_METATYPE(QMenu*);
++
+ class Q_GUI_EXPORT QToolButton : public QAbstractButton
+ {
+     Q_OBJECT
+     Q_ENUMS(Qt::ToolButtonStyle Qt::ArrowType ToolButtonPopupMode)
+ #ifndef QT_NO_MENU
+     Q_PROPERTY(ToolButtonPopupMode popupMode READ popupMode WRITE setPopupMode)
++    Q_PROPERTY(QMenu* menu READ menu WRITE setMenu)
+ #endif
+     Q_PROPERTY(Qt::ToolButtonStyle toolButtonStyle READ toolButtonStyle WRITE setToolButtonStyle)
+     Q_PROPERTY(bool autoRaise READ autoRaise WRITE setAutoRaise)
+Index: src/gui/widgets/qtoolbutton.cpp
+===================================================================
+--- src/gui/widgets/qtoolbutton.cpp	(revisión: 794246)
++++ src/gui/widgets/qtoolbutton.cpp	(copia de trabajo)
+@@ -268,6 +268,8 @@ QToolButton::QToolButton(Qt::ArrowType t
+ 
+ void QToolButtonPrivate::init()
+ {
++    qRegisterMetaType<QMenu*>("QMenu*"); 
++
+     Q_Q(QToolButton);
+     delay = q->style()->styleHint(QStyle::SH_ToolButton_PopupDelay, 0, q);
+ #ifdef QT3_SUPPORT

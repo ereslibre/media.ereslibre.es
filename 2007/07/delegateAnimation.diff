@@ -1,0 +1,1042 @@
+Index: kio/delegateanimationhandler.cpp
+===================================================================
+--- kio/delegateanimationhandler.cpp	(revisión: 0)
++++ kio/delegateanimationhandler.cpp	(revisión: 0)
+@@ -0,0 +1,290 @@
++/*
++   This file is part of the KDE project
++
++   Copyright © 2007 Fredrik Höglund <fredrik@kde.org>
++
++   This library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Library General Public
++   License as published by the Free Software Foundation; either
++   version 2 of the License, or (at your option) any later version.
++
++   This library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Library General Public License for more details.
++
++   You should have received a copy of the GNU Library General Public License
++   along with this library; see the file COPYING.LIB.  If not, write to
++   the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++   Boston, MA 02110-1301, USA.
++*/
++
++#include <QListView>
++#include <QAbstractItemView>
++#include <QPersistentModelIndex>
++#include <QTimeLine>
++#include <QTime>
++#include <QDebug>
++
++#include <cmath>
++
++#include "delegateanimationhandler_p.h"
++#include "delegateanimationhandler_p.moc"
++
++
++// Needed because state() is a protected method
++class ProtectedAccessor : public QAbstractItemView
++{
++public:
++    bool draggingState() const { return state() == DraggingState; }
++};
++
++
++
++// ---------------------------------------------------------------------------
++
++
++
++CachedRendering::CachedRendering(QStyle::State state, const QSize &size)
++    : state(state), regular(QPixmap(size)), hover(QPixmap(size))
++{
++    regular.fill(Qt::transparent);
++    hover.fill(Qt::transparent);
++}
++
++
++
++// ---------------------------------------------------------------------------
++
++
++
++AnimationState::AnimationState(const QModelIndex &index)
++        : index(index), direction(QTimeLine::Forward),
++          animating(false), progress(0.0), renderCache(NULL)
++{
++    creationTime.start();
++}
++
++
++AnimationState::~AnimationState()
++{
++    delete renderCache;
++}
++
++
++bool AnimationState::update()
++{
++    const qreal runtime = 250; // milliseconds
++    const qreal increment = 1000. / runtime / 1000.;
++    const qreal delta = increment * time.restart();
++
++    if (direction == QTimeLine::Forward)
++    {
++        progress = qMin(1.0, progress + delta);
++        animating = (progress < 1.0);
++    }
++    else
++    {
++        progress = qMax(0.0, progress - delta);
++        animating = (progress > 0.0);
++    }
++
++    return !animating;
++}
++
++
++qreal AnimationState::hoverProgress() const
++{
++    return qRound(255.0 * std::sin(progress * M_PI_2)) / 255.0;
++}
++
++
++
++// ---------------------------------------------------------------------------
++
++
++
++DelegateAnimationHandler::DelegateAnimationHandler(QObject *parent)
++    : QObject(parent), timerId(0)
++{
++}
++
++
++AnimationState *DelegateAnimationHandler::animationState(const QStyleOption &option,
++                                                         const QModelIndex &index,
++                                                         const QAbstractItemView *view)
++{
++    // We can't do animations reliably when an item is being dragged, since that
++    // item will be drawn in two locations at the same time and hovered in one and
++    // not the other. We can't tell them apart because they both have the same index.
++    if (!view || static_cast<const ProtectedAccessor*>(view)->draggingState())
++        return NULL;
++
++    AnimationState *state = findAnimationState(view, index);
++    bool hover = option.state & QStyle::State_MouseOver;
++
++    // If the cursor has entered an item
++    if (!state && hover)
++    {
++        state = new AnimationState(index);
++        addAnimationState(state, view);
++
++        if (!fadeInAddTime.isValid() ||
++            (fadeInAddTime.isValid() && fadeInAddTime.elapsed() > 300))
++        {
++            startAnimation(state);
++        }
++        else
++        {
++            state->animating = false;
++            state->progress  = 1.0;
++            state->direction = QTimeLine::Forward;
++        }
++
++        fadeInAddTime.restart();
++    }
++    else if (state)
++    {
++        // If the cursor has exited an item
++        if (!hover && (!state->animating || state->direction == QTimeLine::Forward))
++        {
++            state->direction = QTimeLine::Backward;
++            startAnimation(state);
++        }
++        else if (hover && state->direction == QTimeLine::Backward)
++        {
++            // This is needed to handle the case where an item is dragged within
++            // the view, and dropped in a different location. State_MouseOver will
++            // initially not be set causing a "hover out" animation to start.
++            // This reverses the direction as soon as we see the bit being set.
++            state->direction = QTimeLine::Forward;
++
++            if (!state->animating)
++                startAnimation(state);
++        }
++    }
++
++    return state;
++}
++
++
++AnimationState *DelegateAnimationHandler::findAnimationState(const QAbstractItemView *view,
++                                                             const QModelIndex &index) const
++{
++    // Try to find a list of animation states for the view
++    AnimationList *list = animationLists.value(view);
++
++    if (list)
++    {
++        foreach (AnimationState *state, *list)
++            if (state->index == index)
++                return state;
++    }
++
++    return NULL;
++}
++
++
++void DelegateAnimationHandler::addAnimationState(AnimationState *state, const QAbstractItemView *view)
++{
++    AnimationList *list = animationLists.value(view);
++
++    // If this is the first time we've seen this view
++    if (!list)
++    {
++        connect(view, SIGNAL(destroyed(QObject*)), SLOT(viewDeleted(QObject*)));
++
++        list = new AnimationList;
++        animationLists.insert(view, list);
++    }
++
++    list->append(state);
++}
++
++
++void DelegateAnimationHandler::startAnimation(AnimationState *state)
++{
++    state->time.start();
++    state->animating = true;
++
++    if (!timerId)
++    {
++        timerId = startTimer(1000 / 30); // 30 fps
++    }
++}
++
++
++int DelegateAnimationHandler::runAnimations(AnimationList *list, const QAbstractItemView *view)
++{
++    int activeAnimations = 0;
++    QRegion region;
++
++    QMutableLinkedListIterator<AnimationState*> i(*list);
++    while (i.hasNext())
++    {
++        AnimationState *state = i.next();
++
++        if (!state->animating)
++            continue;
++
++        // We need to make sure the index is still valid, since it could be removed
++        // while the animation is running.
++        if (state->index.isValid())
++        {
++            bool finished = state->update();
++            region += view->visualRect(state->index);
++
++            if (!finished)
++            {
++                activeAnimations++;
++                continue;
++            }
++        }
++
++        // If the direction is Forward, the state object needs to stick around
++        // after the animation has finished, so we know that we've already done
++        // a "hover in" for the index.
++        if (state->direction == QTimeLine::Backward || !state->index.isValid())
++        {
++            delete state;
++            i.remove();
++        }
++    }
++
++    // Trigger a repaint of the animated indexes
++    if (!region.isEmpty())
++        const_cast<QAbstractItemView*>(view)->viewport()->update(region);
++
++    return activeAnimations;
++}
++
++
++void DelegateAnimationHandler::viewDeleted(QObject *view)
++{
++    AnimationList *list = animationLists.take(static_cast<QAbstractItemView*>(view));
++    qDeleteAll(*list);
++    delete list;
++}
++
++
++void DelegateAnimationHandler::timerEvent(QTimerEvent *)
++{
++    int activeAnimations = 0;
++
++    AnimationListsIterator i(animationLists);
++    while (i.hasNext())
++    {
++        i.next();
++        AnimationList *list = i.value();
++        const QAbstractItemView *view = i.key();
++
++        activeAnimations += runAnimations(list, view);
++    }
++
++    if (activeAnimations == 0 && timerId)
++    {
++        killTimer(timerId);
++        timerId = 0;
++    }
++}
++
+Index: kio/kfileitemdelegate.cpp
+===================================================================
+--- kio/kfileitemdelegate.cpp	(revisión: 687369)
++++ kio/kfileitemdelegate.cpp	(copia de trabajo)
+@@ -31,6 +31,8 @@
+ #include <QPainterPath>
+ #include <QTextLayout>
+ #include <QListView>
++#include <QPaintEngine>
++#include <QX11Info>
+ 
+ #include <kglobal.h>
+ #include <klocale.h>
+@@ -40,6 +42,14 @@
+ #include <kdirmodel.h>
+ #include <kfileitem.h>
+ 
++#include "delegateanimationhandler_p.h"
++
++#define HAVE_XRENDER 1
++
++#ifdef Q_WS_X11
++#  include <X11/Xlib.h>
++#  include <X11/extensions/Xrender.h>
++#endif
+ 
+ //#define DEBUG_RECTS
+ 
+@@ -55,7 +65,7 @@ class KFileItemDelegate::Private
+     public:
+         enum MarginType { ItemMargin = 0, TextMargin, IconMargin, NMargins };
+ 
+-        Private(KFileItemDelegate *parent) : q(parent) {}
++        Private(KFileItemDelegate *parent);
+         ~Private() {}
+ 
+         QSize decorationSizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const;
+@@ -91,11 +101,22 @@ class KFileItemDelegate::Private
+         QString itemSize(const QModelIndex &index, const KFileItem &item) const;
+         QString information(const QStyleOptionViewItem &option, const QModelIndex &index, const KFileItem &item) const;
+         bool isListView(const QStyleOptionViewItem &option) const;
++        void drawBackground(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index,
++                            const QRect &textBoundingRect) const;
++        AnimationState *animationState(const QStyleOptionViewItem &option, const QModelIndex &index,
++                                       const QAbstractItemView *view) const;
++        void layoutTextItems(const QStyleOptionViewItem &option, const QModelIndex &index, const QPixmap &icon,
++                             QTextLayout *labelLayout, QTextLayout *infoLayout, QRect *textBoundingRect) const;
++        void drawTextItems(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index,
++                           const QTextLayout &labelLayout, const QTextLayout &infoLayout) const;
++        QPixmap applyHoverEffect(const QPixmap &icon) const;
++        QPixmap transition(const QPixmap &from, const QPixmap &to, qreal amount) const;
+ 
+     public:
+         KFileItemDelegate::AdditionalInformation additionalInformation;
+ 
+     private:
++        DelegateAnimationHandler *animationHandler;
+         KFileItemDelegate * const q;
+         Margin verticalMargin[NMargins];
+         Margin horizontalMargin[NMargins];
+@@ -103,6 +124,12 @@ class KFileItemDelegate::Private
+ };
+ 
+ 
++KFileItemDelegate::Private::Private(KFileItemDelegate *parent)
++    : animationHandler(new DelegateAnimationHandler(parent)), q(parent)
++{
++}
++
++
+ void KFileItemDelegate::Private::setActiveMargins(Qt::Orientation layout)
+ {
+     activeMargins = (layout == Qt::Horizontal ?
+@@ -513,41 +540,77 @@ QBrush KFileItemDelegate::Private::foreg
+ }
+ 
+ 
++// Composites over over brush, using the Porter/Duff over operator
++QBrush composite(const QColor &over, const QBrush &brush)
++{
++    switch (brush.style())
++    {
++        case Qt::SolidPattern:
++        {
++            QColor under = brush.color();
++
++            int red   = int((over.red()   * over.alpha()) / 255 + (under.red()   * (255 - over.alpha())) / 255);
++            int green = int((over.green() * over.alpha()) / 255 + (under.green() * (255 - over.alpha())) / 255);
++            int blue  = int((over.blue()  * over.alpha()) / 255 + (under.blue()  * (255 - over.alpha())) / 255);
++            int alpha = int(over.alpha() + (under.alpha() * (255 - over.alpha()) / 255));
++
++            return QColor(red, green, blue, alpha);
++        }
++
++        case Qt::TexturePattern:
++        {
++            QPixmap texture = brush.texture();
++
++            // CompositionMode_SourceOver is the default composition mode
++            QPainter painter(&texture);
++            painter.fillRect(texture.rect(), over);
++
++            return texture;
++        }
++
++        // TODO Handle gradients
++
++        default:
++            return over;
++    }
++}
++
++
+ QBrush KFileItemDelegate::Private::backgroundBrush(const QStyleOptionViewItem &option, const QModelIndex &index) const
+ {
+     const QPalette::ColorGroup group = option.state & QStyle::State_Enabled ?
+             QPalette::Normal : QPalette::Disabled;
+ 
+-    QBrush bg(Qt::NoBrush);
++    QBrush background(Qt::NoBrush);
+ 
+     // Always use the highlight color for selected items
+     if (option.state & QStyle::State_Selected)
+-        bg = option.palette.brush(group, QPalette::Highlight);
++        background = option.palette.brush(group, QPalette::Highlight);
+     else
+     {
+         // If the item isn't selected, check if model provides its own background
+         // color/brush for this item
+         const QVariant value = index.model()->data(index, Qt::BackgroundRole);
+         if (value.isValid())
+-            bg = brush(value);
++            background = brush(value);
+     }
+ 
+     // If we don't already have a background brush, check if the background color
+     // should be alternated for this item.
+-    if (bg.style() == Qt::NoBrush && alternateBackground(option, index))
+-        bg = option.palette.brush(group, QPalette::AlternateBase);
++    if (background.style() == Qt::NoBrush && alternateBackground(option, index))
++        background = option.palette.brush(group, QPalette::AlternateBase);
+ 
+-    // Lighten the background color on hover, if we have one, and use a lighter version
+-    // of the highlight color otherwise.
++    // Composite the hover color over the background brush
+     if ((option.state & QStyle::State_MouseOver) && index.column() == KDirModel::Name)
+     {
+-        if (bg.style() == Qt::SolidPattern)
+-            bg = QBrush(bg.color().light());
+-        else
+-            bg = option.palette.color(group, QPalette::Highlight).light();
++        // Use a lighter version of the highlight color with 1/3 opacity
++        QColor hover = option.palette.color(group, QPalette::Highlight).light();
++        hover.setAlpha(88);
++
++        background = composite(hover, background);
+     }
+ 
+-    return bg;
++    return background;
+ }
+ 
+ 
+@@ -572,6 +635,238 @@ bool KFileItemDelegate::Private::isListV
+ }
+ 
+ 
++QPixmap KFileItemDelegate::Private::applyHoverEffect(const QPixmap &icon) const
++{
++    KIconEffect *effect = KIconLoader::global()->iconEffect();
++
++    // Note that in KIconLoader terminology, active = hover.
++    // ### We're assuming that the icon group is desktop/filemanager, since this
++    //     is KFileItemDelegate.
++    if (effect->hasEffect(K3Icon::Desktop, K3Icon::ActiveState))
++        return effect->apply(icon, K3Icon::Desktop, K3Icon::ActiveState);
++
++    return icon;
++}
++
++
++AnimationState *KFileItemDelegate::Private::animationState(const QStyleOptionViewItem &option,
++                                                           const QModelIndex &index,
++                                                           const QAbstractItemView *view) const
++{
++    if (index.column() == KDirModel::Name)
++        return animationHandler->animationState(option, index, view);
++
++    return NULL;
++}
++
++
++QPixmap KFileItemDelegate::Private::transition(const QPixmap &from, const QPixmap &to, qreal amount) const
++{
++    int value = int(qRound(0xff * amount));
++
++    if (value == 0)
++        return from;
++
++    if (value == 1)
++        return to;
++
++    QColor color;
++    color.setAlphaF(amount);
++
++    // If the native paint engine supports CompositionMode_Plus
++    if (from.paintEngine()->hasFeature(QPaintEngine::BlendModes))
++    {
++        QPixmap temp = from;
++
++        QPainter p;
++        p.begin(&temp);
++        p.setCompositionMode(QPainter::CompositionMode_DestinationOut);
++        p.fillRect(temp.rect(), color);
++        p.setCompositionMode(QPainter::CompositionMode_Plus);
++        p.setOpacity(amount);
++        p.drawPixmap(0, 0, to);
++        p.end();
++
++        return temp;
++    }
++#if defined(Q_WS_X11) && defined(HAVE_XRENDER)
++    else if (from.paintEngine()->hasFeature(QPaintEngine::PorterDuff)) // We have Xrender support
++    {
++        // QX11PaintEngine doesn't implement CompositionMode_Plus in Qt 4.3,
++        // which we need to be able to do a transition from one pixmap to
++        // another.
++        //
++        // In order to avoid the overhead of converting the pixmaps to images
++        // and doing the operation entirely in software, this function has a
++        // specialized path for X11 that uses Xrender directly to do the
++        // transition. This operation can be fully accelerated in HW.
++        //
++        // This specialization can be removed when QX11PaintEngine supports
++        // CompositionMode_Plus.
++        QPixmap source(to), destination(from);
++
++        source.detach();
++        destination.detach();
++
++        Display *dpy = QX11Info::display();
++
++        XRenderPictFormat *format = XRenderFindStandardFormat(dpy, PictStandardA8);
++        XRenderPictureAttributes pa;
++        pa.repeat = 1; // RepeatNormal
++
++        // Create a 1x1 8 bit repeating alpha picture
++        Pixmap pixmap = XCreatePixmap(dpy, destination.handle(), 1, 1, 8);
++        Picture alpha = XRenderCreatePicture(dpy, pixmap, format, CPRepeat, &pa);
++        XFreePixmap(dpy, pixmap);
++
++        // Fill the alpha picture with the opacity value
++        XRenderColor xcolor;
++        xcolor.alpha = quint16(0xffff * amount);
++        XRenderFillRectangle(dpy, PictOpSrc, alpha, &xcolor, 0, 0, 1, 1);
++
++        // Reduce the alpha of the destination with 1 - opacity
++        XRenderComposite(dpy, PictOpOutReverse, alpha, None, destination.x11PictureHandle(),
++                         0, 0, 0, 0, 0, 0, destination.width(), destination.height());
++
++        // Add source * opacity to the destination
++        XRenderComposite(dpy, PictOpAdd, source.x11PictureHandle(), alpha,
++                         destination.x11PictureHandle(),
++                         0, 0, 0, 0, 0, 0, destination.width(), destination.height());
++
++        XRenderFreePicture(dpy, alpha);
++        return destination;
++    }
++#endif
++    else
++    {
++        // Fall back to using QRasterPaintEngine to do the transition.
++        QImage temp    = from.toImage();
++        QImage toImage = to.toImage();
++
++        QPainter p;
++        p.begin(&temp);
++        p.setCompositionMode(QPainter::CompositionMode_DestinationOut);
++        p.fillRect(temp.rect(), color);
++        p.setCompositionMode(QPainter::CompositionMode_Plus);
++        p.setOpacity(amount);
++        p.drawImage(0, 0, toImage);
++        p.end();
++
++        return QPixmap::fromImage(temp);
++    }
++}
++
++
++void KFileItemDelegate::Private::layoutTextItems(const QStyleOptionViewItem &option, const QModelIndex &index,
++                                                 const QPixmap &icon, QTextLayout *labelLayout,
++                                                 QTextLayout *infoLayout, QRect *textBoundingRect) const
++{
++    KFileItem item              = fileItem(index);
++    const QString label         = q->display(index);
++    const QString info          = information(option, index, item);
++    bool showInformation        = false;
++
++    setLayoutOptions(*labelLayout, option, index, item);
++
++    QFontMetrics fm      = QFontMetrics(labelLayout->font());
++    const QRect textArea = q->labelRectangle(option, icon, label);
++    QRect textRect       = subtractMargin(textArea, Private::TextMargin);
++
++    // Sizes and constraints for the different text parts
++    QSize maxLabelSize = textRect.size();
++    QSize maxInfoSize  = textRect.size();
++    QSize labelSize;
++    QSize infoSize;
++
++    // If we have additional info text, and there's space for at least two lines of text,
++    // adjust the max label size to make room for at least one line of the info text
++    if (!info.isEmpty() && textRect.height() >= fm.lineSpacing() * 2)
++    {
++        infoLayout->setFont(labelLayout->font());
++        infoLayout->setTextOption(labelLayout->textOption());
++
++        maxLabelSize.rheight() -= fm.lineSpacing();
++        showInformation = true;
++    }
++
++    // Lay out the label text, and adjust the max info size based on the label size
++    labelSize = layoutText(*labelLayout, option, label, maxLabelSize);
++    maxInfoSize.rheight() -= labelSize.height();
++
++    // Lay out the info text
++    if (showInformation)
++        infoSize = layoutText(*infoLayout, option, info, maxInfoSize);
++    else
++        infoSize = QSize(0, 0);
++
++    // Compute the bounding rect of the text
++    const Qt::Alignment alignment = labelLayout->textOption().alignment();
++    const QSize size(qMax(labelSize.width(), infoSize.width()), labelSize.height() + infoSize.height());
++    *textBoundingRect = QStyle::alignedRect(option.direction, alignment, size, textRect);
++
++    // Compute the positions where we should draw the layouts
++    labelLayout->setPosition(QPointF(textRect.x(), textBoundingRect->y()));
++    infoLayout->setPosition(QPointF(textRect.x(), textBoundingRect->y() + labelSize.height()));
++}
++
++
++void KFileItemDelegate::Private::drawTextItems(QPainter *painter, const QStyleOptionViewItem &option,
++                                               const QModelIndex &index, const QTextLayout &labelLayout,
++                                               const QTextLayout &infoLayout) const
++{
++    QPen pen(foregroundBrush(option, index), 0);
++    painter->setPen(pen);
++    labelLayout.draw(painter, QPoint());
++
++    if (!infoLayout.text().isEmpty())
++    {
++        QColor color;
++        if (option.state & QStyle::State_Selected)
++        {
++            color = option.palette.color(QPalette::HighlightedText);
++            color.setAlphaF(.5);
++        } else
++            color = option.palette.color(QPalette::Highlight);
++
++        painter->setPen(color);
++        infoLayout.draw(painter, QPoint());
++    }
++}
++
++
++void KFileItemDelegate::Private::drawBackground(QPainter *painter, const QStyleOptionViewItem &option,
++                                                const QModelIndex &index, const QRect &textBoundingRect) const
++{
++    const QBrush brush = backgroundBrush(option, index);
++
++    if (brush.style() != Qt::NoBrush)
++    {
++        QPainterPath path;
++        QRect        rect;
++        qreal        radius;
++
++        if (!option.showDecorationSelected)
++        {
++            rect = addMargin(textBoundingRect, Private::TextMargin);
++            radius = 5;
++        }
++        else
++        {
++            rect = option.rect;
++            radius = 10;
++        }
++
++        // Always draw rounded selection rectangles in list views
++        if (isListView(option))
++            path = roundedRectangle(rect, radius);
++        else
++            path.addRect(rect);
++
++        painter->fillPath(path, brush);
++    }
++}
++
++
+ 
+ 
+ // ---------------------------------------------------------------------------
+@@ -711,15 +1006,7 @@ QPixmap KFileItemDelegate::decoration(co
+ 
+         // Apply the configured hover effect
+         if ((option.state & QStyle::State_MouseOver) && index.column() == KDirModel::Name)
+-        {
+-            KIconEffect *effect = KIconLoader::global()->iconEffect();
+-
+-            // Note that in KIconLoader terminology, active = hover.
+-            // ### We're assuming that the icon group is desktop/filemanager, since this
+-            //     is KFileItemDelegate.
+-            if (effect->hasEffect(K3Icon::Desktop, K3Icon::ActiveState))
+-                pixmap = effect->apply(pixmap, K3Icon::Desktop, K3Icon::ActiveState);
+-        }
++            pixmap = d->applyHoverEffect(pixmap);
+     }
+ 
+     return pixmap;
+@@ -805,127 +1092,107 @@ void KFileItemDelegate::paint(QPainter *
+     if (!index.isValid())
+         return;
+ 
+-    painter->save();
+-    painter->setRenderHint(QPainter::Antialiasing);
+-
+-    const QString label  = display(index);
+-    const QPixmap pixmap = decoration(option, index);
+-    KFileItem item       = d->fileItem(index);
+-    const QString info   = d->information(option, index, item);
+-    bool showInformation = false;
++    QStyleOptionViewItemV3 optv3(option);
++    const QAbstractItemView *view = qobject_cast<const QAbstractItemView*>(optv3.widget);
+ 
+ 
+-    // Compute the metrics, and lay out the text items
++    // Check if the item is being animated
+     // ========================================================================
+-    QTextLayout labelLayout, infoLayout;
+-    d->setLayoutOptions(labelLayout, option, index, item);
++    AnimationState *state = d->animationState(option, index, view);
++    CachedRendering *cache = 0;
++    qreal progress = ((option.state & QStyle::State_MouseOver) &&
++                index.column() == KDirModel::Name) ? 1.0 : 0.0;
+ 
+-    d->setActiveMargins(d->verticalLayout(option) ? Qt::Vertical : Qt::Horizontal);
++    if (state)
++    {
++        cache    = state->cachedRendering();
++        progress = state->hoverProgress();
+ 
+-    QFontMetrics fm      = QFontMetrics(labelLayout.font());
+-    const QRect textArea = labelRectangle(option, pixmap, label);
+-    QRect textRect       = d->subtractMargin(textArea, Private::TextMargin);
++        // Clear the mouse over bit temporarily
++        optv3.state &= ~QStyle::State_MouseOver;
+ 
+-    // Sizes and constraints for the different text parts
+-    QSize maxLabelSize = textRect.size();
+-    QSize maxInfoSize  = textRect.size();
+-    QSize labelSize;
+-    QSize infoSize;
+-
+-    // If we have additional info text, and there's space for at least two lines of text,
+-    // adjust the max label size to make room for at least one line of the info text
+-    if (!info.isEmpty() && textRect.height() >= fm.lineSpacing() * 2)
++        // If we have a cached rendering, draw the item from the cache
++        if (cache)
+     {
+-        infoLayout.setFont(labelLayout.font());
+-        infoLayout.setTextOption(labelLayout.textOption());
+-
+-        maxLabelSize.rheight() -= fm.lineSpacing();
+-        showInformation = true;
++            if (cache->checkValidity(optv3.state))
++            {
++                const QPixmap pixmap = d->transition(cache->regular, cache->hover, progress);
++                painter->drawPixmap(option.rect.topLeft(), pixmap);
++                return;
+     }
+ 
+-    // Lay out the label text, and adjust the max info size based on the label size
+-    labelSize = d->layoutText(labelLayout, option, label, maxLabelSize);
+-    maxInfoSize.rheight() -= labelSize.height();
+-
+-    // Lay out the info text
+-    if (showInformation)
+-        infoSize = d->layoutText(infoLayout, option, info, maxInfoSize);
+-    else
+-        infoSize = QSize(0, 0);
+-
+-    // Compute the bounding rect of the text
+-    const Qt::Alignment alignment = labelLayout.textOption().alignment();
+-    const QSize size(qMax(labelSize.width(), infoSize.width()), labelSize.height() + infoSize.height());
+-    const QRect textBoundingRect = QStyle::alignedRect(option.direction, alignment, size, textRect);
++            // If it wasn't valid, delete it
++            state->setCachedRendering(0);
++            delete cache;
++            cache = 0;
++        }
++    }
+ 
+-    // Compute the positions where we should draw the layouts
+-    const QPoint labelPos(textRect.x(), textBoundingRect.y());
+-    const QPoint infoPos(textRect.x(), textBoundingRect.y() + labelSize.height());
++    d->setActiveMargins(d->verticalLayout(option) ? Qt::Vertical : Qt::Horizontal);
+ 
+ 
+-#ifdef DEBUG_RECTS
+-    painter->drawRect(option.rect);
++    // Compute the metrics, and lay out the text items
++    // ========================================================================
++    QPixmap icon         = decoration(optv3, index);
++    const QPoint iconPos = iconPosition(optv3, icon);
+ 
+-    painter->setPen(Qt::blue);
+-    painter->drawRect(textArea);
++    QTextLayout labelLayout, infoLayout;
++    QRect textBoundingRect;
+ 
+-    painter->setPen(Qt::red);
+-    painter->drawRect(textBoundingRect);
+-#endif
++    d->layoutTextItems(option, index, icon, &labelLayout, &infoLayout, &textBoundingRect);
+ 
+ 
+-    // Draw the background
++    // Create a new cached rendering of a hovered and an unhovered item.
++    // We don't create a new cache for a fully hovered item, since we don't
++    // know yet if a hover out animation will be run.
+     // ========================================================================
+-    const QBrush brush = d->backgroundBrush(option, index);
+-
+-    if (brush.style() != Qt::NoBrush)
++    if (state && progress < 1)
+     {
+-        QPainterPath path;
+-        QRect r;
++        cache = new CachedRendering(optv3.state, option.rect.size());
+ 
+-        if (!option.showDecorationSelected)
+-            r = d->addMargin(textBoundingRect, Private::TextMargin);
+-        else
+-            r = option.rect;
++        QPainter p;
++        p.begin(&cache->regular);
++        p.translate(-option.rect.topLeft());
++        p.setRenderHint(QPainter::Antialiasing);
++        d->drawBackground(&p, optv3, index, textBoundingRect);
++        p.drawPixmap(iconPos, icon);
++        d->drawTextItems(&p, optv3, index, labelLayout, infoLayout);
++        p.end();
++
++        optv3.state |= QStyle::State_MouseOver;
++        icon = d->applyHoverEffect(icon);
++
++        p.begin(&cache->hover);
++        p.translate(-option.rect.topLeft());
++        p.setRenderHint(QPainter::Antialiasing);
++        d->drawBackground(&p, optv3, index, textBoundingRect);
++        p.drawPixmap(iconPos, icon);
++        d->drawTextItems(&p, optv3, index, labelLayout, infoLayout);
++        p.end();
+ 
+-        // Always draw rounded selection rectangles in list views
+-        if (d->isListView(option))
+-            path = d->roundedRectangle(r, 5);
+-        else
+-            path.addRect(r);
++        state->setCachedRendering(cache);
+ 
+-        painter->fillPath(path, brush);
+-    }
+-
+-
+-    // Draw the decoration
+-    // ========================================================================
+-    if (!pixmap.isNull())
+-    {
+-        const QPoint pt = iconPosition(option, pixmap);
+-        painter->drawPixmap(pt, pixmap);
++        const QPixmap pixmap = d->transition(cache->regular, cache->hover, progress);
++        painter->drawPixmap(option.rect.topLeft(), pixmap);
++        return;
+     }
+ 
+ 
+-    // Draw the label
++    // Render the item directly if we're not using a cached rendering
+     // ========================================================================
+-    painter->setPen(QPen(d->foregroundBrush(option, index), 0));
+-    labelLayout.draw(painter, labelPos);
++    painter->save();
++    painter->setRenderHint(QPainter::Antialiasing);
+ 
+-    if (showInformation)
++    if (progress > 0 && !(optv3.state & QStyle::State_MouseOver))
+     {
+-        QColor color;
+-        if (option.state & QStyle::State_Selected)
+-        {
+-            color = option.palette.color(QPalette::HighlightedText);
+-            color.setAlphaF(.5);
+-        } else
+-            color = option.palette.color(QPalette::Highlight);
+-
+-        painter->setPen(color);
+-        infoLayout.draw(painter, infoPos);
++        optv3.state |= QStyle::State_MouseOver;
++        icon = d->applyHoverEffect(icon);
+     }
+ 
++    d->drawBackground(painter, optv3, index, textBoundingRect);
++    painter->drawPixmap(iconPos, icon);
++    d->drawTextItems(painter, optv3, index, labelLayout, infoLayout);
++
+     painter->restore();
+ }
+ 
+Index: kio/delegateanimationhandler_p.h
+===================================================================
+--- kio/delegateanimationhandler_p.h	(revisión: 0)
++++ kio/delegateanimationhandler_p.h	(revisión: 0)
+@@ -0,0 +1,100 @@
++/*
++   This file is part of the KDE project
++
++   Copyright © 2007 Fredrik Höglund <fredrik@kde.org>
++
++   This library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Library General Public
++   License as published by the Free Software Foundation; either
++   version 2 of the License, or (at your option) any later version.
++
++   This library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Library General Public License for more details.
++
++   You should have received a copy of the GNU Library General Public License
++   along with this library; see the file COPYING.LIB.  If not, write to
++   the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++   Boston, MA 02110-1301, USA.
++*/
++
++#ifndef __DELEGATEANIMATIONHANDLER_P_H
++#define __DELEGATEANIMATIONHANDLER_P_H
++
++#include <QMap>
++#include <QLinkedList>
++#include <QPersistentModelIndex>
++#include <QTimeLine>
++#include <QTime>
++
++
++class QAbstractItemView;
++
++
++struct CachedRendering
++{
++    CachedRendering(QStyle::State state, const QSize &size);
++    bool checkValidity(QStyle::State current) const { return state == current; }
++
++    QStyle::State state;
++    QPixmap regular;
++    QPixmap hover;
++};
++
++
++class AnimationState
++{
++public:
++    ~AnimationState();
++    qreal hoverProgress() const;
++    CachedRendering *cachedRendering() const { return renderCache; }
++    void setCachedRendering(CachedRendering *rendering) { renderCache = rendering; }
++
++private:
++    AnimationState(const QModelIndex &index);
++    bool update();
++
++    QPersistentModelIndex index;
++    QTimeLine::Direction direction;
++    bool animating;
++    qreal progress;
++    QTime time;
++    QTime creationTime;
++    CachedRendering *renderCache;
++
++    friend class DelegateAnimationHandler;
++};
++
++
++class DelegateAnimationHandler : public QObject
++{
++    Q_OBJECT
++
++    typedef QLinkedList<AnimationState*> AnimationList;
++    typedef QMapIterator<const QAbstractItemView *, AnimationList*> AnimationListsIterator;
++    typedef QMutableMapIterator<const QAbstractItemView *, AnimationList*> MutableAnimationListsIterator;
++
++public:
++    DelegateAnimationHandler(QObject *parent = 0);
++    ~DelegateAnimationHandler() {}
++
++    AnimationState *animationState(const QStyleOption &option, const QModelIndex &index, const QAbstractItemView *view);
++
++private slots:
++    void viewDeleted(QObject *view);
++
++private:
++    AnimationState *findAnimationState(const QAbstractItemView *view, const QModelIndex &index) const;
++    void addAnimationState(AnimationState *state, const QAbstractItemView *view);
++    void startAnimation(AnimationState *state);
++    int runAnimations(AnimationList *list, const QAbstractItemView *view);
++    void timerEvent(QTimerEvent *event);
++
++private:
++    QMap<const QAbstractItemView*, AnimationList*> animationLists;
++    QTime fadeInAddTime;
++    int timerId;
++};
++
++#endif
+Index: CMakeLists.txt
+===================================================================
+--- CMakeLists.txt	(revisión: 687369)
++++ CMakeLists.txt	(copia de trabajo)
+@@ -51,6 +51,7 @@ set(kiocore_STAT_SRCS
+   kio/dataprotocol.cpp
+   kio/dataslave.cpp
+   kio/davjob.cpp
++  kio/delegateanimationhandler.cpp
+   kio/deletejob.cpp
+   kio/directorysizejob.cpp
+   kio/filejob.cpp
+@@ -240,6 +241,10 @@ if(ACL_FOUND)
+    target_link_libraries(kio ${ACL_LIBS})
+ endif(ACL_FOUND)
+ 
++if(X11_Xrender_FOUND)
++   target_link_libraries(kio ${X11_Xrender_LIB})
++endif(X11_Xrender_FOUND)
++
+ set_target_properties(kio PROPERTIES VERSION ${GENERIC_LIB_VERSION} SOVERSION ${GENERIC_LIB_SOVERSION} )
+ 
+ ########### install files ###############

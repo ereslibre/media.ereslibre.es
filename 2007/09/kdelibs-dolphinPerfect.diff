@@ -1,0 +1,1438 @@
+Index: kfile/kdirsortfilterproxymodel.h
+===================================================================
+--- kfile/kdirsortfilterproxymodel.h	(revisión: 712411)
++++ kfile/kdirsortfilterproxymodel.h	(copia de trabajo)
+@@ -23,7 +23,8 @@
+ #ifndef KDIRSORTFILTERPROXYMODEL_H
+ #define KDIRSORTFILTERPROXYMODEL_H
+ 
+-#include <QtGui/QSortFilterProxyModel>
++#include <kcategorizedsortfilterproxymodel.h>
++
+ #include <kfile_export.h>
+ //#include <kio/kio_export.h>
+ 
+@@ -46,7 +47,8 @@
+  *
+  * @author Dominic Battre, Martin Pool and Peter Penz
+  */
+-class KFILE_EXPORT /*KIO_EXPORT*/ KDirSortFilterProxyModel : public QSortFilterProxyModel
++class KFILE_EXPORT /*KIO_EXPORT*/ KDirSortFilterProxyModel
++    : public KCategorizedSortFilterProxyModel
+ {
+     Q_OBJECT
+ 
+@@ -76,6 +78,12 @@
+      */
+     virtual bool lessThan(const QModelIndex& left,
+                           const QModelIndex& right) const;
++
++    virtual bool lessThanCategoryPurpose(const QModelIndex &left,
++                                         const QModelIndex &right) const;
++
++    virtual bool lessThanGeneralPurpose(const QModelIndex &left,
++                                        const QModelIndex &right) const;
+ };
+ 
+ 
+Index: kfile/kdirsortfilterproxymodel.cpp
+===================================================================
+--- kfile/kdirsortfilterproxymodel.cpp	(revisión: 712411)
++++ kfile/kdirsortfilterproxymodel.cpp	(copia de trabajo)
+@@ -31,7 +31,7 @@
+ // in the form of a separate subclass
+ 
+ KDirSortFilterProxyModel::KDirSortFilterProxyModel(QObject* parent)
+-    : QSortFilterProxyModel(parent)
++    : KCategorizedSortFilterProxyModel(parent)
+ {
+     setDynamicSortFilter(true);
+ 
+@@ -288,7 +288,80 @@
+ 
+     // We have set a SortRole and trust the ProxyModel to do
+     // the right thing for now.
+-    return QSortFilterProxyModel::lessThan(left, right);
++    return KCategorizedSortFilterProxyModel::lessThan(left, right);
+ }
+ 
++bool KDirSortFilterProxyModel::lessThanCategoryPurpose(const QModelIndex &left,
++                                                       const QModelIndex &right) const
++{
++    return lessThan(left, right);
++}
+ 
++bool KDirSortFilterProxyModel::lessThanGeneralPurpose(const QModelIndex &left,
++                                                      const QModelIndex &right) const
++{
++    KDirModel* dirModel = static_cast<KDirModel*>(sourceModel());
++
++    const KFileItem leftFileItem  = dirModel->itemForIndex(left);
++    const KFileItem rightFileItem = dirModel->itemForIndex(right);
++
++    switch (left.column()) {
++    case KDirModel::Name: {
++        QString leftFileName(leftFileItem.name());
++        if (leftFileName.at(0) == '.') {
++            leftFileName = leftFileName.mid(1);
++        }
++
++        QString rightFileName(rightFileItem.name());
++        if (rightFileName.at(0) == '.') {
++            rightFileName = rightFileName.mid(1);
++        }
++
++        // We don't care about case for building categories
++        return naturalCompare(leftFileName[0].toLower(), rightFileName[0].toLower()) < 0;
++    }
++
++    case KDirModel::Size:
++        // If we are sorting by size, show folders first. We will sort them
++        // correctly later.
++        return leftFileItem.isDir() && !rightFileItem.isDir();
++
++    case KDirModel::ModifiedTime: {
++        KDateTime leftTime = leftFileItem.time(KFileItem::ModificationTime);
++        KDateTime rightTime = rightFileItem.time(KFileItem::ModificationTime);
++        return leftTime > rightTime;
++    }
++
++    case KDirModel::Permissions: {
++        return naturalCompare(leftFileItem.permissionsString(),
++                            rightFileItem.permissionsString()) < 0;
++    }
++
++    case KDirModel::Owner: {
++        return naturalCompare(leftFileItem.user().toLower(),
++                              rightFileItem.user().toLower()) < 0;
++    }
++
++    case KDirModel::Group: {
++        return naturalCompare(leftFileItem.group().toLower(),
++                              rightFileItem.group().toLower()) < 0;
++    }
++
++    case KDirModel::Type: {
++        // If we are sorting by size, show folders first. We will sort them
++        // correctly later.
++        if (leftFileItem.isDir() && !rightFileItem.isDir()) {
++            return true;
++        } else if (!leftFileItem.isDir() && rightFileItem.isDir()) {
++            return false;
++        }
++
++        return naturalCompare(leftFileItem.mimeComment().toLower(),
++                              rightFileItem.mimeComment().toLower()) < 0;
++    }
++
++    default:
++        break;
++    }
++    return false;
++}
+Index: kio/kio/global.cpp
+===================================================================
+--- kio/kio/global.cpp	(revisión: 712411)
++++ kio/kio/global.cpp	(copia de trabajo)
+@@ -30,7 +30,7 @@
+ #include <kprotocolmanager.h>
+ #include <kde_file.h>
+ #include <kmimetype.h>
+-#include <kuiserverjobtracker.h>
++#include <kwidgetjobtracker.h>
+ 
+ #include <QtCore/QByteArray>
+ #include <QtCore/QDate>
+@@ -47,7 +47,7 @@
+ #include <unistd.h>
+ #include <stdio.h>
+ 
+-K_GLOBAL_STATIC(KUiServerJobTracker, globalJobTracker)
++K_GLOBAL_STATIC(KWidgetJobTracker, globalJobTracker)
+ 
+ // If someone wants the SI-standard prefixes kB/MB/GB/TB, I would recommend
+ // a hidden kconfig option and getting the code from #57240 into the same
+Index: kdeui/CMakeLists.txt
+===================================================================
+--- kdeui/CMakeLists.txt	(revisión: 712411)
++++ kdeui/CMakeLists.txt	(copia de trabajo)
+@@ -106,7 +106,7 @@
+  jobs/kdialogjobuidelegate.cpp
+  jobs/kabstractwidgetjobtracker.cpp
+  jobs/kwidgetjobtracker.cpp
+- jobs/kstatusbarjobtracker.cpp
++ #jobs/kstatusbarjobtracker.cpp
+  jobs/kuiserverjobtracker.cpp
+  kernel/kapplication.cpp
+  kernel/kclipboard.cpp
+Index: kdeui/dialogs/aboutkde.png
+===================================================================
+No se puede mostrar: el archivo está marcado como binario.
+svn:mime-type = image/png
+Index: kdeui/jobs/kabstractwidgetjobtracker.h
+===================================================================
+--- kdeui/jobs/kabstractwidgetjobtracker.h	(revisión: 712411)
++++ kdeui/jobs/kabstractwidgetjobtracker.h	(copia de trabajo)
+@@ -66,26 +66,29 @@
+     /**
+      * The widget associated to this tracker.
+      *
++     * @param job the job that is assigned the widget we want to return
+      * @return the widget displaying the job progresses
+      */
+-    virtual QWidget *widget() = 0;
++    virtual QWidget *widget(KJob *job) = 0;
+ 
+     /**
+      * This controls whether the job should be canceled if the dialog is closed.
+      *
++     * @param job the job's widget that will be stopped when closing
+      * @param stopOnClose If true the job will be stopped if the dialog is closed,
+      * otherwise the job will continue even on close.
+      * @see stopOnClose()
+      */
+-    void setStopOnClose(bool stopOnClose);
++    void setStopOnClose(KJob *job, bool stopOnClose);
+ 
+     /**
+      * Checks whether the job will be killed when the dialog is closed.
+      *
++     * @param job the job's widget that will be stopped when closing
+      * @return true if the job is killed on close event, false otherwise.
+      * @see setStopOnClose()
+      */
+-    bool stopOnClose() const;
++    bool stopOnClose(KJob *job) const;
+ 
+     /**
+      * This controls whether the dialog should be deleted or only cleaned when
+@@ -94,19 +97,22 @@
+      * If your dialog is an embedded widget and not a separate window, you should
+      * setAutoDelete(false) in the constructor of your custom dialog.
+      *
++     * @param job the job's widget that is going to be auto-deleted
+      * @param autoDelete If false the dialog will only call method slotClean.
+      * If true the dialog will be deleted.
+      * @see autoDelete()
+      */
+-    void setAutoDelete(bool autoDelete);
++    void setAutoDelete(KJob *job, bool autoDelete);
+ 
+     /**
+      * Checks whether the dialog should be deleted or cleaned.
++     *
++     * @param job the job's widget that will be auto-deleted
+      * @return false if the dialog only calls slotClean, true if it will be
+      *         deleted
+      * @see setAutoDelete()
+      */
+-    bool autoDelete() const;
++    bool autoDelete(KJob *job) const;
+ 
+ protected Q_SLOTS:
+     /**
+@@ -120,42 +126,56 @@
+     /**
+      * This method should be called for correct cancellation of IO operation
+      * Connect this to the progress widgets buttons etc.
++     *
++     * @param job The job that is being stopped
+      */
+-    void slotStop();
++    void slotStop(KJob *job);
+ 
+     /**
+      * This method should be called for pause/resume
+      * Connect this to the progress widgets buttons etc.
++     *
++     * @param job The job that is being suspended
+      */
+-    void slotSuspend();
++    void slotSuspend(KJob *job);
+ 
+     /**
+      * This method should be called for pause/resume
+      * Connect this to the progress widgets buttons etc.
++     *
++     * @param job The job that is being resumed
+      */
+-    void slotResume();
++    void slotResume(KJob *job);
+ 
+     /**
+      * This method is called when the widget should be cleaned (after job is finished).
+      * redefine this for custom behavior.
++     *
++     * @param job The job that is being cleaned
+      */
+-    virtual void slotClean();
++    virtual void slotClean(KJob *job);
+ 
+ Q_SIGNALS:
+     /**
+      * Emitted when the user aborted the operation
++     *
++     * @param job The job that has been stopped
+      */
+-    void stopped();
++    void stopped(KJob *job);
+ 
+     /**
+      * Emitted when the user suspended the operation
++     *
++     * @param job The job that has been suspended
+      */
+-    void suspend();
++    void suspend(KJob *job);
+ 
+     /**
+      * Emitted when the user resumed the operation
++     *
++     * @param job The job that has been resumed
+      */
+-    void resume();
++    void resume(KJob *job);
+ 
+ protected:
+     /**
+@@ -164,8 +184,6 @@
+     bool eventFilter(QObject *obj, QEvent *event);
+ 
+ private:
+-    Q_PRIVATE_SLOT(d, void _k_installEventFilter())
+-
+     class Private;
+     Private *const d;
+ };
+Index: kdeui/jobs/kwidgetjobtracker.cpp
+===================================================================
+--- kdeui/jobs/kwidgetjobtracker.cpp	(revisión: 712411)
++++ kdeui/jobs/kwidgetjobtracker.cpp	(copia de trabajo)
+@@ -1,6 +1,7 @@
+ /*  This file is part of the KDE project
+     Copyright (C) 2000 Matej Koss <koss@miesto.sk>
+     Copyright (C) 2007 Kevin Ottens <ervin@kde.org>
++    Copyright (C) 2007 Rafael Fernández López <ereslibre@gmail.com>
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+@@ -19,6 +20,7 @@
+ */
+ 
+ #include "kwidgetjobtracker.h"
++#include "kwidgetjobtracker_p.h"
+ 
+ #include <QProcess>
+ #include <QTime>
+@@ -35,6 +37,7 @@
+ #include <kiconloader.h>
+ #include <kdialog.h>
+ #include <kstandarddirs.h>
++#include <kdebug.h>
+ 
+ #include <klocale.h>
+ 
+@@ -42,262 +45,332 @@
+ #include <kwindowsystem.h>
+ #endif
+ 
+-class KWidgetJobTracker::Private
++
++KWidgetJobTracker::KWidgetJobTracker(QWidget *parent)
++    : KAbstractWidgetJobTracker(parent), d(new Private(parent))
+ {
+-public:
+-    Private(KWidgetJobTracker *object)
+-        : q(object), totalSize(0), totalFiles(0), totalDirs(0),
+-          processedSize(0), processedDirs(0), processedFiles(0),
+-          keepOpenChecked(false),
+-          widget(0), cancelClose(0), openFile(0), openLocation(0),
+-          keepOpen(0), pauseButton(0), sourceEdit(0), destEdit(0),
+-          progressLabel(0), destInvite(0), speedLabel(0), sizeLabel(0),
+-          resumeLabel(0), progressBar(0), suspended(false) { }
++}
+ 
+-    KWidgetJobTracker *const q;
++KWidgetJobTracker::~KWidgetJobTracker()
++{
++    delete d;
++}
+ 
+-    qulonglong totalSize;
+-    qulonglong totalFiles;
+-    qulonglong totalDirs;
+-    qulonglong processedSize;
+-    qulonglong processedDirs;
+-    qulonglong processedFiles;
++QWidget *KWidgetJobTracker::widget(KJob *job)
++{
++    if (!d->visualInformation.contains(job)) {
++        return 0;
++    }
+ 
+-    bool keepOpenChecked;
+-    QString caption;
++    return d->visualInformation[job];
++}
+ 
+-    QWidget     *widget;
+-    KPushButton *cancelClose;
+-    KPushButton *openFile;
+-    KPushButton *openLocation;
+-    QCheckBox   *keepOpen;
+-    KUrl        location;
+-    QTime       startTime;
+-    KPushButton *pauseButton;
+-    KLineEdit *sourceEdit;
+-    KLineEdit *destEdit;
+-    QLabel *progressLabel;
+-    QLabel *sourceInvite;
+-    QLabel *destInvite;
+-    QLabel *speedLabel;
+-    QLabel *sizeLabel;
+-    QLabel *resumeLabel;
+-    QProgressBar *progressBar;
++void KWidgetJobTracker::registerJob(KJob *job)
++{
++    KAbstractWidgetJobTracker::registerJob(job);
+ 
+-    bool suspended;
++    if (d->visualInformation.contains(job)) {
++        return;
++    }
+ 
+-    void init(QWidget *parent);
+-    void showTotals();
+-    void setDestVisible(bool visible);
+-    void checkDestination(const KUrl &dest);
++    Private::VisualInformation *vi = new Private::VisualInformation(job, this, d->parent);
++    vi->show();
+ 
+-    void _k_keepOpenToggled(bool);
+-    void _k_openFile();
+-    void _k_openLocation();
+-    void _k_pauseResumeClicked();
+-};
++    d->visualInformation.insert(job, vi);
+ 
+-KWidgetJobTracker::KWidgetJobTracker(QWidget *parent)
+-    : KAbstractWidgetJobTracker(parent), d(new Private(this))
++    vi->installEventFilter(this);
++}
++
++void KWidgetJobTracker::unregisterJob(KJob *job)
+ {
+-    d->init(parent);
++    KAbstractWidgetJobTracker::unregisterJob(job);
++
++    if (!d->visualInformation.contains(job)) {
++        return;
++    }
++
++    if (!d->visualInformation[job]->keepOpenChecked) {
++        delete d->visualInformation[job];
++    }
++
++    d->visualInformation.remove(job);
+ }
+ 
+-KWidgetJobTracker::~KWidgetJobTracker()
++bool KWidgetJobTracker::keepOpen(KJob *job) const
+ {
+-    delete d->widget;
+-    delete d;
++    if (!d->visualInformation.contains(job)) {
++        return false;
++    }
++
++    return d->visualInformation[job]->keepOpen();
+ }
+ 
+-QWidget *KWidgetJobTracker::widget()
++
++void KWidgetJobTracker::infoMessage(KJob *job, const QString &plain, const QString &rich)
+ {
+-    return d->widget;
++    if (!d->visualInformation.contains(job)) {
++        return;
++    }
++
++    d->visualInformation[job]->infoMessage(plain, rich);
+ }
+ 
+-bool KWidgetJobTracker::keepOpen() const
++void KWidgetJobTracker::description(KJob *job, const QString &title,
++                                    const QPair<QString, QString> &field1,
++                                    const QPair<QString, QString> &field2)
+ {
+-    return d->keepOpenChecked;
++    if (!d->visualInformation.contains(job)) {
++        return;
++    }
++
++    d->visualInformation[job]->description(title, field1, field2);
+ }
+ 
++void KWidgetJobTracker::totalAmount(KJob *job, KJob::Unit unit, qulonglong amount)
++{
++    if (!d->visualInformation.contains(job)) {
++        return;
++    }
+ 
+-void KWidgetJobTracker::infoMessage(KJob * /*job*/, const QString &plain, const QString &/*rich*/)
++    d->visualInformation[job]->totalAmount(unit, amount);
++}
++
++void KWidgetJobTracker::processedAmount(KJob *job, KJob::Unit unit, qulonglong amount)
+ {
+-    d->speedLabel->setText(plain);
+-    d->speedLabel->setAlignment(d->speedLabel->alignment() & ~Qt::TextWordWrap);
++    if (!d->visualInformation.contains(job)) {
++        return;
++    }
++
++    d->visualInformation[job]->processedAmount(unit, amount);
+ }
+ 
+-void KWidgetJobTracker::description(KJob * /*job*/, const QString &title,
+-                                    const QPair<QString, QString> &field1,
+-                                    const QPair<QString, QString> &field2)
++void KWidgetJobTracker::percent(KJob *job, unsigned long percent)
+ {
+-    if ( d->caption.isEmpty() ) {
+-        d->widget->setWindowTitle(title);
+-        d->caption = title;
++    if (!d->visualInformation.contains(job)) {
++        return;
+     }
+ 
+-    d->sourceInvite->setText(field1.first);
+-    d->sourceEdit->setText(field1.second);
++    d->visualInformation[job]->percent(percent);
++}
+ 
++void KWidgetJobTracker::speed(KJob *job, unsigned long value)
++{
++    if (!d->visualInformation.contains(job)) {
++        return;
++    }
++
++    d->visualInformation[job]->speed(value);
++}
++
++void KWidgetJobTracker::slotClean(KJob *job)
++{
++    if (!d->visualInformation.contains(job)) {
++        return;
++    }
++
++    d->visualInformation[job]->slotClean();
++}
++
++void KWidgetJobTracker::suspended(KJob *job)
++{
++    if (!d->visualInformation.contains(job)) {
++        return;
++    }
++
++    d->visualInformation[job]->suspended();
++}
++
++void KWidgetJobTracker::resumed(KJob *job)
++{
++    if (!d->visualInformation.contains(job)) {
++        return;
++    }
++
++    d->visualInformation[job]->resumed();
++}
++
++bool KWidgetJobTracker::Private::VisualInformation::keepOpen() const
++{
++    return keepOpenChecked;
++}
++
++
++void KWidgetJobTracker::Private::VisualInformation::infoMessage(const QString &plain, const QString &/*rich*/)
++{
++    speedLabel->setText(plain);
++    speedLabel->setAlignment(speedLabel->alignment() & ~Qt::TextWordWrap);
++}
++
++void KWidgetJobTracker::Private::VisualInformation::description(const QString &title,
++                                                                const QPair<QString, QString> &field1,
++                                                                const QPair<QString, QString> &field2)
++{
++    if (caption.isEmpty() ) {
++        setWindowTitle(title);
++        caption = title;
++    }
++
++    sourceInvite->setText(field1.first);
++    sourceEdit->setText(field1.second);
++
+     if (field2.first.isEmpty()) {
+-        d->setDestVisible(false);
++        setDestVisible(false);
+     } else {
+-        d->setDestVisible(true);
+-        d->checkDestination(KUrl(field2.second));
+-        d->destInvite->setText(field2.first);
+-        d->destEdit->setText(field2.second);
++        setDestVisible(true);
++        checkDestination(KUrl(field2.second));
++        destInvite->setText(field2.first);
++        destEdit->setText(field2.second);
+     }
+ }
+ 
+-void KWidgetJobTracker::totalAmount(KJob * /*job*/, KJob::Unit unit, qulonglong amount)
++void KWidgetJobTracker::Private::VisualInformation::totalAmount(KJob::Unit unit, qulonglong amount)
+ {
+     switch(unit)
+     {
+     case KJob::Bytes:
+         // size is measured in bytes
+-        if (d->totalSize == amount)
++        if (totalSize == amount)
+             return;
+-        d->totalSize = amount;
+-        if (d->startTime.isNull())
+-            d->startTime.start();
++        totalSize = amount;
++        if (startTime.isNull())
++            startTime.start();
+         break;
+ 
+     case KJob::Files:
+-        if (d->totalFiles == amount)
++        if (totalFiles == amount)
+             return;
+-        d->totalFiles = amount;
+-        d->showTotals();
++        totalFiles = amount;
++        showTotals();
+         break;
+ 
+     case KJob::Directories:
+-        if (d->totalDirs == amount)
++        if (totalDirs == amount)
+             return;
+-        d->totalDirs = amount;
+-        d->showTotals();
++        totalDirs = amount;
++        showTotals();
+         break;
+     }
+ }
+ 
+-void KWidgetJobTracker::processedAmount(KJob * /*job*/, KJob::Unit unit, qulonglong amount)
++void KWidgetJobTracker::Private::VisualInformation::processedAmount(KJob::Unit unit, qulonglong amount)
+ {
+     QString tmp;
+ 
+     switch(unit)
+     {
+     case KJob::Bytes:
+-        if (d->processedSize == amount)
++        if (processedSize == amount)
+             return;
+-        d->processedSize = amount;
++        processedSize = amount;
+ 
+         tmp = i18n( "%1 of %2 complete",
+                     KGlobal::locale()->formatByteSize(amount),
+-                    KGlobal::locale()->formatByteSize(d->totalSize));
+-        d->sizeLabel->setText(tmp);
++                    KGlobal::locale()->formatByteSize(totalSize));
++        sizeLabel->setText(tmp);
+         break;
+ 
+     case KJob::Directories:
+-        if (d->processedDirs == amount)
++        if (processedDirs == amount)
+             return;
+-        d->processedDirs = amount;
++        processedDirs = amount;
+ 
+-        tmp = i18np("%2 / %1 folder", "%2 / %1 folders", d->totalDirs,  d->processedDirs);
++        tmp = i18np("%2 / %1 folder", "%2 / %1 folders", totalDirs,  processedDirs);
+         tmp += "   ";
+-        tmp += i18np("%2 / %1 file", "%2 / %1 files", d->totalFiles,  d->processedFiles);
+-        d->progressLabel->setText(tmp);
++        tmp += i18np("%2 / %1 file", "%2 / %1 files", totalFiles,  processedFiles);
++        progressLabel->setText(tmp);
+         break;
+ 
+     case KJob::Files:
+-        if (d->processedFiles == amount)
++        if (processedFiles == amount)
+             return;
+-        d->processedFiles = amount;
++        processedFiles = amount;
+ 
+-        if (d->totalDirs > 1) {
+-            tmp = i18np("%2 / %1 folder", "%2 / %1 folders", d->totalDirs,  d->processedDirs);
++        if (totalDirs > 1) {
++            tmp = i18np("%2 / %1 folder", "%2 / %1 folders", totalDirs,  processedDirs);
+             tmp += "   ";
+         }
+-        tmp += i18np("%2 / %1 file", "%2 / %1 files", d->totalFiles,  d->processedFiles);
+-        d->progressLabel->setText(tmp);
++        tmp += i18np("%2 / %1 file", "%2 / %1 files", totalFiles,  processedFiles);
++        progressLabel->setText(tmp);
+     }
+ }
+ 
+-void KWidgetJobTracker::percent(KJob * /*job*/, unsigned long percent)
++void KWidgetJobTracker::Private::VisualInformation::percent(unsigned long percent)
+ {
+-    QString title = d->caption+" (";
++    QString title = caption+" (";
+ 
+-    if (d->totalSize)
++    if (totalSize)
+         title+= i18n("%1 % of %2 ", percent ,
+-                     KGlobal::locale()->formatByteSize(d->totalSize));
+-    else if(d->totalFiles)
+-        title+= i18np("%2 % of 1 file", "%2 % of %1 files", d->totalFiles, percent);
++                     KGlobal::locale()->formatByteSize(totalSize));
++    else if(totalFiles)
++        title+= i18np("%2 % of 1 file", "%2 % of %1 files", totalFiles, percent);
+     else
+         title+= i18n("%1 %",  percent);
+ 
+     title+=')';
+ 
+-    d->progressBar->setValue(percent);
+-    d->widget->setWindowTitle(title);
++    progressBar->setValue(percent);
++    setWindowTitle(title);
+ }
+ 
+-void KWidgetJobTracker::speed(KJob * /*job*/, unsigned long value)
++void KWidgetJobTracker::Private::VisualInformation::speed(unsigned long value)
+ {
+     if (value == 0) {
+-        d->speedLabel->setText(i18n("Stalled"));
++        speedLabel->setText(i18n("Stalled"));
+     } else {
+         int remaining = 0;
+ 
+-        if ((value != 0) && (d->totalSize != 0)) {
+-            remaining = 1000*(d->totalSize - d->processedSize)/value;
++        if ((value != 0) && (totalSize != 0)) {
++            remaining = 1000*(totalSize - processedSize)/value;
+         }
+ 
+-        d->speedLabel->setText(i18n("%1/s ( %2 remaining )", KGlobal::locale()->formatByteSize(value),
++        speedLabel->setText(i18n("%1/s ( %2 remaining )", KGlobal::locale()->formatByteSize(value),
+                                     KGlobal::locale()->formatDuration(remaining)));
+     }
+ }
+ 
+-void KWidgetJobTracker::slotClean()
++void KWidgetJobTracker::Private::VisualInformation::slotClean()
+ {
+-    if (!d->keepOpenChecked) {
+-        d->widget->hide();
++    if (!keepOpenChecked) {
++        hide();
+     } else {
+-        percent(0, 100);
+-        d->cancelClose->setGuiItem(KStandardGuiItem::close());
+-        d->openFile->setEnabled(true);
+-        processedAmount(0, KJob::Bytes, d->totalSize);
+-        d->keepOpen->setEnabled(false);
+-        if (!d->startTime.isNull()) {
+-            int s = d->startTime.elapsed();
++        percent(100);
++        cancelClose->setGuiItem(KStandardGuiItem::close());
++        openFile->setEnabled(true);
++        processedAmount(KJob::Bytes, totalSize);
++        keepOpenCheck->setEnabled(false);
++        if (!startTime.isNull()) {
++            int s = startTime.elapsed();
+             if (!s)
+                 s = 1;
+-            d->speedLabel->setText(i18n("%1/s (done)",
+-                                        KGlobal::locale()->formatByteSize(1000 * d->totalSize / s)));
++            speedLabel->setText(i18n("%1/s (done)",
++                                        KGlobal::locale()->formatByteSize(1000 * totalSize / s)));
+         }
+-        setAutoDelete(true);
++        q->setAutoDelete(job, true);
+     }
+ }
+ 
+-void KWidgetJobTracker::suspended(KJob * /* job */)
++void KWidgetJobTracker::Private::VisualInformation::suspended()
+ {
+-    d->pauseButton->setText(i18n("Resume"));
+-    d->suspended = true;
++    pauseButton->setText(i18n("Resume"));
++    suspendedProperty = true;
+ }
+ 
+-void KWidgetJobTracker::resumed(KJob * /* job */)
++void KWidgetJobTracker::Private::VisualInformation::resumed()
+ {
+-    d->pauseButton->setText(i18n("Pause"));
+-    d->suspended = false;
++    pauseButton->setText(i18n("Pause"));
++    suspendedProperty = false;
+ }
+ 
+-void KWidgetJobTracker::Private::init(QWidget *parent)
++void KWidgetJobTracker::Private::VisualInformation::init(QWidget *parent)
+ {
+-    widget = new QWidget(parent);
+-
+ #ifdef Q_WS_X11 //FIXME(E): Remove once all the KWindowSystem::foo calls have been ported to QWS
+     // Set a useful icon for this window!
+-    KWindowSystem::setIcons( widget->winId(),
++    KWindowSystem::setIcons( winId(),
+                     KIconLoader::global()->loadIcon( "document-save", K3Icon::NoGroup, 32 ),
+                     KIconLoader::global()->loadIcon( "document-save", K3Icon::NoGroup, 16 ) );
+ #endif
+ 
+-    QVBoxLayout *topLayout = new QVBoxLayout(widget);
++    QVBoxLayout *topLayout = new QVBoxLayout(this);
+     topLayout->setMargin(KDialog::marginHint());
+     topLayout->setSpacing(KDialog::spacingHint() );
+     topLayout->addStrut( 360 );   // makes dlg at least that wide
+@@ -306,18 +379,18 @@
+     topLayout->addLayout(grid);
+     grid->addItem(new QSpacerItem(KDialog::spacingHint(),0),0,1); //addColSpacing(1, KDialog::spacingHint());
+     // filenames or action name
+-    sourceInvite = new QLabel(i18n("Source:"), widget);
++    sourceInvite = new QLabel(i18n("Source:"), this);
+     grid->addWidget(sourceInvite, 0, 0);
+ 
+-    sourceEdit = new KLineEdit(widget);
++    sourceEdit = new KLineEdit(this);
+     sourceEdit->setReadOnly(true);
+     sourceEdit->setSqueezedTextEnabled(true);
+     grid->addWidget(sourceEdit, 0, 2);
+ 
+-    destInvite = new QLabel(i18n("Destination:"), widget);
++    destInvite = new QLabel(i18n("Destination:"), this);
+     grid->addWidget(destInvite, 1, 0);
+ 
+-    destEdit = new KLineEdit(widget);
++    destEdit = new KLineEdit(this);
+     destEdit->setReadOnly (true);
+     destEdit->setSqueezedTextEnabled(true);
+     grid->addWidget(destEdit, 1, 2);
+@@ -325,26 +398,26 @@
+     QHBoxLayout *progressHBox = new QHBoxLayout();
+     topLayout->addLayout(progressHBox);
+ 
+-    progressBar = new QProgressBar(widget);
++    progressBar = new QProgressBar(this);
+     progressHBox->addWidget(progressBar);
+ 
+-    suspended = false;
+-    pauseButton = new KPushButton(i18n("Pause"), widget);
++    suspendedProperty = false;
++    pauseButton = new KPushButton(i18n("Pause"), this);
+     QObject::connect(pauseButton, SIGNAL(clicked()),
+-                     q, SLOT(_k_pauseResumeClicked()));
++                     this, SLOT(_k_pauseResumeClicked()));
+     progressHBox->addWidget(pauseButton);
+ 
+     // processed info
+     QHBoxLayout *hBox = new QHBoxLayout();
+     topLayout->addLayout(hBox);
+ 
+-    sizeLabel = new QLabel(widget);
++    sizeLabel = new QLabel(this);
+     hBox->addWidget(sizeLabel);
+ 
+-    resumeLabel = new QLabel(widget);
++    resumeLabel = new QLabel(this);
+     hBox->addWidget(resumeLabel);
+ 
+-    progressLabel = new QLabel(widget);
++    progressLabel = new QLabel(this);
+ /*    progressLabel->setSizePolicy(QSizePolicy(QSizePolicy::MinimumExpanding,
+                                             QSizePolicy::Preferred));*/
+     progressLabel->setAlignment(Qt::AlignRight);
+@@ -353,51 +426,51 @@
+     hBox = new QHBoxLayout();
+     topLayout->addLayout(hBox);
+ 
+-    speedLabel = new QLabel(widget);
++    speedLabel = new QLabel(this);
+     hBox->addWidget(speedLabel, 1);
+ 
+-    QFrame *line = new QFrame(widget);
++    QFrame *line = new QFrame(this);
+     line->setFrameShape(QFrame::HLine);
+     line->setFrameShadow(QFrame::Sunken);
+     topLayout->addWidget(line);
+ 
+-    keepOpen = new QCheckBox(i18n("&Keep this window open after transfer is complete"), widget);
+-    QObject::connect(keepOpen, SIGNAL(toggled(bool)),
+-                     q, SLOT(_k_keepOpenToggled(bool)));
+-    topLayout->addWidget(keepOpen);
+-    keepOpen->hide();
++    keepOpenCheck = new QCheckBox(i18n("&Keep this window open after transfer is complete"), this);
++    QObject::connect(keepOpenCheck, SIGNAL(toggled(bool)),
++                     this, SLOT(_k_keepOpenToggled(bool)));
++    topLayout->addWidget(keepOpenCheck);
++    keepOpenCheck->hide();
+ 
+     hBox = new QHBoxLayout();
+     topLayout->addLayout(hBox);
+ 
+-    openFile = new KPushButton(i18n("Open &File"), widget);
++    openFile = new KPushButton(i18n("Open &File"), this);
+     QObject::connect(openFile, SIGNAL(clicked()),
+-                     q, SLOT(_k_openFile()));
++                     this, SLOT(_k_openFile()));
+     hBox->addWidget(openFile);
+     openFile->setEnabled(false);
+     openFile->hide();
+ 
+-    openLocation = new KPushButton(i18n("Open &Destination"), widget);
++    openLocation = new KPushButton(i18n("Open &Destination"), this);
+     QObject::connect(openLocation, SIGNAL(clicked()),
+-                     q, SLOT(_k_openLocation()));
++                     this, SLOT(_k_openLocation()));
+     hBox->addWidget(openLocation);
+     openLocation->hide();
+ 
+     hBox->addStretch(1);
+ 
+-    cancelClose = new KPushButton(KStandardGuiItem::cancel(), widget);
++    cancelClose = new KPushButton(KStandardGuiItem::cancel(), this);
+     QObject::connect(cancelClose, SIGNAL(clicked()),
+-                     q, SLOT(slotStop()));
++                     this, SLOT(_k_stop()));
+     hBox->addWidget(cancelClose);
+ 
+-    widget->resize(widget->sizeHint());
+-    widget->setMaximumHeight(widget->sizeHint().height());
++    resize(sizeHint());
++    setMaximumHeight(sizeHint().height());
+ 
+     keepOpenChecked = false;
+-    widget->setWindowTitle(i18n("Progress Dialog")); // show something better than kuiserver
++    setWindowTitle(i18n("Progress Dialog")); // show something better than kuiserver
+ }
+ 
+-void KWidgetJobTracker::Private::showTotals()
++void KWidgetJobTracker::Private::VisualInformation::showTotals()
+ {
+     // Show the totals in the progress label, if we still haven't
+     // processed anything. This is useful when the stat'ing phase
+@@ -413,7 +486,7 @@
+     }
+ }
+ 
+-void KWidgetJobTracker::Private::setDestVisible(bool visible)
++void KWidgetJobTracker::Private::VisualInformation::setDestVisible(bool visible)
+ {
+     // We can't hide the destInvite/destEdit labels,
+     // because it screws up the QGridLayout.
+@@ -431,7 +504,7 @@
+     }
+ }
+ 
+-void KWidgetJobTracker::Private::checkDestination(const KUrl &dest)
++void KWidgetJobTracker::Private::VisualInformation::checkDestination(const KUrl &dest)
+ {
+     bool ok = true;
+ 
+@@ -446,34 +519,41 @@
+     if (ok) {
+         openFile->show();
+         openLocation->show();
+-        keepOpen->show();
++        keepOpenCheck->show();
+         location=dest;
+     }
+ }
+ 
+-void KWidgetJobTracker::Private::_k_keepOpenToggled(bool keepOpen)
++void KWidgetJobTracker::Private::VisualInformation::_k_keepOpenToggled(bool keepOpen)
+ {
+     keepOpenChecked = keepOpen;
+ }
+ 
+-void KWidgetJobTracker::Private::_k_openFile()
++void KWidgetJobTracker::Private::VisualInformation::_k_openFile()
+ {
+     QProcess::startDetached("konqueror", QStringList() << location.prettyUrl());
+ }
+ 
+-void KWidgetJobTracker::Private::_k_openLocation()
++void KWidgetJobTracker::Private::VisualInformation::_k_openLocation()
+ {
+     location.setFileName("");
+     _k_openFile();
+ }
+ 
+-void KWidgetJobTracker::Private::_k_pauseResumeClicked()
++void KWidgetJobTracker::Private::VisualInformation::_k_pauseResumeClicked()
+ {
+-    if ( !suspended ) {
+-        q->slotSuspend();
++    if ( !suspendedProperty ) {
++        q->slotSuspend(job);
+     } else {
+-        q->slotResume();
++        q->slotResume(job);
+     }
+ }
+ 
++void KWidgetJobTracker::Private::VisualInformation::_k_stop()
++{
++    q->slotStop(job);
++    q->widget(job)->deleteLater();
++}
++
+ #include "kwidgetjobtracker.moc"
++#include "kwidgetjobtracker_p.moc"
+Index: kdeui/jobs/kabstractwidgetjobtracker.cpp
+===================================================================
+--- kdeui/jobs/kabstractwidgetjobtracker.cpp	(revisión: 712411)
++++ kdeui/jobs/kabstractwidgetjobtracker.cpp	(copia de trabajo)
+@@ -1,6 +1,7 @@
+ /*  This file is part of the KDE project
+     Copyright (C) 2000 Matej Koss <koss@miesto.sk>
+     Copyright (C) 2007 Kevin Ottens <ervin@kde.org>
++    Copyright (C) 2007 Rafael Fernández López <ereslibre@gmail.com>
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+@@ -23,26 +24,29 @@
+ #include <QWidget>
+ #include <QTimer>
+ #include <QEvent>
++#include <QMap>
+ 
++#include <kdebug.h>
++
+ class KAbstractWidgetJobTracker::Private
+ {
+ public:
+     Private(KAbstractWidgetJobTracker *parent)
+-        : q(parent), job(0),
+-          stopOnClose(true), autoDelete(true) { }
++        : q(parent) { }
+ 
+     KAbstractWidgetJobTracker *const q;
+-    KJob *job;
+-    bool stopOnClose;
+-    bool autoDelete;
+ 
+-    void _k_installEventFilter();
++    struct MoreOptions {
++        bool stopOnClose;
++        bool autoDelete;
++    };
++
++    QMap<KJob*, MoreOptions> moreOptions;
+ };
+ 
+ KAbstractWidgetJobTracker::KAbstractWidgetJobTracker(QWidget *parent)
+     : KJobTrackerInterface(parent), d(new Private(this))
+ {
+-    QTimer::singleShot(0, this, SLOT(_k_installEventFilter()));
+ }
+ 
+ KAbstractWidgetJobTracker::~KAbstractWidgetJobTracker()
+@@ -52,104 +56,148 @@
+ 
+ void KAbstractWidgetJobTracker::registerJob(KJob *job)
+ {
+-    if (d->job) {
+-        unregisterJob(d->job);
++    if (d->moreOptions.contains(job)) {
++        return;
+     }
+ 
+-    d->job = job;
++    Private::MoreOptions mo;
++    mo.stopOnClose = true;
++    mo.autoDelete = true;
++
++    d->moreOptions.insert(job, mo);
++
+     KJobTrackerInterface::registerJob(job);
+ }
+ 
+ void KAbstractWidgetJobTracker::unregisterJob(KJob *job)
+ {
+-    d->job = 0;
++    if (!d->moreOptions.contains(job)) {
++        return;
++    }
++
++    d->moreOptions.remove(job);
+     KJobTrackerInterface::unregisterJob(job);
+ }
+ 
+-void KAbstractWidgetJobTracker::setStopOnClose(bool stopOnClose)
++void KAbstractWidgetJobTracker::setStopOnClose(KJob *job, bool stopOnClose)
+ {
+-    d->stopOnClose = stopOnClose;
++    if (!d->moreOptions.contains(job)) {
++        return;
++    }
++
++    d->moreOptions[job].stopOnClose = stopOnClose;
+ }
+ 
+-bool KAbstractWidgetJobTracker::stopOnClose() const
++bool KAbstractWidgetJobTracker::stopOnClose(KJob *job) const
+ {
+-    return d->stopOnClose;
++    if (!d->moreOptions.contains(job)) {
++        return false;
++    }
++
++    return d->moreOptions[job].stopOnClose;
+ }
+ 
+-void KAbstractWidgetJobTracker::setAutoDelete(bool autoDelete)
++void KAbstractWidgetJobTracker::setAutoDelete(KJob *job, bool autoDelete)
+ {
+-    d->autoDelete = autoDelete;
++    if (!d->moreOptions.contains(job)) {
++        return;
++    }
++
++    d->moreOptions[job].autoDelete = autoDelete;
+ }
+ 
+-bool KAbstractWidgetJobTracker::autoDelete() const
++bool KAbstractWidgetJobTracker::autoDelete(KJob *job) const
+ {
+-    return d->autoDelete;
++    return d->moreOptions[job].autoDelete;
+ }
+ 
+-void KAbstractWidgetJobTracker::finished(KJob * /*job*/)
++void KAbstractWidgetJobTracker::finished(KJob *job)
+ {
++    if (!d->moreOptions.contains(job)) {
++        return;
++    }
++
+     // clean or delete dialog
+-    if (d->autoDelete) {
+-        deleteLater();
++    if (d->moreOptions[job].autoDelete) {
++        widget(job)->deleteLater();
+     } else {
+-        slotClean();
++        slotClean(job);
+     }
+ }
+ 
+-void KAbstractWidgetJobTracker::slotStop()
++void KAbstractWidgetJobTracker::slotStop(KJob *job)
+ {
+-    if (d->job) {
+-        d->job->kill(); // this will call slotFinished
+-        d->job = 0L;
+-    } else {
+-        finished(0); // here we call it ourselves
++    if (!d->moreOptions.contains(job)) {
++        return;
+     }
+ 
+-    emit stopped();
++    job->kill();
++
++    emit stopped(job);
+ }
+ 
+-void KAbstractWidgetJobTracker::slotSuspend()
++void KAbstractWidgetJobTracker::slotSuspend(KJob *job)
+ {
+-    if (d->job) {
+-        d->job->suspend();
++    if (!d->moreOptions.contains(job)) {
++        return;
+     }
+ 
+-    emit suspend();
++    job->suspend();
++
++    emit suspend(job);
+ }
+ 
+-void KAbstractWidgetJobTracker::slotResume()
++void KAbstractWidgetJobTracker::slotResume(KJob *job)
+ {
+-    if (d->job ) {
+-        d->job->resume();
++    if (!d->moreOptions.contains(job)) {
++        return;
+     }
+ 
+-    emit resume();
++    job->resume();
++
++    emit resume(job);
+ }
+ 
+-void KAbstractWidgetJobTracker::slotClean()
++void KAbstractWidgetJobTracker::slotClean(KJob *job)
+ {
+-    widget()->hide();
++    if (!d->moreOptions.contains(job)) {
++        return;
++    }
++
++    if (widget(job)) {
++        widget(job)->hide();
++    }
+ }
+ 
+ bool KAbstractWidgetJobTracker::eventFilter(QObject *obj, QEvent *event)
+ {
+-    if (obj==widget() && event->type()==QEvent::Close) {
++    QWidget *foundWidget = 0;
++    KJob *foundJob = 0;
++
++    foreach (KJob *job, d->moreOptions.keys()) {
++        if (widget(job) == obj) {
++            foundWidget = widget(job);
++            foundJob = job;
++            break;
++        }
++    }
++
++    if (!foundWidget) {
++        return KJobTrackerInterface::eventFilter(obj, event);
++    }
++
++    if (event->type()==QEvent::Close) {
+         // kill job when desired
+-        if (d->stopOnClose) {
+-            slotStop();
+-        } else if (d->autoDelete) { // clean or delete dialog
+-            deleteLater();
++        if (d->moreOptions[foundJob].stopOnClose) {
++            slotStop(foundJob);
++        } else if (d->moreOptions[foundJob].autoDelete) { // clean or delete dialog
++            widget(foundJob)->deleteLater();
+         } else {
+-            slotClean();
++            slotClean(foundJob);
+         }
+     }
+ 
+     return KJobTrackerInterface::eventFilter(obj, event);
+ }
+ 
+-void KAbstractWidgetJobTracker::Private::_k_installEventFilter()
+-{
+-    q->widget()->installEventFilter(q);
+-}
+-
+ #include "kabstractwidgetjobtracker.moc"
+Index: kdeui/jobs/kwidgetjobtracker_p.h
+===================================================================
+--- kdeui/jobs/kwidgetjobtracker_p.h	(revisión: 0)
++++ kdeui/jobs/kwidgetjobtracker_p.h	(revisión: 0)
+@@ -0,0 +1,139 @@
++/*  This file is part of the KDE project
++    Copyright (C) 2007 Rafael Fernández López <ereslibre@gmail.com>
++    Copyright (C) 2007 Kevin Ottens <ervin@kde.org>
++
++    This library is free software; you can redistribute it and/or
++    modify it under the terms of the GNU Library General Public
++    License version 2 as published by the Free Software Foundation.
++
++    This library is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++    Library General Public License for more details.
++
++    You should have received a copy of the GNU Library General Public License
++    along with this library; see the file COPYING.LIB.  If not, write to
++    the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++    Boston, MA 02110-1301, USA.
++
++*/
++
++#ifndef KWIDGETJOBTRACKER_P_H
++#define KWIDGETJOBTRACKER_P_H
++
++#include <QWidget>
++#include <QMap>
++#include <QTime>
++
++#include <kdebug.h>
++#include <kurl.h>
++
++class KPushButton;
++class QCheckBox;
++class KLineEdit;
++class QLabel;
++class QProgressBar;
++
++
++class KWidgetJobTracker::Private
++{
++public:
++    Private(QWidget *parent)
++        : parent(parent) { }
++
++    ~Private() {
++        qDeleteAll(visualInformation);
++        visualInformation.clear();
++    }
++
++    class VisualInformation;
++
++    QWidget *parent;
++    QMap<KJob*, VisualInformation*> visualInformation;
++};
++
++
++class KWidgetJobTracker::Private::VisualInformation
++    : public QWidget
++{
++    Q_OBJECT
++
++public:
++    VisualInformation(KJob *job, KWidgetJobTracker *object, QWidget *parent)
++        : q(object), job(job), totalSize(0), totalFiles(0), totalDirs(0),
++          processedSize(0), processedDirs(0), processedFiles(0),
++          keepOpenChecked(false), cancelClose(0), openFile(0), openLocation(0),
++          keepOpenCheck(0), pauseButton(0), sourceEdit(0), destEdit(0),
++          progressLabel(0), destInvite(0), speedLabel(0), sizeLabel(0),
++          resumeLabel(0), progressBar(0), suspendedProperty(false)
++    {
++        init(parent);
++    }
++
++    ~VisualInformation()
++    {
++    }
++
++    KWidgetJobTracker *const q;
++    KJob *const job;
++
++    qulonglong totalSize;
++    qulonglong totalFiles;
++    qulonglong totalDirs;
++    qulonglong processedSize;
++    qulonglong processedDirs;
++    qulonglong processedFiles;
++
++    bool keepOpenChecked;
++    QString caption;
++
++    KPushButton *cancelClose;
++    KPushButton *openFile;
++    KPushButton *openLocation;
++    QCheckBox   *keepOpenCheck;
++    KUrl        location;
++    QTime       startTime;
++    KPushButton *pauseButton;
++    KLineEdit *sourceEdit;
++    KLineEdit *destEdit;
++    QLabel *progressLabel;
++    QLabel *sourceInvite;
++    QLabel *destInvite;
++    QLabel *speedLabel;
++    QLabel *sizeLabel;
++    QLabel *resumeLabel;
++    QProgressBar *progressBar;
++
++    bool suspendedProperty;
++
++    void init(QWidget *parent);
++    void showTotals();
++    void setDestVisible(bool visible);
++    void checkDestination(const KUrl &dest);
++    bool keepOpen() const;
++
++public Q_SLOTS:
++    virtual void infoMessage(const QString &plain, const QString &rich);
++    virtual void description(const QString &title,
++                             const QPair<QString, QString> &field1,
++                             const QPair<QString, QString> &field2);
++    virtual void totalAmount(KJob::Unit unit, qulonglong amount);
++    virtual void processedAmount(KJob::Unit unit, qulonglong amount);
++    virtual void percent(unsigned long percent);
++    virtual void speed(unsigned long value);
++    virtual void slotClean();
++    virtual void suspended();
++    virtual void resumed();
++
++    //TODO: Misses canResume()
++
++private Q_SLOTS:
++    void _k_keepOpenToggled(bool);
++    void _k_openFile();
++    void _k_openLocation();
++    void _k_pauseResumeClicked();
++    void _k_stop();
++};
++
++
++#endif // KWIDGETJOBTRACKER_P_H
+Index: kdeui/jobs/kwidgetjobtracker.h
+===================================================================
+--- kdeui/jobs/kwidgetjobtracker.h	(revisión: 712411)
++++ kdeui/jobs/kwidgetjobtracker.h	(copia de trabajo)
+@@ -47,12 +47,27 @@
+     /**
+      * The widget associated to this tracker.
+      *
++     * @param job the job that is assigned the widget we want to get
+      * @return the widget displaying the job progresses
+      */
+-    virtual QWidget *widget();
++    virtual QWidget *widget(KJob *job);
+ 
+-    bool keepOpen() const;
++    /**
++     * Register a new job in this tracker.
++     *
++     * @param job the job to register
++     */
++    virtual void registerJob(KJob *job);
+ 
++    /**
++     * Unregister a job from this tracker.
++     *
++     * @param job the job to unregister
++     */
++    virtual void unregisterJob(KJob *job);
++
++    bool keepOpen(KJob *job) const;
++
+ protected Q_SLOTS:
+     virtual void infoMessage(KJob *job, const QString &plain, const QString &rich);
+     virtual void description(KJob *job, const QString &title,
+@@ -62,18 +77,13 @@
+     virtual void processedAmount(KJob *job, KJob::Unit unit, qulonglong amount);
+     virtual void percent(KJob *job, unsigned long percent);
+     virtual void speed(KJob *job, unsigned long value);
+-    virtual void slotClean();
++    virtual void slotClean(KJob *job);
+     virtual void suspended(KJob *job);
+     virtual void resumed(KJob *job);
+ 
+     //TODO: Misses canResume()
+ 
+-private:
+-    Q_PRIVATE_SLOT(d, void _k_keepOpenToggled(bool))
+-    Q_PRIVATE_SLOT(d, void _k_openFile())
+-    Q_PRIVATE_SLOT(d, void _k_openLocation())
+-    Q_PRIVATE_SLOT(d, void _k_pauseResumeClicked())
+-
++ private:
+     class Private;
+     Private *const d;
+ };

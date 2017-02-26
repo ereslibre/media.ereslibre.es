@@ -1,0 +1,417 @@
+##############################################################################
+# Copyright (C) 2009 Rafael Fernández López.                                 #
+#                                                                            #
+# Permission is granted to copy, distribute and/or modify this document      #
+# under the terms of the GNU Free Documentation License, Version 1.3         #
+# or any later version published by the Free Software Foundation;            #
+# with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts. #
+# A copy of the license is included in the section entitled "GNU             #
+# Free Documentation License".                                               #
+##############################################################################
+
+Git community working howto
+===========================
+
+The best thing of distributed systems is that you can experiment with them locally, as if you were
+on real life complex distributed systems.
+
+>> Starting the game
+
+    We are going to start the repository. This will allow others to clone from us, and to contribute
+    to the project.
+
+        cd ~/project
+        git init
+        -- regular git workflow
+        git commit -a
+
+>> Continuing the game
+
+    Now, imagine we have 3 people that want to contribute to this project. They will clone the main
+    repository, that is the repository of the maintainer.
+
+    Since we are cloning, automatically "origin" will point to the maintainer repository.
+
+        mkdir ~/team-members
+        mkdir ~/team-members/mariah
+        mkdir ~/team-members/john
+        mkdir ~/team-members/paul
+
+        cd ~/team-members/mariah
+        git clone ~/project
+
+        cd ~/team-members/john
+        git clone ~/project
+
+        cd ~/team-members/paul
+        git clone ~/project
+
+>> Continuing the game (step 2)
+
+    >> Mariah's changes
+
+        -- regular git workflow
+        -- send a mail to the maintainer, that our master has changes and is ready to be merged
+
+    >> John's changes
+
+        -- regular git workflow
+        -- send a mail to the maintainer, that our master has changes and is ready to be merged
+
+    >> Paul's changes
+
+        -- regular git workflow
+        -- send a mail to the maintainer, that our master has changes and is ready to be merged
+
+>> Merging it all together
+
+    We have received 3 mails from Mariah, John and Paul that they have worked on their respective
+    tasks, and they finished them successfully. Therefore, they are ready to be merged. They have
+    worked on their master branch, so we can do (and this will work forever from now):
+
+        git remote add mariah ~/team-members/mariah/project
+        git remote add john ~/team-members/john/project
+        git remote add paul ~/team-members/paul/project
+
+    Now, since they told us there are things we can merge, we fetch from them:
+
+        git fetch mariah
+        git fetch john
+        git fetch paul
+
+    Now, we can study the changes that they provided:
+
+        git diff master mariah/master
+        git diff master john/master
+        git diff master paul/master
+
+    And now, if we agree with the changes we can merge all together:
+
+        git merge mariah/master
+        git merge john/master
+        git merge paul/master
+
+    If the maintainer weren't happy, say with Paul changes, he would email Paul back telling what's
+    wrong, and he would do, after receiving the second OK from Paul:
+
+        git fetch paul
+        git diff master paul/master
+        -- now we are OK with the changes. Paul fixed the problem.
+        git merge paul/master
+
+>> Just a bit of centralization
+
+    Despite this system is completely distributed, there is always a point where everybody has to
+    agree, and therefore, accept a bit of centralization. What everybody can agree about, is that the
+    'official' master branch is on the maintainers' repository. This means that:
+
+        - mariah has still unseen john's and paul's changes
+        - john has still unseen mariah's and paul's changes
+        - paul has still unseen mariah's and john's changes
+
+    So, there we go:
+
+        cd ~/team-members/mariah/project
+        git pull origin master
+
+        cd ~/team-members/john/project
+        git pull origin master
+
+        cd ~/team-members/paul/project
+        git pull origin master
+
+    Now all them (the maintainer, mariah, john and paul) have the exact same code.
+
+>> An example
+
+    #!/bin/bash
+
+    # Copyright (C) 2009 Rafael Fernández López.
+    #
+    # Permission is granted to copy, distribute and/or modify this document
+    # under the terms of the GNU Free Documentation License, Version 1.3
+    # or any later version published by the Free Software Foundation;
+    # with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+    # A copy of the license is included in the section entitled "GNU
+    # Free Documentation License".
+
+    mkdir ~/project
+    cd project
+    echo "This is the README file" > README
+    git init
+    git add README
+    git commit -a -m "Initial project commit"
+
+    mkdir ~/team-members
+    mkdir ~/team-members/mariah
+    mkdir ~/team-members/john
+    mkdir ~/team-members/paul
+
+    cd ~/team-members/mariah
+    git clone ~/project
+    cd project
+    echo "This is a file I added (Mariah)" > mariah
+    git add mariah
+    git commit -a -m "Mariah's changes"
+    # send a mail to the maintainer. Our changes are ready
+
+    cd ~/team-members/john
+    git clone ~/project
+    cd project
+    echo "This is a file I added (John)" > john
+    git add john
+    git commit -a -m "John's changes"
+    # send a mail to the maintainer. Our changes are ready
+
+    cd ~/team-members/paul
+    git clone ~/project
+    cd project
+    echo "This is a file I added (Paul)" > paul
+    git add paul
+    git commit -a -m "Paul's changes"
+    # send a mail to the maintainer. Our changes are ready
+
+    # the maintainer receives the mails. since probably we will continue our work with this
+    # contributors, we add them to the remote list
+    cd ~/project
+    git remote add mariah ~/team-members/mariah/project
+    git remote add john ~/team-members/john/project
+    git remote add paul ~/team-members/paul/project
+
+    git fetch mariah
+    git fetch john
+    git fetch paul
+
+    git merge mariah/master
+    git merge john/master
+    git merge paul/master
+
+    # Mariah checks if there are changes in the maintainer repository (updates her own copy)
+    cd ~/team-members/mariah/project
+    git pull origin master
+
+    # John checks if there are changes in the maintainer repository (updates his own copy)
+    cd ~/team-members/john/project
+    git pull origin master
+
+    # Paul checks if there are changes in the maintainer repository (updates his copy)
+    cd ~/team-members/paul/project
+    git pull origin master
+
+    # Now everybody has the exact same copy of the code
+
+>> The real world (TM)
+
+In the real world, obviously, Mariah, John and Paul are _not_ going to be borrowing pendrives
+to each other for the rest of the team to pull from them. This would be plain crazy, but is
+_doable_, which is the important thing.
+
+Is very important to understand that this model could work if we were working on the same
+computer where we have rights to read from the others' repository.
+
+However, we tend to create servers and share things there, is more handy.
+
+In this same trend, we must understand that git is distributed in logic terms, not in physic
+terms (that in some way, it is too). This means that normally each user has his/her own
+repository where he/she can push stuff and people can pull from it. However, all repositories
+usually live in the same server. Note this is not a requirement, a team could perfectly work
+with some repositories at some server, other repositories at other server and some people
+briging their work on pendrives. This is not an issue. Not on distributed systems.
+
+So, where were we ? Ah yes, the real world. So we want to have some kind of "centralization",
+actually it is necessary for having some kind of 'order' in the project.
+
+In this case, let's suppose that there is a leader, or a 'release team' that owns a
+repository. We can consider this repository the 'official' one for that project. For instance,
+if you are going to fetch the Linux kernel sources, you are probably going to fetch them from
+Linus' repository.
+
+So in this example, we are going to work as 'sysadmins' at Acme Corp., where we will set up
+a repository for each of our 23 employees. Now they have different roles: Mariah is the
+project leader, John takes care of some part A of the project, and Paul is the responsible
+of a part B of the project. So we have some facts here:
+
+   *) At part A, there are 10 employees working, plus the part A leader, John. 11 employees.
+
+   *) At part B, there are 10 employees, plus the part B maintainer, Paul. 11 employees.
+
+   *) Mariah will only care about John and Paul's repositories. She does not care about the
+      rest of the employees repositories. She just has to make sure things get in time and
+	  tell John and Paul how their teams are going for the next milestone.
+
+   *) John will be notified by the employees that work with him on part A when there is some
+      new thing ready to get in. John will have a look at the changes, an if everything is OK
+	  he will 'merge' those changes at some branch of its own. Later on, when he has done
+	  more merges from other people of his team and he considers the work is 'done' for this
+	  milestone, he can notify Mariah for her to merge everything to the 'official' repository.
+
+   *) Same will do Paul with his team.
+
+Now, let's suppose we have to set up a brand new server at Acme Corp. Let's start:
+
+We need to create 'bare' repositories. This means that these repositories will not have an
+'active branch', what makes it perfect for servers.
+
+(DISCLAIMER: we are not going to deal with the typical ssh & friends setup. We are talking
+             _only_ about the organization of the server)
+
+For the ease of understanding, we will name only leaders repositories, and the rest will be
+kept as numbers.
+
+Let's imagine we have created a user 'git' on this system, and we are working with it. We
+also have set up all the needed ssh keys for all the employees.
+
+#!/bin/bash
+
+pushd .
+cd
+
+pushd .
+mkdir ~/mariah; cd mariah; git --bare init
+popd
+
+pushd .
+mkdir ~/john; cd john; git --bare init
+popd
+
+pushd .
+mkdir ~/paul; cd paul; git --bare init
+popd
+
+# Part A team
+
+pushd .
+mkdir ~/partA ; cd partA
+for i in `seq 1 10`;
+do
+		pushd .
+		mkdir "employee$1" ; cd "employee$1"; git --bare init
+		popd
+		
+done
+popd
+
+# Part A team
+
+pushd .
+mkdir ~/partB ; cd partB
+for i in `seq 1 10`;
+do
+		pushd .
+		mkdir "employee$1" ; cd "employee$1"; git --bare init
+		popd
+		
+done
+popd
+
+popd
+
+Now with this script, for example, Mariah is going to push all the project, so the rest of
+the team can start to work, so she types at her project root folder:
+
+git init
+git add *
+git commit -a -m "Initial import. Hi git !!"
+git remote add origin git@acmecompany.com/mariah
+git remote add john git://acmecompany.com/john
+git remote add paul git://acmecompany.com/paul
+git push origin master
+
+Now, the project is at her repository. She mails all the employees notifying the repository
+is ready to be cloned.
+
+Now, there are several ways of doing the rest, but lets pick one of them:
+
+John and Paul type the same thing, each one at their own computer:
+
+git clone git@acmecompany.com/mariah project
+cd project
+git rm origin
+git remote add origin git@acmecompany.com/john    # paul, if it is paul
+git remote add mariah git://acmecompany.com/mariah # they both need this. she is the leader,
+                                                   # they will have to pull from her
+git push origin master
+
+-- OR --
+
+git clone git@acmecompany.com/john project # paul, if it is paul
+cd project
+git remote add mariah git://acmecompany.com/mariah
+git pull mariah master
+git push origin master
+
+Now, all part A employees (and part B) do:
+
+git clone git@acmecompany.com/mariah project
+cd project
+git rm origin
+git remote add origin git@acmecompany.com/partA/employeeX  # partB if you are a partB employee, and
+       	   			   									   # your employee number at X
+git remote add john git://acmecompany.com/john # paul if you are a partB developer. We will
+			 								   # pull from him.
+
+-- OR --
+
+git clone git@acmecompany.com/partA/employeeX project
+cd project
+git remote add john git://acmecompany.com/john
+git pull john master
+git push origin master
+
+>> Mariah's workflow
+
+John sends her an email. He has merged changes from 5 different repositories, and that completes
+something worth being sent itself to the 'official' repository. Everything is at his 'master'
+branch, as he said on the email. She trusts him, so she goes for it:
+
+git pull john master
+git push origin master
+
+>> John and Paul workflow
+
+An employee notifies he has finished some work. Let's suppose we are on partA of the project, so
+we are right now John. John has to review the patch in order to determine if it needs polishing,
+or if he can merge it directly. So he does:
+
+git fetch git://acmecompany.com/partA/employee8 master
+git diff master FETCH_HEAD
+
+John is OK with the changes, so he proceed:
+
+git merge FETCH_HEAD
+git push origin master
+
+Now, after some merges, John will notify Mariah that something is ready by email, and she can
+merge it all together on the 'official' repository.
+
+After some time writing long URL's, John decides that he will add remotes for the most active
+employees, for example, employee8:
+
+git remote add employee8 git@acmecompany.com/partA/employee8
+
+so the same operations, would have been:
+
+git fetch employee8
+git diff master employee8/master
+git merge employee8/master
+git push origin master
+
+	>> Updating his copy
+
+	   John needs to update his copy everyday. This is because Paul could have finished some work
+	   Mariah has merged on the 'official' repo, but he has still unseen. For this operation John
+	   will perform:
+
+	   		git pull mariah origin
+
+	   (NOTE: git pull = git fetch + git merge). We are going to do it on one step, since we don't
+	   have to review such a merge, and we trust all the changes.
+
+>> An employee
+
+Let's suppose we work on partA of the project, so our boss is John.
+
+[TODO]
+
+                                                                            Rafael Fernández López
+                                                             ereslibre_no at spam_ereslibre dot es

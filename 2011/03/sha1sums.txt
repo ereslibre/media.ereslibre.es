@@ -1,0 +1,1 @@
+26bd62b30c65e2e509f781201e74cfae33b3439a  libbluedevil-v1.8.1.tar.bz2

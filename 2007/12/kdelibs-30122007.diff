@@ -1,0 +1,29 @@
+Index: kdecore/io/kurl.cpp
+===================================================================
+--- kdecore/io/kurl.cpp	(revisión: 753863)
++++ kdecore/io/kurl.cpp	(copia de trabajo)
+@@ -1400,8 +1400,23 @@
+   return QString( QChar( '?' ) ) + QString::fromAscii( encodedQuery() );
+ }
+ 
+-void KUrl::_setEncodedUrl(const QByteArray& url)
++void KUrl::_setEncodedUrl(const QByteArray& _url)
+ {
++  // Force the url to end with only one trailing slash if it had any.
++  // This will prevent from setEncodedUrl() to remove all trailing slashes
++  // in the case they were two, for instance, resulting in an invalid
++  // URL (ereslibre).
++  int trailingSlashesToRemove = -1;
++  int pos = _url.count() - 1;
++  if (_url.endsWith('/')) {
++    while (pos >= 0 && _url[pos] == QLatin1Char('/')) {
++      ++trailingSlashesToRemove;
++      --pos;
++    }
++  }
++
++  QByteArray url = _url.mid(0, _url.count() - trailingSlashesToRemove);
++
+   setEncodedUrl(url, QUrl::TolerantMode);
+   if (!isValid()) // see unit tests referring to N183630/task 183874
+     setUrl(url, QUrl::TolerantMode);

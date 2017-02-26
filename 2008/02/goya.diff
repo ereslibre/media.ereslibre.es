@@ -1,0 +1,37 @@
+Index: libs/goya/goya/goya.cpp
+===================================================================
+--- libs/goya/goya/goya.cpp	(revisión: 770554)
++++ libs/goya/goya/goya.cpp	(copia de trabajo)
+@@ -67,6 +67,11 @@ void Canvas::Private::slotCurrentChanged
+     itemView->viewport()->update();
+ }
+ 
++void Canvas::Private::slotSelectionModelDestroyed()
++{
++    selectionModel = 0;
++}
++
+ Canvas::Canvas(QAbstractItemView *itemView, QObject *parent)
+     : QAbstractItemDelegate(parent)
+     , d(new Private(this))
+@@ -267,6 +272,8 @@ bool Canvas::eventFilter(QObject *watche
+         {
+             QObject::connect(d->selectionModel, SIGNAL(currentChanged(QModelIndex,QModelIndex)),
+                              d, SLOT(slotCurrentChanged(QModelIndex,QModelIndex)));
++            QObject::connect(d->selectionModel, SIGNAL(destroyed(QObject*)),
++                             d, SLOT(slotSelectionModelDestroyed()));
+         }
+     }
+ 
+Index: libs/goya/goya/goya_p.h
+===================================================================
+--- libs/goya/goya/goya_p.h	(revisión: 769766)
++++ libs/goya/goya/goya_p.h	(copia de trabajo)
+@@ -57,6 +57,7 @@ public:
+ 
+ public Q_SLOTS:
+     void slotCurrentChanged(const QModelIndex &currentIndex, const QModelIndex &previousIndex);
++    void slotSelectionModelDestroyed();
+ };
+ 
+ 

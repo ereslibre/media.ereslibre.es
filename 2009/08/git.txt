@@ -1,0 +1,205 @@
+##############################################################################
+# Copyright (C) 2009 Rafael Fernández López.                                 #
+#                                                                            #
+# Permission is granted to copy, distribute and/or modify this document      #
+# under the terms of the GNU Free Documentation License, Version 1.3         #
+# or any later version published by the Free Software Foundation;            #
+# with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts. #
+# A copy of the license is included in the section entitled "GNU             #
+# Free Documentation License".                                               #
+##############################################################################
+
+Git community working howto
+===========================
+
+The best thing of distributed systems is that you can experiment with them locally, as if you were
+on real life complex distributed systems.
+
+>> Starting the game
+
+    We are going to start the repository. This will allow others to clone from us, and to contribute
+    to the project.
+
+        cd ~/project
+        git init
+        -- regular git workflow
+        git commit -a
+
+>> Continuing the game
+
+    Now, imagine we have 3 people that want to contribute to this project. They will clone the main
+    repository, that is the repository of the maintainer.
+
+    Since we are cloning, automatically "origin" will point to the maintainer repository.
+
+        mkdir ~/team-members
+        mkdir ~/team-members/mariah
+        mkdir ~/team-members/john
+        mkdir ~/team-members/paul
+
+        cd ~/team-members/mariah
+        git clone ~/project
+
+        cd ~/team-members/john
+        git clone ~/project
+
+        cd ~/team-members/paul
+        git clone ~/project
+
+>> Continuing the game (step 2)
+
+    >> Mariah's changes
+
+        -- regular git workflow
+        -- send a mail to the maintainer, that our master has changes and is ready to be merged
+
+    >> John's changes
+
+        -- regular git workflow
+        -- send a mail to the maintainer, that our master has changes and is ready to be merged
+
+    >> Paul's changes
+
+        -- regular git workflow
+        -- send a mail to the maintainer, that our master has changes and is ready to be merged
+
+>> Merging it all together
+
+    We have received 3 mails from Mariah, John and Paul that they have worked on their respective
+    tasks, and they finished them successfully. Therefore, they are ready to be merged. They have
+    worked on their master branch, so we can do (and this will work forever from now):
+
+        git remote add mariah ~/team-members/mariah/project
+        git remote add john ~/team-members/john/project
+        git remote add paul ~/team-members/paul/project
+
+    Now, since they told us there are things we can merge, we fetch from them:
+
+        git fetch mariah
+        git fetch john
+        git fetch paul
+
+    Now, we can study the changes that they provided:
+
+        git diff master mariah/master
+        git diff master john/master
+        git diff master paul/master
+
+    And now, if we agree with the changes we can merge all together:
+
+        git merge mariah/master
+        git merge john/master
+        git merge paul/master
+
+    If the maintainer weren't happy, say with Paul changes, he would email Paul back telling what's
+    wrong, and he would do, after receiving the second OK from Paul:
+
+        git fetch paul
+        git diff master paul/master
+        -- now we are OK with the changes. Paul fixed the problem.
+        git merge paul/master
+
+>> Just a bit of centralization
+
+    Despite this system is completely distributed, there is always a point where everybody has to
+    agree, and therefore, accept a bit of centralization. What everybody can agree about, is that the
+    'official' master branch is on the maintainers' repository. This means that:
+
+        - mariah has still unseen john's and paul's changes
+        - john has still unseen mariah's and paul's changes
+        - paul has still unseen mariah's and john's changes
+
+    So, there we go:
+
+        cd ~/team-members/mariah/project
+        git pull origin master
+
+        cd ~/team-members/john/project
+        git pull origin master
+
+        cd ~/team-members/paul/project
+        git pull origin master
+
+    Now all them (the maintainer, mariah, john and paul) have the exact same code.
+
+>> An example
+
+    #!/bin/bash
+
+    # Copyright (C) 2009 Rafael Fernández López.
+    #
+    # Permission is granted to copy, distribute and/or modify this document
+    # under the terms of the GNU Free Documentation License, Version 1.3
+    # or any later version published by the Free Software Foundation;
+    # with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+    # A copy of the license is included in the section entitled "GNU
+    # Free Documentation License".
+
+    mkdir ~/project
+    cd project
+    echo "This is the README file" > README
+    git init
+    git add README
+    git commit -a -m "Initial project commit"
+
+    mkdir ~/team-members
+    mkdir ~/team-members/mariah
+    mkdir ~/team-members/john
+    mkdir ~/team-members/paul
+
+    cd ~/team-members/mariah
+    git clone ~/project
+    cd project
+    echo "This is a file I added (Mariah)" > mariah
+    git add mariah
+    git commit -a -m "Mariah's changes"
+    # send a mail to the maintainer. Our changes are ready
+
+    cd ~/team-members/john
+    git clone ~/project
+    cd project
+    echo "This is a file I added (John)" > john
+    git add john
+    git commit -a -m "John's changes"
+    # send a mail to the maintainer. Our changes are ready
+
+    cd ~/team-members/paul
+    git clone ~/project
+    cd project
+    echo "This is a file I added (Paul)" > paul
+    git add paul
+    git commit -a -m "Paul's changes"
+    # send a mail to the maintainer. Our changes are ready
+
+    # the maintainer receives the mails. since probably we will continue our work with this
+    # contributors, we add them to the remote list
+    cd ~/project
+    git remote add mariah ~/team-members/mariah/project
+    git remote add john ~/team-members/john/project
+    git remote add paul ~/team-members/paul/project
+
+    git fetch mariah
+    git fetch john
+    git fetch paul
+
+    git merge mariah/master
+    git merge john/master
+    git merge paul/master
+
+    # Mariah checks if there are changes in the maintainer repository (updates her own copy)
+    cd ~/team-members/mariah/project
+    git pull origin master
+
+    # John checks if there are changes in the maintainer repository (updates his own copy)
+    cd ~/team-members/john/project
+    git pull origin master
+
+    # Paul checks if there are changes in the maintainer repository (updates his copy)
+    cd ~/team-members/paul/project
+    git pull origin master
+
+    # Now everybody has the exact same copy of the code
+
+
+                                                                            Rafael Fernández López
+                                                             ereslibre_no at spam_ereslibre dot es

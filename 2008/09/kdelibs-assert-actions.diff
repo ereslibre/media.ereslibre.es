@@ -1,0 +1,15 @@
+diff --git a/kdeui/actions/kstandardaction.cpp b/kdeui/actions/kstandardaction.cpp
+index f439787..fcb381f 100644
+--- a/kdeui/actions/kstandardaction.cpp
++++ b/kdeui/actions/kstandardaction.cpp
+@@ -110,7 +110,9 @@ KAction *create(StandardAction id, const QObject *recvr, const char *slot, QObje
+       case AboutApp:
+       case HelpContents:
+       {
+-        const KAboutData *aboutData = KGlobal::mainComponent().aboutData();
++        Q_ASSERT_X(KGlobal::mainComponent() == KGlobal::activeComponent(), "create", "You can't create an action with KStandardAction or...");
++
++        const KAboutData *aboutData = KGlobal::activeComponent().aboutData();
+         /* TODO KDE4
+         const KAboutData *aboutData;
+         if ( parent )

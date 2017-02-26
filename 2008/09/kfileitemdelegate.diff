@@ -1,0 +1,23 @@
+diff --git a/kio/kio/kfileitemdelegate.cpp b/kio/kio/kfileitemdelegate.cpp
+index 15968be..70be21a 100644
+--- a/kio/kio/kfileitemdelegate.cpp
++++ b/kio/kio/kfileitemdelegate.cpp
+@@ -1323,8 +1323,16 @@ bool KFileItemDelegate::helpEvent(QHelpEvent *event, QAbstractItemView *view, co
+ {
+     Q_UNUSED(event)
+     Q_UNUSED(view)
+-    Q_UNUSED(option)
+-    Q_UNUSED(index)
++
++//     const QStyleOptionViewItemV4 *option = qstyleoption_cast<const QStyleOptionViewItemV4*>(&_option);
++
++    const QString str(index.model()->data(index, KDirModel::Name).toString());
++    QTextLayout layout(str, option.font);
++    const QSize size = d->layoutText(layout, option, str, option.rect.size());
++    const QString finalStr = d->elidedText(layout, option, size);
++    if (str != finalStr) {
++        return true;
++    }
+ 
+     return false;
+ }

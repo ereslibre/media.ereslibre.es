@@ -1,0 +1,134 @@
+diff --git a/kontact/src/iconsidepane.cpp b/kontact/src/iconsidepane.cpp
+index c05cd6d..cb5367b 100644
+--- a/kontact/src/iconsidepane.cpp
++++ b/kontact/src/iconsidepane.cpp
+@@ -27,6 +27,8 @@
+ 
+ #include <QtGui/QStringListModel>
+ #include <QtGui/QSortFilterProxyModel>
++#include <QtGui/QDragEnterEvent>
++#include <QtGui/QDragMoveEvent>
+ 
+ #include <KLocalizedString>
+ #include <KFileItemDelegate>
+@@ -43,7 +45,7 @@ class Model
+ {
+ public:
+   enum SpecialRoles {
+-    PluginName = 32
++    PluginName = Qt::UserRole
+   };
+ 
+   Model(Navigator *parentNavigator = 0)
+@@ -58,9 +60,21 @@ public:
+ 
+   virtual Qt::ItemFlags flags(const QModelIndex &index) const
+   {
+-    Q_UNUSED(index);
++    Qt::ItemFlags flags = QStringListModel::flags(index);
++
++    if (index.isValid()) {
++      if (static_cast<Kontact::Plugin*>(index.internalPointer())->disabled()) {
++        flags &= ~Qt::ItemIsEnabled;
++        flags &= ~Qt::ItemIsSelectable;
++        flags &= ~Qt::ItemIsDropEnabled;
++      } else {
++        flags |= Qt::ItemIsDropEnabled;
++      }
++    } else {
++        flags &= ~Qt::ItemIsDropEnabled;
++    }
+ 
+-    return Qt::ItemIsSelectable | Qt::ItemIsEnabled; // they can't be edited
++    return flags;
+   }
+ 
+   virtual QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const
+@@ -225,6 +239,10 @@ Navigator::Navigator(SidePaneBase *parent)
+   sortFilterProxyModel->setSourceModel(mModel);
+   setModel(sortFilterProxyModel);
+ 
++  setDragDropMode(DropOnly);
++  viewport()->setAcceptDrops(true);
++  setDropIndicatorShown(true);
++
+   connect(selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex)), this, SLOT(slotCurrentChanged(QModelIndex)));
+ }
+ 
+@@ -256,8 +274,60 @@ void Navigator::setCurrentPlugin(const QString &plugin)
+   }
+ }
+ 
++void Navigator::dragEnterEvent(QDragEnterEvent *event)
++{
++  if (event->proposedAction() == Qt::IgnoreAction) {
++    return;
++  }
++  event->acceptProposedAction();
++}
++
++void Navigator::dragMoveEvent(QDragMoveEvent *event)
++{
++  if (event->proposedAction() == Qt::IgnoreAction) {
++    return;
++  }
++  
++  const QModelIndex dropIndex = indexAt(event->pos());
++
++  if (!dropIndex.isValid() || !(dropIndex.model()->flags(dropIndex) & Qt::ItemIsEnabled)) {
++    event->setAccepted(false);
++    return;
++  } else {
++    const QModelIndex sourceIndex = static_cast<const QSortFilterProxyModel*>(model())->mapToSource(dropIndex);
++    Kontact::Plugin *plugin = static_cast<Kontact::Plugin*>(sourceIndex.internalPointer());
++    if (!plugin->canDecodeMimeData(event->mimeData())) {
++      event->setAccepted(false);
++      return;
++    }
++  }
++
++  event->acceptProposedAction();
++}
++
++void Navigator::dropEvent(QDropEvent *event)
++{
++  if (event->proposedAction() == Qt::IgnoreAction) {
++    return;
++  }
++  
++  const QModelIndex dropIndex = indexAt(event->pos());
++
++  if (!dropIndex.isValid()) {
++    return;
++  } else {
++    const QModelIndex sourceIndex = static_cast<const QSortFilterProxyModel*>(model())->mapToSource(dropIndex);
++    Kontact::Plugin *plugin = static_cast<Kontact::Plugin*>(sourceIndex.internalPointer());
++    plugin->processDropEvent(event);
++  }
++}
++
+ void Navigator::slotCurrentChanged(const QModelIndex &current)
+ {
++  if (!(current.model()->flags(current) & Qt::ItemIsEnabled)) {
++    return;
++  }
++
+   QModelIndex source = static_cast<const QSortFilterProxyModel*>(current.model())->mapToSource(current);
+ 
+   emit pluginActivated(static_cast<Kontact::Plugin*>(source.internalPointer()));
+diff --git a/kontact/src/iconsidepane.h b/kontact/src/iconsidepane.h
+index 795e35e..a74c62d 100644
+--- a/kontact/src/iconsidepane.h
++++ b/kontact/src/iconsidepane.h
+@@ -69,6 +69,11 @@ Q_OBJECT
+   signals:
+     void pluginActivated(Kontact::Plugin *plugin);
+ 
++  protected:
++    virtual void dragEnterEvent(QDragEnterEvent *event);
++    virtual void dragMoveEvent(QDragMoveEvent *event);
++    virtual void dropEvent(QDropEvent *event);
++
+   private slots:
+     void slotCurrentChanged(const QModelIndex &current);
+     void slotActionTriggered(bool checked);

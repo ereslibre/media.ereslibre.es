@@ -1,0 +1,29 @@
+diff --git a/kutils/kpluginselector.cpp b/kutils/kpluginselector.cpp
+index 814b595..35aa824 100644
+--- a/kutils/kpluginselector.cpp
++++ b/kutils/kpluginselector.cpp
+@@ -685,6 +685,12 @@ void KPluginSelector::Private::PluginDelegate::updateItemWidgets(const QList<QWi
+         aboutPushButton->setVisible(false);
+         configurePushButton->setVisible(false);
+     } else {
++        if (!checkBoxInfoMap.contains(index)) {
++            PluginEntry *pe = index.model()->data(index, PluginEntryRole).value<PluginEntry*>();
++            KConfigGroup cg(pe->cfgGroup);
++            const_cast<PluginDelegate*>(this)->checkBoxInfoMap.insert(index, !cg.isValid() || !cg.isEntryImmutable(QString("%1Enabled").arg(pe->pluginInfo.pluginName())));
++        }
++        checkBox->setEnabled(checkBoxInfoMap[index]);
+         checkBox->setChecked(index.model()->data(index, Qt::CheckStateRole).toBool());
+         configurePushButton->setVisible(index.model()->data(index, ServicesCountRole).toBool());
+         configurePushButton->setEnabled(index.model()->data(index, Qt::CheckStateRole).toBool());
+diff --git a/kutils/kpluginselector_p.h b/kutils/kpluginselector_p.h
+index 68d8a7e..6a290f3 100644
+--- a/kutils/kpluginselector_p.h
++++ b/kutils/kpluginselector_p.h
+@@ -212,6 +212,7 @@ private:
+     QCheckBox *checkBox;
+     QPushButton *pushButton;
+     QList<KCModuleProxy*> moduleProxyList;
++    QMap<QPersistentModelIndex, bool> checkBoxInfoMap;
+ 
+     KPluginSelector::Private *pluginSelector_d;
+ };

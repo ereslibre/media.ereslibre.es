@@ -1,0 +1,16 @@
+Index: workspace/plasma/applets/trash/trash.cpp
+===================================================================
+--- workspace/plasma/applets/trash/trash.cpp	(revisión: 784671)
++++ workspace/plasma/applets/trash/trash.cpp	(copia de trabajo)
+@@ -205,9 +205,9 @@ void Trash::setIcon()
+         }
+     } else {
+         m_icon->setIcon(KIcon("user-trash"));
+-        m_data.subText = i18n("Empty");
++        m_data.subText = i18nc("The trash is empty. This is not an action, but an state", "Empty");
+         if (m_showText){
+-            m_icon->setInfoText(i18n("Empty"));
++            m_icon->setInfoText(i18nc("The trash is empty. This is not an action, but an state", "Empty"));
+         }
+     }
+ 

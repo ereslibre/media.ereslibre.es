@@ -1,0 +1,12 @@
+diff --git a/apps/konqueror/src/konqviewmanager.cpp b/apps/konqueror/src/konqviewmanager.cpp
+index e9669fa..c0d983d 100644
+--- a/apps/konqueror/src/konqviewmanager.cpp
++++ b/apps/konqueror/src/konqviewmanager.cpp
+@@ -324,6 +324,7 @@ void KonqViewManager::breakOffTab( KonqFrameBase* currentFrame, const QSize& win
+   mainWindow->enableAllActions( true );
+   mainWindow->resize( windowSize );
+   mainWindow->activateChild();
++  mainWindow->applyMainWindowSettings( m_pMainWindow->autoSaveConfigGroup() );
+   mainWindow->show();
+ 
+ #ifdef DEBUG_VIEWMGR

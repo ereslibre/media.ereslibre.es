@@ -1,0 +1,301 @@
+Index: apps/dolphin/src/dolphincategorydrawer.cpp
+===================================================================
+--- apps/dolphin/src/dolphincategorydrawer.cpp	(revisión: 754920)
++++ apps/dolphin/src/dolphincategorydrawer.cpp	(copia de trabajo)
+@@ -118,9 +118,9 @@
+ 
+     QPainterPath path;
+     path.addRect(option.rect.left(),
+-                 option.rect.bottom() - 2,
++                 option.rect.bottom() - 1,
+                  option.rect.width(),
+-                 2);
++                 1);
+ 
+     QLinearGradient gradient(option.rect.topLeft(),
+                              option.rect.bottomRight());
+@@ -241,7 +241,7 @@
+ 
+     if (paintText) {
+         opt.rect.setTop(option.rect.top() + (iconSize / 4));
+-        opt.rect.setBottom(opt.rect.bottom() - 2);
++        opt.rect.setBottom(opt.rect.bottom() - 1);
+         painter->setPen(color);
+ 
+         QRect textRect = opt.rect;
+@@ -259,9 +259,23 @@
+     painter->restore();
+ }
+ 
+-int DolphinCategoryDrawer::categoryHeight(const QStyleOption &option) const
++int DolphinCategoryDrawer::categoryHeight(const QModelIndex &index, const QStyleOption &option) const
+ {
+     int iconSize = KIconLoader::global()->currentSize(KIconLoader::Small);
++    int heightWithoutIcon = option.fontMetrics.height() + (iconSize / 4) * 2 + 1; /* 1 pixel-width gradient */
++    bool paintIcon;
+ 
+-    return qMax(option.fontMetrics.height() + (iconSize / 4) * 2 + 2, iconSize + (iconSize / 4) * 2 + 2) /* 2 gradient */;
++    switch (index.column()) {
++        case KDirModel::Owner:
++        case KDirModel::Type:
++            paintIcon = true;
++            break;
++        default:
++            paintIcon = false;
++    }
++
++    if (paintIcon)
++        return qMax(heightWithoutIcon, iconSize + (iconSize / 4) * 2 + 1) /* 1 pixel-width gradient */;
++
++    return heightWithoutIcon;
+ }
+Index: apps/dolphin/src/kcategorydrawer.h
+===================================================================
+--- apps/dolphin/src/kcategorydrawer.h	(revisión: 754920)
++++ apps/dolphin/src/kcategorydrawer.h	(copia de trabajo)
+@@ -46,7 +46,7 @@
+                               const QStyleOption &option,
+                               QPainter *painter) const;
+ 
+-    virtual int categoryHeight(const QStyleOption &option) const;
++    virtual int categoryHeight(const QModelIndex &index, const QStyleOption &option) const;
+ };
+ 
+ #endif // KCATEGORYDRAWER_H
+Index: apps/dolphin/src/dolphincategorydrawer.h
+===================================================================
+--- apps/dolphin/src/dolphincategorydrawer.h	(revisión: 754920)
++++ apps/dolphin/src/dolphincategorydrawer.h	(copia de trabajo)
+@@ -39,7 +39,7 @@
+     virtual void drawCategory(const QModelIndex &index, int sortRole,
+                               const QStyleOption &option, QPainter *painter) const;
+ 
+-    virtual int categoryHeight(const QStyleOption &option) const;
++    virtual int categoryHeight(const QModelIndex &index, const QStyleOption &option) const;
+ };
+ 
+ #endif // DOLPHINCATEGORYDRAWER_H
+Index: apps/dolphin/src/kcategorydrawer.cpp
+===================================================================
+--- apps/dolphin/src/kcategorydrawer.cpp	(revisión: 754920)
++++ apps/dolphin/src/kcategorydrawer.cpp	(copia de trabajo)
+@@ -35,7 +35,7 @@
+ }
+ 
+ void KCategoryDrawer::drawCategory(const QModelIndex &index,
+-                                   int sortRole,
++                                   int /*sortRole*/,
+                                    const QStyleOption &option,
+                                    QPainter *painter) const
+ {
+@@ -66,7 +66,7 @@
+ 
+     if (option.direction == Qt::LeftToRight)
+     {
+-        opt.rect.setLeft(opt.rect.left() + (iconSize / 4));
++       opt.rect.setLeft(opt.rect.left() + (iconSize / 4));
+     }
+     else
+     {
+@@ -103,15 +103,13 @@
+ 
+     QFont painterFont = painter->font();
+     painterFont.setWeight(QFont::Bold);
+-    painterFont.setPointSize(painterFont.pointSize() + 2);
+     QFontMetrics metrics(painterFont);
+     painter->setFont(painterFont);
+ 
+-    QPainterPath path;
+-    path.addRect(option.rect.left(),
+-                 option.rect.bottom() - 2,
+-                 option.rect.width(),
+-                 2);
++    QRect lineRect(option.rect.left(),
++                   option.rect.bottom() - 1,
++                   option.rect.width(),
++                   1);
+ 
+     QLinearGradient gradient(option.rect.topLeft(),
+                              option.rect.bottomRight());
+@@ -120,8 +118,7 @@
+     gradient.setColorAt(option.direction == Qt::LeftToRight ? 1
+                                                             : 0, Qt::transparent);
+ 
+-    painter->setBrush(gradient);
+-    painter->fillPath(path, gradient);
++    painter->fillRect(lineRect, gradient);
+ 
+     painter->setPen(color);
+ 
+@@ -131,7 +128,9 @@
+     painter->restore();
+ }
+ 
+-int KCategoryDrawer::categoryHeight(const QStyleOption &option) const
++int KCategoryDrawer::categoryHeight(const QModelIndex &index, const QStyleOption &option) const
+ {
+-    return option.fontMetrics.height() + 6 /* 4 separator; 2 gradient */;
++    Q_UNUSED(index);
++
++    return option.fontMetrics.height() + 4 /* 3 separator; 1 gradient */;
+ }
+Index: apps/dolphin/src/kcategorizedview.cpp
+===================================================================
+--- apps/dolphin/src/kcategorizedview.cpp	(revisión: 754920)
++++ apps/dolphin/src/kcategorizedview.cpp	(copia de trabajo)
+@@ -129,12 +129,12 @@
+     if (listView->layoutDirection() == Qt::LeftToRight)
+     {
+         retRect = QRect(listView->spacing(), listView->spacing() * 2 +
+-                        categoryDrawer->categoryHeight(listView->viewOptions()), 0, 0);
++                        categoryDrawer->categoryHeight(index, listView->viewOptions()), 0, 0);
+     }
+     else
+     {
+         retRect = QRect(listView->viewport()->width() - listView->spacing(), listView->spacing() * 2 +
+-                        categoryDrawer->categoryHeight(listView->viewOptions()), 0, 0);
++                        categoryDrawer->categoryHeight(index, listView->viewOptions()), 0, 0);
+     }
+ 
+     int viewportWidth = listView->viewport()->width() - listView->spacing();
+@@ -189,7 +189,7 @@
+ 
+         retRect.setTop(retRect.top() +
+                        (rowsInt * itemHeight) +
+-                       categoryDrawer->categoryHeight(listView->viewOptions()) +
++                       categoryDrawer->categoryHeight(index, listView->viewOptions()) +
+                        listView->spacing() * 2);
+ 
+         if (listView->gridSize().isEmpty())
+@@ -273,7 +273,7 @@
+ 
+         retRect.setTop(retRect.top() +
+                        (rowsInt * itemHeight) +
+-                       categoryDrawer->categoryHeight(listView->viewOptions()) +
++                       categoryDrawer->categoryHeight(index, listView->viewOptions()) +
+                        listView->spacing() * 2);
+ 
+         if (listView->gridSize().isEmpty())
+@@ -283,7 +283,7 @@
+         }
+     }
+ 
+-    retRect.setHeight(categoryDrawer->categoryHeight(listView->viewOptions()));
++    retRect.setHeight(categoryDrawer->categoryHeight(index, listView->viewOptions()));
+ 
+     return retRect;
+ }
+Index: workspace/systemsettings/kcategorizedview.cpp
+===================================================================
+--- workspace/systemsettings/kcategorizedview.cpp	(revisión: 754920)
++++ workspace/systemsettings/kcategorizedview.cpp	(copia de trabajo)
+@@ -129,12 +129,12 @@
+     if (listView->layoutDirection() == Qt::LeftToRight)
+     {
+         retRect = QRect(listView->spacing(), listView->spacing() * 2 +
+-                        categoryDrawer->categoryHeight(listView->viewOptions()), 0, 0);
++                        categoryDrawer->categoryHeight(index, listView->viewOptions()), 0, 0);
+     }
+     else
+     {
+         retRect = QRect(listView->viewport()->width() - listView->spacing(), listView->spacing() * 2 +
+-                        categoryDrawer->categoryHeight(listView->viewOptions()), 0, 0);
++                        categoryDrawer->categoryHeight(index, listView->viewOptions()), 0, 0);
+     }
+ 
+     int viewportWidth = listView->viewport()->width() - listView->spacing();
+@@ -189,7 +189,7 @@
+ 
+         retRect.setTop(retRect.top() +
+                        (rowsInt * itemHeight) +
+-                       categoryDrawer->categoryHeight(listView->viewOptions()) +
++                       categoryDrawer->categoryHeight(index, listView->viewOptions()) +
+                        listView->spacing() * 2);
+ 
+         if (listView->gridSize().isEmpty())
+@@ -273,7 +273,7 @@
+ 
+         retRect.setTop(retRect.top() +
+                        (rowsInt * itemHeight) +
+-                       categoryDrawer->categoryHeight(listView->viewOptions()) +
++                       categoryDrawer->categoryHeight(index, listView->viewOptions()) +
+                        listView->spacing() * 2);
+ 
+         if (listView->gridSize().isEmpty())
+@@ -283,7 +283,7 @@
+         }
+     }
+ 
+-    retRect.setHeight(categoryDrawer->categoryHeight(listView->viewOptions()));
++    retRect.setHeight(categoryDrawer->categoryHeight(index, listView->viewOptions()));
+ 
+     return retRect;
+ }
+Index: workspace/systemsettings/kcategorydrawer.h
+===================================================================
+--- workspace/systemsettings/kcategorydrawer.h	(revisión: 754920)
++++ workspace/systemsettings/kcategorydrawer.h	(copia de trabajo)
+@@ -44,7 +44,7 @@
+                               const QStyleOption &option,
+                               QPainter *painter) const;
+ 
+-    virtual int categoryHeight(const QStyleOption &option) const;
++    virtual int categoryHeight(const QModelIndex &index, const QStyleOption &option) const;
+ };
+ 
+ #endif // KCATEGORYDRAWER_H
+Index: workspace/systemsettings/kcategorydrawer.cpp
+===================================================================
+--- workspace/systemsettings/kcategorydrawer.cpp	(revisión: 754920)
++++ workspace/systemsettings/kcategorydrawer.cpp	(copia de trabajo)
+@@ -66,7 +66,7 @@
+ 
+     if (option.direction == Qt::LeftToRight)
+     {
+-        opt.rect.setLeft(opt.rect.left() + (iconSize / 4));
++       opt.rect.setLeft(opt.rect.left() + (iconSize / 4));
+     }
+     else
+     {
+@@ -103,15 +103,13 @@
+ 
+     QFont painterFont = painter->font();
+     painterFont.setWeight(QFont::Bold);
+-    painterFont.setPointSize(painterFont.pointSize() + 2);
+     QFontMetrics metrics(painterFont);
+     painter->setFont(painterFont);
+ 
+-    QPainterPath path;
+-    path.addRect(option.rect.left(),
+-                 option.rect.bottom() - 2,
+-                 option.rect.width(),
+-                 2);
++    QRect lineRect(option.rect.left(),
++                   option.rect.bottom() - 1,
++                   option.rect.width(),
++                   1);
+ 
+     QLinearGradient gradient(option.rect.topLeft(),
+                              option.rect.bottomRight());
+@@ -120,8 +118,7 @@
+     gradient.setColorAt(option.direction == Qt::LeftToRight ? 1
+                                                             : 0, Qt::transparent);
+ 
+-    painter->setBrush(gradient);
+-    painter->fillPath(path, gradient);
++    painter->fillRect(lineRect, gradient);
+ 
+     painter->setPen(color);
+ 
+@@ -131,7 +128,9 @@
+     painter->restore();
+ }
+ 
+-int KCategoryDrawer::categoryHeight(const QStyleOption &option) const
++int KCategoryDrawer::categoryHeight(const QModelIndex &index, const QStyleOption &option) const
+ {
+-    return option.fontMetrics.height() + 6 /* 4 separator; 2 gradient */;
++    Q_UNUSED(index);
++
++    return option.fontMetrics.height() + 4 /* 3 separator; 1 gradient */;
+ }

@@ -1,0 +1,17 @@
+Index: runtime/kstyles/oxygen/oxygen.cpp
+===================================================================
+--- runtime/kstyles/oxygen/oxygen.cpp	(revisión: 790353)
++++ runtime/kstyles/oxygen/oxygen.cpp	(copia de trabajo)
+@@ -3108,6 +3108,12 @@ QIcon OxygenStyle::standardIconImplement
+ 
+ void OxygenStyle::renderWindowBackground(QPainter *p, const QRect &clipRect, const QWidget *widget) const
+ {
++#if 1
++    // TODO: do not apply to all widgets. See what happens to buttons borders, for instance:
++    //       http://media.ereslibre.es/2008/03/goyatest1.png
++    return;
++#endif
++
+     QRect r = widget->rect();
+     QColor color = widget->palette().color(widget->backgroundRole());
+     int splitY = qMin(300, 3*r.height()/4);
